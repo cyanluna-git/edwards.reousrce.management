@@ -1,0 +1,56 @@
+﻿"제목","Description"
+"Design","- 설계, 3D 모델링
+- 개념 설계 ( Mechanical, Software), Logic  Design, Archnitechure 설계
+- Electrical Design
+- PLM 작업(ECR, ECO등록, CA 문서 작성 등)
+- BOM 작성"
+"Verification & Validation","- Software Test (Simulation Test, Actual System Test) 
+- FT&CC, Field Test, FAT"
+"SW Develop","- Software Coding, Commit, Merge, Debugging, Manual Test 등 Software 개발 활동"
+"Documentation","-검토(Review), 설계(Desgin), 기술문서(Technical)문서, 계획 (Planning), 기안서 등 작성
+-TR, MR 들 Deliverable 작성
+-각 종 보고서(Report) 작성
+-PSCL 작성(Product Safey Check List) "
+"Review","- 기술 문서 검토, 요청 사항 검토 활동
+- 동료 검토(PeerReview) , CodeReview, Design Review, Technical Reveiw, TRR, Hazop,DFMEA"
+"Meeting","- 프로젝트 관련 미팅 (PTM, PCM, Tech Review등)
+- Function 조직별 정례 미팅 ( Weekly, Engieering, 1on1, etc)
+- Project및 TFT 의 On-Time Agenda Meeting"
+"Leave","- 휴가 (8 Hours) 
+- 오후,오전 반휴 (4hours)
+- 조퇴(2 Hours
+- 법정공휴일은 제외 (창립기념일 포함 8/12)"
+"Management","- 조직관리, 팀관리 관련 업무 수행
+- 일정관리 (프로젝트, 조직관련 일정)
+- OSGM, PDD, 전략수립 등등"
+"Field/Shopfloor Work","- 현장정리
+- 현장 시스템 빌드
+- 필드업무 대응"
+"Workshop","- 브레인스토밍성 워크샵(TownHall, 원가절감, 개선아이디어도출, Creative Thinking 등등)"
+"Research","- 기술조사, 부품조사, 업체조사
+- 논문 검색 , 논문및 업무 관련 Article Reading
+- 신규, 대체, 부품,업체등등 관련 해서 조사하는 활동 일체"
+"Self-Study","- 개인 Development  Goal
+- English, CFLT 활동 및 기술 스터디
+- 자격증 스터디
+- Project Knowledge Growth (Handover, OJT 수행)"
+"Email","- 각 잡고 쓰는 이메일류들..."
+"Customer Support","- 고객문의 사항 대응
+- CC 문의사항 대응
+- 고객/현장 대응, 협의"
+"Training","- ATeX, LearningLink, 협력사 외부교육 등 
+- 부서 내 Seminar, Engineering Seminar 등"
+"Administrative work","- 비용처리, 안전환경,출장준비및 정산, GECIA관리 등등 조직 관리 활동을 위한 행정 업무류 들 "
+"Compliances","- 인증 일정, 견적 확인
+- 인증업무 대응(기술자료, 제품심사등)"
+"QA/QC","- 분석에 필요한 정도보증/정도관리
+- 확정 된 분석법에 대한 정확도, 정밀도 확인(Calibration curve 작성, 오차 관리, 재현성 확인)
+- 분석기 유지보수, 계측기 검교정 업무
+- 분석 숙련도 평가
+- 분석법 개선 및 검증"
+"Safety","- 안전관리감독자 (RA, MDSD 교육)
+- 분석실 시설 안전관리, 시약 관리
+- Safety 교육
+- 협력업체 작업허가서 발행 (공사, 작업 등)
+- Gas 공급 및 Leak check
+- Safety 교육"

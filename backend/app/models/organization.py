@@ -1,0 +1,98 @@
+"""
+SQLAlchemy Models for Organization Structure
+BusinessUnit > Department > SubTeam > JobPosition
+"""
+
+import uuid
+from datetime import datetime
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Boolean,
+    ForeignKey,
+    Float,
+    DateTime,
+    Text,
+)
+from sqlalchemy.orm import relationship
+from app.core.database import Base
+
+
+class BusinessUnit(Base):
+    """사업부/사업영역"""
+
+    __tablename__ = "business_units"
+
+    id = Column(String(50), primary_key=True)  # e.g., "BU_IS", "BU_ABT"
+    name = Column(String(100), nullable=False)  # NVARCHAR
+    code = Column(String(20), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    departments = relationship("Department", back_populates="business_unit")
+    programs = relationship("Program", back_populates="business_unit")
+
+
+class Department(Base):
+    """팀/부서"""
+
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    business_unit_id = Column(
+        String(50), ForeignKey("business_units.id"), nullable=False
+    )
+    name = Column(String(100), nullable=False)  # NVARCHAR
+    code = Column(String(50), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    business_unit = relationship("BusinessUnit", back_populates="departments")
+    sub_teams = relationship("SubTeam", back_populates="department")
+    job_positions = relationship("JobPosition", back_populates="department")
+    users = relationship("User", back_populates="department")
+
+
+class SubTeam(Base):
+    """소그룹/파트"""
+
+    __tablename__ = "sub_teams"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    name = Column(String(100), nullable=False)  # NVARCHAR
+    code = Column(String(50), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    department = relationship("Department", back_populates="sub_teams")
+    job_positions = relationship("JobPosition", back_populates="sub_team")
+    users = relationship("User", back_populates="sub_team")
+
+
+class JobPosition(Base):
+    """직급/직무"""
+
+    __tablename__ = "job_positions"
+
+    id = Column(String(50), primary_key=True)  # e.g., "POS_SW_SENIOR"
+    name = Column(String(100), nullable=False)  # NVARCHAR
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    sub_team_id = Column(Integer, ForeignKey("sub_teams.id"), nullable=True)
+    std_hourly_rate = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    department = relationship("Department", back_populates="job_positions")
+    sub_team = relationship("SubTeam", back_populates="job_positions")
+    users = relationship("User", back_populates="position")
+    resource_plans = relationship("ResourcePlan", back_populates="position")
