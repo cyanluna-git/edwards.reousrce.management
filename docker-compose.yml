@@ -1,0 +1,57 @@
+services:
+  # MS SQL Server (Azure SQL Edge for ARM64/Apple Silicon)
+  db:
+    image: mcr.microsoft.com/azure-sql-edge
+    container_name: edwards-mssql
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Edwards@2024!"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Edwards@2024!" -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edwards-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "mssql+pyodbc://sa:Edwards@2024!@db:1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+      SECRET_KEY: "edwards-secret-key-change-in-production"
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/app:ro # Hot reload for development
+    restart: unless-stopped
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development # Use 'production' for prod build
+    container_name: edwards-web
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: "http://localhost:8000/api"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src:ro # Hot reload for development
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+    driver: local

@@ -1,0 +1,114 @@
+# Edwards Frontend - React/TypeScript Rules
+
+## Core Principles
+- **Lean Development**: Minimal code, maximum clarity
+- **Modular Architecture**: Component-based, reusable modules
+- **Type Safety**: TypeScript strict mode
+
+## Project Structure
+```
+src/
+├── api/              # API client only
+├── components/
+│   ├── ui/           # Reusable UI primitives
+│   └── layout/       # Layout components
+├── hooks/            # Custom hooks only
+├── pages/            # Page components only
+├── types/            # Type definitions only
+├── lib/              # Utilities only
+```
+
+## Coding Standards
+
+### Modularization Rules
+1. **One component = One file**
+2. **One hook = One file**
+3. **Export via index.ts** in each folder
+4. **Keep components small** (< 150 lines preferred)
+
+### Component Pattern
+```tsx
+// ✅ Good: Typed props, clear structure
+interface ButtonProps {
+  variant?: 'primary' | 'secondary'
+  children: React.ReactNode
+  onClick?: () => void
+}
+
+export function Button({ variant = 'primary', children, onClick }: ButtonProps) {
+  return (
+    <button className={cn(baseStyles, variants[variant])} onClick={onClick}>
+      {children}
+    </button>
+  )
+}
+```
+
+### File Organization
+```tsx
+// Order in component file:
+// 1. Imports
+// 2. Types/Interfaces
+// 3. Component
+// 4. Export
+
+import { useState } from 'react'
+import { cn } from '@/lib/utils'
+
+interface Props { /* ... */ }
+
+export function MyComponent({ prop }: Props) {
+  // hooks first
+  const [state, setState] = useState(false)
+  
+  // handlers
+  const handleClick = () => setState(true)
+  
+  // render
+  return <div onClick={handleClick}>{/* ... */}</div>
+}
+```
+
+### Hooks Pattern
+```tsx
+// hooks/useUsers.ts
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: () => apiClient.get('/users').then(r => r.data)
+  })
+}
+```
+
+### API Calls
+- Use TanStack Query for data fetching
+- Keep API calls in `api/` folder
+- Use axios interceptors for auth
+
+## Styling
+- Tailwind CSS only
+- Use `cn()` utility for conditional classes
+- CSS variables for theming
+
+## Path Aliases
+- Use `@/` for imports from `src/`
+```tsx
+import { Button } from '@/components/ui'
+import { useUsers } from '@/hooks/useUsers'
+```
+
+## Dependencies
+- React 19, TypeScript, Vite
+- React Router 7
+- TanStack Query
+- Tailwind CSS 4
+- Lucide React (icons)
+
+## Naming Conventions
+| Type | Convention | Example |
+|------|------------|---------|
+| Component | PascalCase | `UserCard.tsx` |
+| Hook | camelCase with `use` | `useUsers.ts` |
+| Utility | camelCase | `formatDate.ts` |
+| Type | PascalCase | `User`, `ProjectStatus` |
+| Page | PascalCase + Page | `DashboardPage.tsx` |

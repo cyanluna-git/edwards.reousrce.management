@@ -1,0 +1,76 @@
+# Edwards Backend - Python Rules
+
+## Core Principles
+- **Lean Development**: Minimal code, maximum clarity
+- **Modular Architecture**: Each module has single responsibility
+- **Type Safety**: Use type hints everywhere
+
+## Project Structure
+```
+app/
+├── api/endpoints/    # Route handlers only
+├── core/             # Config, DB, Security
+├── models/           # SQLAlchemy models only
+├── schemas/          # Pydantic schemas only
+├── services/         # Business logic only
+```
+
+## Coding Standards
+
+### Modularization Rules
+1. **One module = One purpose**
+   - `models/` → DB structure only
+   - `schemas/` → Validation only
+   - `services/` → Business logic only
+   - `api/endpoints/` → HTTP handling only
+
+2. **Keep files small** (< 200 lines preferred)
+3. **Use dependency injection** via FastAPI Depends()
+4. **Avoid circular imports** - use TYPE_CHECKING
+
+### Python Style
+```python
+# ✅ Good: Type hints, docstrings, clear naming
+async def get_user_by_id(user_id: str, db: Session) -> User | None:
+    """Fetch user by ID."""
+    return db.query(User).filter(User.id == user_id).first()
+
+# ❌ Bad: No types, unclear naming
+def get_user(id, db):
+    return db.query(User).filter(User.id == id).first()
+```
+
+### API Patterns
+```python
+# Endpoint structure
+@router.get("/{id}", response_model=UserResponse)
+async def get_item(id: str, db: Session = Depends(get_db)):
+    service = UserService(db)
+    return service.get_by_id(id)
+```
+
+### Service Layer Pattern
+```python
+# services/user_service.py
+class UserService:
+    def __init__(self, db: Session):
+        self.db = db
+    
+    def get_by_id(self, user_id: str) -> User | None:
+        return self.db.query(User).filter(User.id == user_id).first()
+```
+
+## Dependencies
+- FastAPI, SQLAlchemy 2.0, Pydantic v2
+- Use `async def` for I/O operations
+- Use Alembic for migrations
+
+## Database
+- MS SQL Server via pyodbc
+- All strings: NVARCHAR for Korean support
+- Use UUID for primary keys where applicable
+
+## Testing
+- pytest + pytest-asyncio
+- One test file per module
+- Name: `test_{module_name}.py`
