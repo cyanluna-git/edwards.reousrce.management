@@ -175,3 +175,9 @@ export interface ApiError {
     detail: string
     status_code: number
 }
+
+// Auth Types
+export interface Token {
+    access_token: string;
+    token_type: string;
+}
