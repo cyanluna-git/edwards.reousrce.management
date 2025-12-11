@@ -9,6 +9,9 @@ from app.schemas.auth import (
     UserResponse,
     TokenRefreshRequest,
 )
+from app.schemas.user import User, UserCreate, UserUpdate
+from app.schemas.user_history import UserHistory, UserHistoryCreate
+
 
 __all__ = [
     "Token",
@@ -16,4 +19,9 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "TokenRefreshRequest",
+    "User",
+    "UserCreate",
+    "UserUpdate",
+    "UserHistory",
+    "UserHistoryCreate",
 ]
