@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { MainLayout } from './components/layout';
-import { DashboardPage, LoginPage } from './pages';
+import { DashboardPage, LoginPage, ProjectsPage } from './pages';
 import './App.css';
 
 function App() {
@@ -21,6 +21,7 @@ function App() {
         {isAuthenticated ? (
           <Route element={<MainLayout />}>
             <Route path="/" element={<DashboardPage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
             {/* Add other protected routes here */}
             <Route path="*" element={<Navigate to="/" />} />
           </Route>

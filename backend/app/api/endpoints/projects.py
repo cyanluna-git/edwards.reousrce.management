@@ -2,16 +2,18 @@
 Projects endpoints
 """
 
-from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.schemas.project import Project
+from app.services.project_service import ProjectService
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=List[Project])
 async def list_projects(
     program_id: Optional[str] = Query(None),
     project_type_id: Optional[str] = Query(None),
@@ -23,8 +25,15 @@ async def list_projects(
     """
     List projects with optional filters
     """
-    # TODO: Implement project listing
-    return {"message": "List projects endpoint - to be implemented"}
+    service = ProjectService(db)
+    projects = service.get_multi(
+        skip=skip,
+        limit=limit,
+        program_id=program_id,
+        project_type_id=project_type_id,
+        status=status,
+    )
+    return projects
 
 
 @router.post("")
@@ -36,14 +45,18 @@ async def create_project(db: Session = Depends(get_db)):
     return {"message": "Create project endpoint - to be implemented"}
 
 
-@router.get("/{project_id}")
+@router.get("/{project_id}", response_model=Project)
 async def get_project(project_id: str, db: Session = Depends(get_db)):
     """
     Get project by ID
     """
-    # TODO: Implement project retrieval
-    return {"message": f"Get project {project_id} - to be implemented"}
-
+    service = ProjectService(db)
+    project = service.get_by_id(project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+    return project
 
 @router.put("/{project_id}")
 async def update_project(project_id: str, db: Session = Depends(get_db)):

@@ -60,7 +60,16 @@
     - MS SQL Server를 사용하며, 한글 지원을 위해 모든 문자열은 `NVARCHAR` 타입을 사용합니다.
     - 기본 키(Primary Key)는 가능한 경우 UUID를 사용합니다.
 
-## 4. 프론트엔드 가이드라인 (TypeScript/React)
+## 4. 🚨 CRITICAL: Database Strategy (Rapid Prototyping)
+**"No Migrations, Just Reset."**
+- **상태:** 현재는 초기 개발 단계로 데이터 보존 불필요.
+- **규칙 1 (No Alembic):** `alembic revision`이나 마이그레이션 파일 생성을 제안하지 말 것.
+- **규칙 2 (Auto-Reset):** DB 스키마 변경이 필요하면, **"Drop All & Create All"** 전략을 사용함.
+- **규칙 3 (Seeding):** 앱 재시작 시 `Base.metadata.create_all`이 실행되고, 더미 데이터(Seeding)가 주입되는 로직을 기본으로 가정할 것. - >**"초기 개발 단계(Rapid Prototyping)"**의 전형적인 모습입니다. 이 시기에는 데이터 보존이 필요 없는데 굳이 Alembic으로 마이그레이션 히스토리(versions/)를 관리하는 건 개발 속도를 갉아먹는 족쇄가 됩니다.
+
+현재 상황(Docker, MSSQL, FastAPI, 더미 데이터)에 딱 맞는 "Nuke and Pave (다 지우고 새로 깔기)" 전략을 제안 ----
+
+## 5. 프론트엔드 가이드라인 (TypeScript/React)
 
 `frontend/.cursorrules`에 명시된 규칙을 따릅니다.
 

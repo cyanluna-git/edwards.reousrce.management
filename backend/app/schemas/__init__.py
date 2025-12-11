@@ -11,6 +11,7 @@ from app.schemas.auth import (
 )
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.schemas.user_history import UserHistory, UserHistoryCreate
+from app.schemas.project import Project, ProjectCreate, ProjectUpdate
 
 
 __all__ = [
@@ -24,4 +25,7 @@ __all__ = [
     "UserUpdate",
     "UserHistory",
     "UserHistoryCreate",
+    "Project",
+    "ProjectCreate",
+    "ProjectUpdate",
 ]

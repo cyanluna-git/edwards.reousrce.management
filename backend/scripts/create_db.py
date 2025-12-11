@@ -14,7 +14,7 @@ def create_database():
         "SERVER=db,1433;"  # 'db' is the service name in docker-compose
         "DATABASE=master;"
         "UID=sa;"
-        "PWD=Edwards@2024!;"
+        "PWD=Edwards2024;"
         "TrustServerCertificate=yes;"
         "Connection Timeout=30;"
     )
