@@ -5,7 +5,7 @@ import { useDeleteProject } from '@/hooks/useProjects'; // Import useDeleteProje
 import { Card, CardContent, CardHeader, CardTitle, Button, Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui';
 import ProjectUpdateForm from '@/components/forms/ProjectUpdateForm'; // Import ProjectUpdateForm
 
-const ProjectDetailPage: React.FC = () => {
+export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading, isError, error } = useProject(id || '');
@@ -118,10 +118,10 @@ const ProjectDetailPage: React.FC = () => {
               <p>{project.product || 'N/A'}</p>
             </div>
             {project.pm && (
-                <div>
-                    <p className="font-semibold">Project Manager:</p>
-                    <p>{project.pm.full_name || project.pm.email}</p>
-                </div>
+              <div>
+                <p className="font-semibold">Project Manager:</p>
+                <p>{project.pm.full_name || project.pm.email}</p>
+              </div>
             )}
             <div className="col-span-2">
               <p className="font-semibold">Description:</p>
@@ -134,4 +134,4 @@ const ProjectDetailPage: React.FC = () => {
   );
 };
 
-export default ProjectDetailPage;
+
