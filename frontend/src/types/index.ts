@@ -83,8 +83,7 @@ export interface ProjectType {
 export type ProjectStatus = 'WIP' | 'Hold' | 'Completed' | 'Cancelled' | 'Forecast'
 export type ProjectComplexity = 'Simple' | 'Derivative' | 'Complex'
 
-export interface Project {
-    id: string
+export interface ProjectBase {
     program_id: string
     project_type_id: string
     code: string
@@ -97,6 +96,27 @@ export interface Project {
     customer?: string
     product?: string
     description?: string
+}
+
+export interface ProjectCreate extends ProjectBase {}
+
+export interface ProjectUpdate {
+    program_id?: string
+    project_type_id?: string
+    code?: string
+    name?: string
+    status?: ProjectStatus
+    complexity?: ProjectComplexity
+    pm_id?: string
+    start_date?: string
+    end_date?: string
+    customer?: string
+    product?: string
+    description?: string
+}
+
+export interface Project extends ProjectBase {
+    id: string
     program?: Program
     project_type?: ProjectType
     pm?: User

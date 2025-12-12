@@ -1,3 +1,5 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProjects } from '@/hooks/useProjects';
 import {
   Table,
@@ -6,11 +8,23 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
+import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
 
 export function ProjectsPage() {
   const { data: projects, isLoading, error } = useProjects();
+  const navigate = useNavigate();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   if (isLoading) {
     return <div>Loading projects...</div>;
@@ -22,8 +36,19 @@ export function ProjectsPage() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Projects</CardTitle>
+        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+          <DialogTrigger asChild>
+            <Button>Create Project</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+            </DialogHeader>
+            <ProjectCreateForm onSuccess={() => setIsCreateModalOpen(false)} onCancel={() => setIsCreateModalOpen(false)} />
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
         <Table>
@@ -38,7 +63,11 @@ export function ProjectsPage() {
           </TableHeader>
           <TableBody>
             {projects?.map((project) => (
-              <TableRow key={project.id}>
+              <TableRow
+                key={project.id}
+                onClick={() => navigate(`/projects/${project.id}`)}
+                className="cursor-pointer"
+              >
                 <TableCell className="font-medium">{project.code}</TableCell>
                 <TableCell>{project.name}</TableCell>
                 <TableCell>{project.program?.name ?? 'N/A'}</TableCell>

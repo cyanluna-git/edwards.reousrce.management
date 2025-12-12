@@ -3,6 +3,8 @@ Service layer for project-related business logic
 """
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.exc import IntegrityError
+import uuid
 
 from app.models.project import Project
 from app.schemas.project import ProjectCreate, ProjectUpdate
@@ -49,3 +51,42 @@ class ProjectService:
             query = query.filter(Project.status == status)
 
         return query.order_by(Project.code).offset(skip).limit(limit).all()
+
+    def create_project(self, project_in: ProjectCreate) -> Project:
+        """Create a new project."""
+        db_project = Project(id=str(uuid.uuid4()), **project_in.model_dump())
+        self.db.add(db_project)
+        self.db.commit()
+        self.db.refresh(db_project)
+        return db_project
+
+    def update_project(self, project_id: str, project_in: ProjectUpdate) -> Optional[Project]:
+        """Update an existing project."""
+        db_project = self.db.query(Project).filter(Project.id == project_id).first()
+        if not db_project:
+            return None
+        
+        update_data = project_in.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_project, key, value)
+        
+        self.db.add(db_project)
+        try:
+            self.db.commit()
+            self.db.refresh(db_project)
+        except IntegrityError:
+            self.db.rollback()
+            raise ValueError("Duplicate project code or other integrity violation.")
+        
+        return db_project
+
+    def delete_project(self, project_id: str) -> Optional[Project]:
+        """Delete a project by its ID."""
+        db_project = self.db.query(Project).filter(Project.id == project_id).first()
+        if not db_project:
+            return None
+        
+        self.db.delete(db_project)
+        self.db.commit()
+        return db_project
+

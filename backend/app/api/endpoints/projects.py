@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.project import Project
+from app.schemas.project import Project, ProjectCreate, ProjectUpdate
 from app.services.project_service import ProjectService
 
 router = APIRouter()
@@ -36,13 +36,20 @@ async def list_projects(
     return projects
 
 
-@router.post("")
-async def create_project(db: Session = Depends(get_db)):
+@router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
+async def create_project(
+    project_create: ProjectCreate,
+    db: Session = Depends(get_db)
+):
     """
     Create a new project
     """
-    # TODO: Implement project creation
-    return {"message": "Create project endpoint - to be implemented"}
+    service = ProjectService(db)
+    try:
+        new_project = service.create_project(project_in=project_create)
+        return new_project
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.get("/{project_id}", response_model=Project)
@@ -58,13 +65,35 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
         )
     return project
 
-@router.put("/{project_id}")
-async def update_project(project_id: str, db: Session = Depends(get_db)):
+@router.put("/{project_id}", response_model=Project)
+async def update_project(
+    project_id: str,
+    project_update: ProjectUpdate,
+    db: Session = Depends(get_db)
+):
     """
     Update project
     """
-    # TODO: Implement project update
-    return {"message": f"Update project {project_id} - to be implemented"}
+    service = ProjectService(db)
+    try:
+        updated_project = service.update_project(project_id=project_id, project_in=project_update)
+        if not updated_project:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        return updated_project
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_project(project_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a project
+    """
+    service = ProjectService(db)
+    deleted_project = service.delete_project(project_id=project_id)
+    if not deleted_project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+    return {"message": "Project deleted successfully"}
 
 
 @router.get("/{project_id}/milestones")
