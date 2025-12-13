@@ -11,8 +11,8 @@ class UserBase(BaseModel):
     email: EmailStr
     name: str
     korean_name: Optional[str] = None
-    department_id: int
-    sub_team_id: Optional[int] = None
+    department_id: str
+    sub_team_id: Optional[str] = None
     position_id: str
     role: str = "USER"
     is_active: bool = True

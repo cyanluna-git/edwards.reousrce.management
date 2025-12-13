@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-
+from app.models.scenario import ProjectScenario # Explicitly import ProjectScenario
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -77,6 +77,9 @@ class Project(Base):
     milestones = relationship("ProjectMilestone", back_populates="project")
     worklogs = relationship("WorkLog", back_populates="project")
     resource_plans = relationship("ResourcePlan", back_populates="project")
+    scenarios = relationship(
+        "ProjectScenario", back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class ProjectMilestone(Base):

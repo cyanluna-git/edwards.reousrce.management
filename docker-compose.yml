@@ -11,12 +11,7 @@ services:
     volumes:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped
-    healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Edwards2024 -C -Q "SELECT 1" || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+
 
   # FastAPI Backend
   backend:
@@ -32,7 +27,7 @@ services:
       DEBUG: "true"
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
     volumes:
       # Hot reload: mount entire backend (except venv)
       - ./backend/app:/app/app

@@ -19,6 +19,16 @@ from app.schemas.worklog import (
     DailySummary,
     CopyWeekRequest,
 )
+from app.schemas.scenario import (
+    ProjectScenario,
+    ProjectScenarioCreate,
+    ProjectScenarioUpdate,
+    ScenarioMilestone,
+    ScenarioMilestoneCreate,
+    ScenarioMilestoneUpdate,
+    ScenarioComparisonResult,
+    CopyScenarioRequest,
+)
 
 
 __all__ = [
@@ -40,4 +50,12 @@ __all__ = [
     "WorkLogUpdate",
     "DailySummary",
     "CopyWeekRequest",
+    "ProjectScenario",
+    "ProjectScenarioCreate",
+    "ProjectScenarioUpdate",
+    "ScenarioMilestone",
+    "ScenarioMilestoneCreate",
+    "ScenarioMilestoneUpdate",
+    "ScenarioComparisonResult",
+    "CopyScenarioRequest",
 ]

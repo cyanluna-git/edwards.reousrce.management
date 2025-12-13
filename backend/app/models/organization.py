@@ -41,7 +41,7 @@ class Department(Base):
 
     __tablename__ = "departments"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id = Column(String(50), primary_key=True)
     business_unit_id = Column(
         String(50), ForeignKey("business_units.id"), nullable=False
     )
@@ -63,8 +63,8 @@ class SubTeam(Base):
 
     __tablename__ = "sub_teams"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    id = Column(String(50), primary_key=True)
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
     name = Column(String(100), nullable=False)  # NVARCHAR
     code = Column(String(50), unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
@@ -84,8 +84,8 @@ class JobPosition(Base):
 
     id = Column(String(50), primary_key=True)  # e.g., "POS_SW_SENIOR"
     name = Column(String(100), nullable=False)  # NVARCHAR
-    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
-    sub_team_id = Column(Integer, ForeignKey("sub_teams.id"), nullable=True)
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
+    sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     std_hourly_rate = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

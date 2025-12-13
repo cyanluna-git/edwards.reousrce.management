@@ -23,8 +23,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)  # English name
     korean_name = Column(String(100), nullable=True)  # Korean name
-    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
-    sub_team_id = Column(Integer, ForeignKey("sub_teams.id"), nullable=True)
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
+    sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
     role = Column(String(20), default="USER")  # ADMIN, PM, FM, USER
     is_active = Column(Boolean, default=True)
@@ -55,8 +55,8 @@ class UserHistory(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
-    sub_team_id = Column(Integer, ForeignKey("sub_teams.id"), nullable=True)
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
+    sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=True)  # NULL = 현재

@@ -248,3 +248,92 @@ export interface Token {
     access_token: string;
     token_type: string;
 }
+
+// ============ Scenario Types ============
+
+export interface ScenarioMilestone {
+    id: number
+    scenario_id: number
+    base_milestone_id?: number
+    name: string
+    type: 'STD_GATE' | 'CUSTOM'
+    target_date: string
+    actual_date?: string
+    status: 'Pending' | 'Completed' | 'Delayed'
+    is_key_gate: boolean
+    notes?: string
+    sort_order: number
+    created_at: string
+    updated_at: string
+}
+
+export interface ScenarioMilestoneCreate {
+    name: string
+    type?: string
+    target_date: string
+    actual_date?: string
+    status?: string
+    is_key_gate?: boolean
+    notes?: string
+    sort_order?: number
+    base_milestone_id?: number
+}
+
+export interface ScenarioMilestoneUpdate {
+    name?: string
+    type?: string
+    target_date?: string
+    actual_date?: string
+    status?: string
+    is_key_gate?: boolean
+    notes?: string
+    sort_order?: number
+}
+
+export interface ProjectScenario {
+    id: number
+    project_id: string
+    name: string
+    description?: string
+    is_active: boolean
+    is_baseline: boolean
+    created_at: string
+    updated_at: string
+    milestones: ScenarioMilestone[]
+}
+
+export interface ProjectScenarioCreate {
+    name: string
+    description?: string
+    is_active?: boolean
+    is_baseline?: boolean
+    milestones?: ScenarioMilestoneCreate[]
+}
+
+export interface ProjectScenarioUpdate {
+    name?: string
+    description?: string
+    is_active?: boolean
+    is_baseline?: boolean
+}
+
+export interface MilestoneComparison {
+    milestone_name: string
+    scenario_1_date?: string
+    scenario_2_date?: string
+    delta_days?: number
+}
+
+export interface ScenarioComparisonResult {
+    scenario_1_id: number
+    scenario_1_name: string
+    scenario_2_id: number
+    scenario_2_name: string
+    milestone_comparisons: MilestoneComparison[]
+    total_delta_days: number
+}
+
+export interface CopyScenarioRequest {
+    new_name: string
+    date_offset_days?: number
+}
