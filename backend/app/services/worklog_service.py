@@ -5,7 +5,7 @@ Service layer for worklog-related business logic
 from typing import List, Optional
 from datetime import date, timedelta
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, cast, Date
 
 from app.models.resource import WorkLog
 from app.models.project import Project
@@ -49,11 +49,9 @@ class WorkLogService:
         if project_id:
             query = query.filter(WorkLog.project_id == project_id)
         if start_date:
-            query = query.filter(
-                func.cast(WorkLog.date, type_=func.DATE()) >= start_date
-            )
+            query = query.filter(cast(WorkLog.date, Date) >= start_date)
         if end_date:
-            query = query.filter(func.cast(WorkLog.date, type_=func.DATE()) <= end_date)
+            query = query.filter(cast(WorkLog.date, Date) <= end_date)
         if work_type:
             query = query.filter(WorkLog.work_type == work_type)
 
@@ -65,7 +63,7 @@ class WorkLogService:
         """Get total hours for a user on a specific date."""
         query = self.db.query(func.sum(WorkLog.hours)).filter(
             WorkLog.user_id == user_id,
-            func.cast(WorkLog.date, type_=func.DATE()) == target_date,
+            cast(WorkLog.date, Date) == target_date,
         )
         if exclude_id:
             query = query.filter(WorkLog.id != exclude_id)
@@ -147,8 +145,8 @@ class WorkLogService:
             self.db.query(WorkLog)
             .filter(
                 WorkLog.user_id == user_id,
-                func.cast(WorkLog.date, type_=func.DATE()) >= source_week_start,
-                func.cast(WorkLog.date, type_=func.DATE()) <= source_week_end,
+                cast(WorkLog.date, Date) >= source_week_start,
+                cast(WorkLog.date, Date) <= source_week_end,
             )
             .all()
         )
@@ -196,7 +194,7 @@ class WorkLogService:
             .options(joinedload(WorkLog.project))
             .filter(
                 WorkLog.user_id == user_id,
-                func.cast(WorkLog.date, type_=func.DATE()) == target_date,
+                cast(WorkLog.date, Date) == target_date,
             )
             .all()
         )

@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     DateTime,
+    Date,
     Text,
     Float,
 )
@@ -48,7 +49,7 @@ class WorkLog(Base):
     __tablename__ = "worklogs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    date = Column(DateTime, nullable=False)
+    date = Column(Date, nullable=False)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     project_id = Column(String(36), ForeignKey("projects.id"), nullable=False)
     work_type = Column(String(50), nullable=False)  # CommonCode reference

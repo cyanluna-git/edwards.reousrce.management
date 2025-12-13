@@ -35,8 +35,8 @@ class UserResponse(BaseModel):
     name: str
     korean_name: Optional[str] = None
     role: str
-    department_id: int
-    sub_team_id: Optional[int] = None
+    department_id: str
+    sub_team_id: Optional[str] = None
     position_id: str
     is_active: bool
 

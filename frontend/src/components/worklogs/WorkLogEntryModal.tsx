@@ -116,7 +116,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] bg-background border shadow-lg">
                 <DialogHeader>
                     <DialogTitle>
                         {isEditing ? 'Edit WorkLog' : 'Add WorkLog'} - {date}
