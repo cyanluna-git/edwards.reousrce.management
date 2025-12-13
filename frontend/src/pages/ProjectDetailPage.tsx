@@ -9,7 +9,7 @@ export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading, isError, error } = useProject(id || '');
-  const { mutate: deleteProject, isLoading: isDeleting } = useDeleteProject();
+  const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
 
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -120,7 +120,7 @@ export const ProjectDetailPage: React.FC = () => {
             {project.pm && (
               <div>
                 <p className="font-semibold">Project Manager:</p>
-                <p>{project.pm.full_name || project.pm.email}</p>
+                <p>{project.pm.name || project.pm.email}</p>
               </div>
             )}
             <div className="col-span-2">

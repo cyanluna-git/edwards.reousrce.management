@@ -13,7 +13,7 @@ interface ProjectCreateFormProps {
 
 const ProjectCreateForm: React.FC<ProjectCreateFormProps> = ({ onSuccess, onCancel }) => {
   const { register, handleSubmit, formState: { errors } } = useForm<ProjectCreate>();
-  const { mutate, isLoading, isError, error } = useCreateProject();
+  const { mutate, isPending, isError, error } = useCreateProject();
 
   const onSubmit = (data: ProjectCreate) => {
     mutate(data, {
@@ -59,8 +59,8 @@ const ProjectCreateForm: React.FC<ProjectCreateFormProps> = ({ onSuccess, onCanc
 
       <div className="flex justify-end space-x-2">
         {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Creating...' : 'Create Project'}
+        <Button type="submit" disabled={isPending}>
+          {isPending ? 'Creating...' : 'Create Project'}
         </Button>
       </div>
     </form>

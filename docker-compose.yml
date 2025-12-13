@@ -11,6 +11,12 @@ services:
     volumes:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P Edwards2024 -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # FastAPI Backend
   backend:
@@ -21,31 +27,45 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Simplified password without special characters
       DATABASE_URL: "mssql+pyodbc://sa:Edwards2024@db,1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
       SECRET_KEY: "edwards-secret-key-change-in-production"
       DEBUG: "true"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - ./backend/app:/app/app:ro # Hot reload for development
+      # Hot reload: mount entire backend (except venv)
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
     restart: unless-stopped
 
-  # React Frontend
+  # React Frontend (Development with Hot Reload)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: development # Use 'production' for prod build
+      target: development
     container_name: edwards-web
     ports:
       - "3000:3000"
     environment:
       VITE_API_URL: "http://localhost:8000/api"
+      # Enable Vite HMR polling for Docker
+      CHOKIDAR_USEPOLLING: "true"
     depends_on:
       - backend
     volumes:
-      - ./frontend/src:/app/src:ro # Hot reload for development
+      # Hot reload: mount src, public, and config files
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      # Exclude node_modules to use container's version
+      - /app/node_modules
     restart: unless-stopped
 
 volumes:

@@ -98,7 +98,7 @@ export interface ProjectBase {
     description?: string
 }
 
-export interface ProjectCreate extends ProjectBase {}
+export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
     program_id?: string
@@ -160,8 +160,55 @@ export interface WorkLog {
     meeting_type?: string
     is_sudden_work: boolean
     is_business_trip: boolean
+    created_at?: string
+    updated_at?: string
+    project_code?: string
+    project_name?: string
     user?: User
     project?: Project
+}
+
+export interface WorkLogCreate {
+    date: string
+    user_id: string
+    project_id: string
+    work_type: string
+    hours: number
+    description?: string
+    meeting_type?: string
+    is_sudden_work?: boolean
+    is_business_trip?: boolean
+}
+
+export interface WorkLogUpdate {
+    date?: string
+    project_id?: string
+    work_type?: string
+    hours?: number
+    description?: string
+    meeting_type?: string
+    is_sudden_work?: boolean
+    is_business_trip?: boolean
+}
+
+export interface ProjectSummary {
+    project_id: string
+    project_code: string
+    project_name: string
+    hours: number
+}
+
+export interface DailySummary {
+    date: string
+    user_id: string
+    total_hours: number
+    remaining_hours: number
+    projects: ProjectSummary[]
+}
+
+export interface CopyWeekRequest {
+    user_id: string
+    target_week_start: string
 }
 
 // Common Types

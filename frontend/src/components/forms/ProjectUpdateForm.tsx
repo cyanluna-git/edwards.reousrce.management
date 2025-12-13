@@ -14,7 +14,7 @@ interface ProjectUpdateFormProps {
 
 const ProjectUpdateForm: React.FC<ProjectUpdateFormProps> = ({ project, onSuccess, onCancel }) => {
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProjectUpdate>();
-  const { mutate, isLoading, isError, error } = useUpdateProject();
+  const { mutate, isPending, isError, error } = useUpdateProject();
 
   useEffect(() => {
     // Pre-fill form with existing project data
@@ -102,8 +102,8 @@ const ProjectUpdateForm: React.FC<ProjectUpdateFormProps> = ({ project, onSucces
 
       <div className="flex justify-end space-x-2">
         {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Updating...' : 'Update Project'}
+        <Button type="submit" disabled={isPending}>
+          {isPending ? 'Updating...' : 'Update Project'}
         </Button>
       </div>
     </form>
