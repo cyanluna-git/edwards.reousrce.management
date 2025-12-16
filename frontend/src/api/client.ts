@@ -117,6 +117,8 @@ export const getResourcePlans = async (filters?: ResourcePlanFilters): Promise<R
   if (filters?.month) params.append('month', String(filters.month));
   if (filters?.position_id) params.append('position_id', filters.position_id);
   if (filters?.user_id) params.append('user_id', filters.user_id);
+  // Increase limit for project-based queries to get all months
+  params.append('limit', '500');
 
   const response = await apiClient.get(`/resource-plans?${params.toString()}`);
   return response.data;
