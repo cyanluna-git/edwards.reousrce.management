@@ -7,8 +7,39 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services.report_service import ReportService
 
 router = APIRouter()
+
+
+@router.get("/capacity-summary")
+async def get_capacity_summary(
+    year: Optional[int] = Query(
+        None, description="Year to get summary for (default: current year)"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Get capacity summary report with monthly FTE totals,
+    breakdown by position and by project.
+    """
+    service = ReportService(db)
+    return service.get_capacity_summary(year)
+
+
+@router.get("/worklog-summary")
+async def get_worklog_summary(
+    year: Optional[int] = Query(
+        None, description="Year to get summary for (default: current year)"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Get worklog summary report with monthly hours totals,
+    breakdown by work type and by project.
+    """
+    service = ReportService(db)
+    return service.get_worklog_summary(year)
 
 
 @router.get("/capacity")

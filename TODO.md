@@ -1,57 +1,50 @@
 # Edwards Project Operation Board - TODO
 
-## ✅ 완료된 작업 (2024-12-11)
+## ✅ 완료된 작업
 
-### 1. 코어 기능 구현
-- [x] **Authentication API**
-  - [x] Login / JWT 발급, Token refresh, Current user endpoint
-- [x] **Users API**
-  - [x] CRUD 엔드포인트
-  - [x] 부서원 목록 조회 (필터링)
-  - [x] 사용자 변경 이력 추적 (부서/직책 변경 시)
-- [x] **Projects API**
-  - [x] 목록 및 상세 조회 엔드포인트 (R)
-- [x] **초기 데이터베이스 시딩**
-  - [x] Alembic 마이그레이션 스크립트(`001`, `002`, `003`)
-  - [x] `projects` 테이블 샘플 데이터 추가
+### Phase 1: 코어 기능 (2024-12-11)
+- [x] Authentication API - Login/JWT, Token refresh, Current user
+- [x] Users API - CRUD, 부서원 목록, 변경 이력 추적
+- [x] Projects API - 목록/상세 조회
+- [x] 초기 DB 시딩 - Alembic 마이그레이션
 
-### 2. 프론트엔드 페이지 구현
-- [x] **인증 및 라우팅**
-  - [x] `AuthContext` 및 `useAuth` 훅 구현
-  - [x] 로그인 상태에 따른 보호된 라우팅 설정
-- [x] **로그인 페이지**
-  - [x] UI 및 API 연동, 오류 처리
-- [x] **프로젝트 목록 페이지**
-  - [x] `@tanstack/react-query`를 사용한 `useProjects` 훅
-  - [x] `Table` 컴포넌트를 사용한 데이터 표시
+### Phase 2: 프론트엔드 기초 (2024-12-11)
+- [x] AuthContext, useAuth, 보호된 라우팅
+- [x] 로그인 페이지, 프로젝트 목록 페이지
+
+### Phase 3-4: Projects & WorkLogs (2024-12-12)
+- [x] Projects CRUD, Milestones API
+- [x] WorkLogs CRUD, 달력 기반 UI
+
+### Phase 5-6: Resource Plans & Dashboard (2024-12-16)
+- [x] 12개월 월별 FTE 그리드
+- [x] 집계 뷰 (프로젝트별/롤별)
+- [x] 개인 대시보드 (주간 WorkLog, 리소스 현황)
+
+### Phase 7: 관리 기능 (2024-12-16)
+- [x] Job Positions 관리 UI (`/organization`)
+- [x] Reports 기능 - Capacity/WorkLog 차트 (recharts)
 
 ---
 
 ## 📋 다음 작업 (TODO)
 
-### Phase 1: Projects 기능 완성
-- [ ] **Projects API**
-  - [ ] 생성, 수정, 삭제(CUD) 엔드포인트 구현
-  - [ ] 마일스톤(Milestones) 관리 CRUD 구현
-  - [ ] 프로젝트 상태(Status) 변경 로직 구현
-- [ ] **Projects Frontend**
-  - [ ] 프로젝트 목록 페이지에서 항목 클릭 시 상세 페이지로 이동
-  - [ ] 프로젝트 상세 정보 표시 페이지 구현
-  - [ ] (Optional) 프로젝트 생성 및 수정을 위한 모달(Modal) 또는 폼(Form) 구현
+### 🔴 배포 (다음 일정)
+- [ ] **Vercel 배포** - Frontend (React)
+- [ ] **Render 배포** - Backend (FastAPI)
+- [ ] **Supabase 연동** - PostgreSQL 데이터베이스
+- [ ] **환경변수 설정** - 프로덕션 설정
 
-### Phase 2: WorkLogs 기능 구현
-- [ ] **WorkLogs API**
-  - [ ] CRUD 엔드포인트
-  - [ ] 24시간 초과 입력 검증 로직
-  - [ ] 주간 복사 기능
-  - [ ] 일별 요약 API
-- [ ] **WorkLogs Frontend**
-  - [ ] 달력 기반의 WorkLog 입력/편집 UI 구현
+### 🟡 우선순위 중간
+- [ ] TBD → 사용자 할당 모달
+- [ ] 리소스 충돌 감지 (월별 FTE > 1.0 경고)
+- [ ] Programs 관리 UI
+- [ ] Team 관리 (사용자/부서)
 
-### Phase 3: 기타 기능 구현
-- [ ] **Resource Plans API & Frontend**
-- [ ] **Reports API & Frontend**
-- [ ] **Team 관리 Frontend**
+### 🟢 향후 개선
+- [ ] Excel Import/Export
+- [ ] 다크 모드, 다국어 지원
+- [ ] 알림 시스템
 
 ---
 
@@ -61,17 +54,14 @@
 # 전체 시스템 실행
 docker compose up -d
 
-# Backend만 실행 (로컬 개발)
-cd backend && source venv/bin/activate && uvicorn app.main:app --reload
+# 로그 확인
+docker compose logs -f backend
 
-# Frontend만 실행 (로컬 개발)
-cd frontend && pnpm dev
+# Frontend 재빌드 (패키지 추가 후)
+docker compose exec frontend pnpm install && docker compose restart frontend
 
-# DB 초기화 및 마이그레이션 실행 (DB 스키마나 시드 데이터 변경 시)
-docker compose down -v
-docker compose up -d --build --force-recreate
-docker compose exec backend python scripts/create_db.py
-docker compose exec backend alembic upgrade head
+# API 문서
+http://localhost:8000/api/docs
 ```
 
 ---
@@ -80,3 +70,7 @@ docker compose exec backend alembic upgrade head
 - [요구사항](./requirment.md)
 - [Backend README](./backend/README.md)
 - [Frontend README](./frontend/README.md)
+
+## 🔑 기본 로그인
+- **Email:** admin@edwards.com
+- **Password:** password

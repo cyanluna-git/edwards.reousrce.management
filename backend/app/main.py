@@ -19,6 +19,7 @@ from app.api.endpoints import (
     reports,
     scenarios,
     dashboard,
+    job_positions,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -80,6 +81,9 @@ app.include_router(
 app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(scenarios.router, prefix="/api", tags=["Scenarios"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+app.include_router(
+    job_positions.router, prefix="/api/job-positions", tags=["Job Positions"]
+)
 
 
 @app.get("/", tags=["Health"])

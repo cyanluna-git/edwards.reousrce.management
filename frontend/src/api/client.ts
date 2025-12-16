@@ -235,4 +235,87 @@ export const getMyDashboard = async (): Promise<DashboardData> => {
   return response.data;
 };
 
+// ============ Job Positions API ============
+
+export interface JobPositionCreate {
+  name: string;
+  department_id?: string;
+  is_active?: boolean;
+}
+
+export interface JobPositionUpdate {
+  name?: string;
+  department_id?: string;
+  is_active?: boolean;
+}
+
+export const getJobPositionsList = async (includeInactive = false): Promise<JobPosition[]> => {
+  const response = await apiClient.get(`/job-positions?include_inactive=${includeInactive}`);
+  return response.data;
+};
+
+export const createJobPosition = async (data: JobPositionCreate): Promise<JobPosition> => {
+  const response = await apiClient.post('/job-positions', data);
+  return response.data;
+};
+
+export const updateJobPosition = async (id: string, data: JobPositionUpdate): Promise<JobPosition> => {
+  const response = await apiClient.put(`/job-positions/${id}`, data);
+  return response.data;
+};
+
+export const deleteJobPosition = async (id: string): Promise<void> => {
+  await apiClient.delete(`/job-positions/${id}`);
+};
+
+// ============ Reports API ============
+
+export interface CapacitySummary {
+  year: number;
+  monthly: Array<{
+    month: number;
+    total_fte: number;
+    plan_count: number;
+  }>;
+  by_position: Array<{
+    name: string;
+    total_fte: number;
+  }>;
+  by_project: Array<{
+    code: string;
+    name: string;
+    total_fte: number;
+  }>;
+}
+
+export interface WorklogSummary {
+  year: number;
+  monthly: Array<{
+    month: number;
+    total_hours: number;
+    log_count: number;
+  }>;
+  by_type: Array<{
+    type: string;
+    total_hours: number;
+  }>;
+  by_project: Array<{
+    code: string;
+    name: string;
+    total_hours: number;
+  }>;
+}
+
+export const getCapacitySummary = async (year?: number): Promise<CapacitySummary> => {
+  const params = year ? `?year=${year}` : '';
+  const response = await apiClient.get(`/reports/capacity-summary${params}`);
+  return response.data;
+};
+
+export const getWorklogSummary = async (year?: number): Promise<WorklogSummary> => {
+  const params = year ? `?year=${year}` : '';
+  const response = await apiClient.get(`/reports/worklog-summary${params}`);
+  return response.data;
+};
+
 export default apiClient;
