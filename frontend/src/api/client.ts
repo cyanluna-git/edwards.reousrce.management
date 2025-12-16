@@ -193,4 +193,46 @@ export const getSummaryByPosition = async (): Promise<PositionSummary[]> => {
   return response.data;
 };
 
+// ============ Dashboard API ============
+
+export interface DashboardData {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  weekly_worklog: {
+    week_start: string;
+    week_end: string;
+    total_hours: number;
+    by_project: Array<{
+      project_id: string;
+      project_code: string;
+      project_name: string;
+      hours: number;
+    }>;
+  };
+  resource_allocation: {
+    current_month: string;
+    total_fte: number;
+    active_projects: number;
+  };
+  my_projects: Array<{
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    milestones: Array<{
+      name: string;
+      target_date: string | null;
+      status: string;
+    }>;
+  }>;
+}
+
+export const getMyDashboard = async (): Promise<DashboardData> => {
+  const response = await apiClient.get('/dashboard/my-summary');
+  return response.data;
+};
+
 export default apiClient;
