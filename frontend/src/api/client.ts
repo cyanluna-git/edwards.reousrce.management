@@ -98,5 +98,67 @@ export const getProjectTypes = async (): Promise<ProjectType[]> => {
   return response.data;
 };
 
-export default apiClient;
+// ============ Resource Plans API ============
 
+import type { ResourcePlan, ResourcePlanCreate, ResourcePlanUpdate, ResourcePlanAssign, JobPosition } from '@/types';
+
+export interface ResourcePlanFilters {
+  project_id?: string;
+  year?: number;
+  month?: number;
+  position_id?: string;
+  user_id?: string;
+}
+
+export const getResourcePlans = async (filters?: ResourcePlanFilters): Promise<ResourcePlan[]> => {
+  const params = new URLSearchParams();
+  if (filters?.project_id) params.append('project_id', filters.project_id);
+  if (filters?.year) params.append('year', String(filters.year));
+  if (filters?.month) params.append('month', String(filters.month));
+  if (filters?.position_id) params.append('position_id', filters.position_id);
+  if (filters?.user_id) params.append('user_id', filters.user_id);
+
+  const response = await apiClient.get(`/resource-plans?${params.toString()}`);
+  return response.data;
+};
+
+export const getTbdPositions = async (filters?: Pick<ResourcePlanFilters, 'project_id' | 'year' | 'month'>): Promise<ResourcePlan[]> => {
+  const params = new URLSearchParams();
+  if (filters?.project_id) params.append('project_id', filters.project_id);
+  if (filters?.year) params.append('year', String(filters.year));
+  if (filters?.month) params.append('month', String(filters.month));
+
+  const response = await apiClient.get(`/resource-plans/tbd?${params.toString()}`);
+  return response.data;
+};
+
+export const getResourcePlan = async (planId: number): Promise<ResourcePlan> => {
+  const response = await apiClient.get(`/resource-plans/${planId}`);
+  return response.data;
+};
+
+export const createResourcePlan = async (data: ResourcePlanCreate): Promise<ResourcePlan> => {
+  const response = await apiClient.post('/resource-plans', data);
+  return response.data;
+};
+
+export const updateResourcePlan = async (planId: number, data: ResourcePlanUpdate): Promise<ResourcePlan> => {
+  const response = await apiClient.put(`/resource-plans/${planId}`, data);
+  return response.data;
+};
+
+export const deleteResourcePlan = async (planId: number): Promise<void> => {
+  await apiClient.delete(`/resource-plans/${planId}`);
+};
+
+export const assignUserToPlan = async (planId: number, data: ResourcePlanAssign): Promise<ResourcePlan> => {
+  const response = await apiClient.post(`/resource-plans/${planId}/assign`, data);
+  return response.data;
+};
+
+export const getJobPositions = async (): Promise<JobPosition[]> => {
+  const response = await apiClient.get('/resource-plans/meta/positions');
+  return response.data;
+};
+
+export default apiClient;

@@ -1,0 +1,215 @@
+"""
+Service layer for Resource Plan business logic
+"""
+
+from typing import List, Optional
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import and_
+
+from app.models.resource import ResourcePlan
+from app.models.project import Project
+from app.models.organization import JobPosition
+from app.models.user import User
+from app.schemas.resource_plan import ResourcePlanCreate, ResourcePlanUpdate
+
+
+class ResourcePlanService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def _build_response(self, plan: ResourcePlan) -> dict:
+        """Convert ResourcePlan model to response dict with nested info"""
+        return {
+            "id": plan.id,
+            "project_id": plan.project_id,
+            "year": plan.year,
+            "month": plan.month,
+            "position_id": plan.position_id,
+            "user_id": plan.user_id,
+            "planned_hours": plan.planned_hours,
+            "created_by": plan.created_by,
+            "created_at": plan.created_at,
+            "updated_at": plan.updated_at,
+            "project_name": plan.project.name if plan.project else None,
+            "project_code": plan.project.code if plan.project else None,
+            "position_name": plan.position.name if plan.position else None,
+            "user_name": plan.user.name if plan.user else None,
+            "is_tbd": plan.user_id is None,
+        }
+
+    def get_multi(
+        self,
+        *,
+        project_id: Optional[str] = None,
+        year: Optional[int] = None,
+        month: Optional[int] = None,
+        position_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        tbd_only: bool = False,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[dict]:
+        """Get multiple resource plans with filters"""
+        query = self.db.query(ResourcePlan).options(
+            joinedload(ResourcePlan.project),
+            joinedload(ResourcePlan.position),
+            joinedload(ResourcePlan.user),
+        )
+
+        if project_id:
+            query = query.filter(ResourcePlan.project_id == project_id)
+        if year:
+            query = query.filter(ResourcePlan.year == year)
+        if month:
+            query = query.filter(ResourcePlan.month == month)
+        if position_id:
+            query = query.filter(ResourcePlan.position_id == position_id)
+        if user_id:
+            query = query.filter(ResourcePlan.user_id == user_id)
+        if tbd_only:
+            query = query.filter(ResourcePlan.user_id.is_(None))
+
+        plans = (
+            query.order_by(
+                ResourcePlan.year, ResourcePlan.month, ResourcePlan.project_id
+            )
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+        return [self._build_response(plan) for plan in plans]
+
+    def get_by_id(self, plan_id: int) -> Optional[dict]:
+        """Get a resource plan by ID"""
+        plan = (
+            self.db.query(ResourcePlan)
+            .options(
+                joinedload(ResourcePlan.project),
+                joinedload(ResourcePlan.position),
+                joinedload(ResourcePlan.user),
+            )
+            .filter(ResourcePlan.id == plan_id)
+            .first()
+        )
+        if not plan:
+            return None
+        return self._build_response(plan)
+
+    def create(self, plan_in: ResourcePlanCreate, created_by: str) -> dict:
+        """Create a new resource plan"""
+        # Check if project exists
+        project = (
+            self.db.query(Project).filter(Project.id == plan_in.project_id).first()
+        )
+        if not project:
+            raise ValueError(f"Project {plan_in.project_id} not found")
+
+        # Check if position exists
+        position = (
+            self.db.query(JobPosition)
+            .filter(JobPosition.id == plan_in.position_id)
+            .first()
+        )
+        if not position:
+            raise ValueError(f"Position {plan_in.position_id} not found")
+
+        # Check for duplicates (same project, year, month, position, user)
+        existing = (
+            self.db.query(ResourcePlan)
+            .filter(
+                and_(
+                    ResourcePlan.project_id == plan_in.project_id,
+                    ResourcePlan.year == plan_in.year,
+                    ResourcePlan.month == plan_in.month,
+                    ResourcePlan.position_id == plan_in.position_id,
+                    ResourcePlan.user_id == plan_in.user_id,
+                )
+            )
+            .first()
+        )
+        if existing:
+            raise ValueError(
+                "Duplicate resource plan exists for this project, period, and position"
+            )
+
+        db_plan = ResourcePlan(
+            **plan_in.model_dump(),
+            created_by=created_by,
+        )
+        self.db.add(db_plan)
+        self.db.commit()
+        self.db.refresh(db_plan)
+
+        # Reload with relationships
+        return self.get_by_id(db_plan.id)
+
+    def update(self, plan_id: int, plan_in: ResourcePlanUpdate) -> Optional[dict]:
+        """Update a resource plan"""
+        db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
+        if not db_plan:
+            return None
+
+        update_data = plan_in.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_plan, key, value)
+
+        self.db.commit()
+        self.db.refresh(db_plan)
+
+        return self.get_by_id(plan_id)
+
+    def delete(self, plan_id: int) -> bool:
+        """Delete a resource plan"""
+        db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
+        if not db_plan:
+            return False
+
+        self.db.delete(db_plan)
+        self.db.commit()
+        return True
+
+    def get_tbd_positions(
+        self,
+        *,
+        year: Optional[int] = None,
+        month: Optional[int] = None,
+        project_id: Optional[str] = None,
+    ) -> List[dict]:
+        """Get all TBD (unassigned) positions"""
+        return self.get_multi(
+            year=year,
+            month=month,
+            project_id=project_id,
+            tbd_only=True,
+        )
+
+    def assign_user(self, plan_id: int, user_id: str) -> Optional[dict]:
+        """Assign a user to a TBD position"""
+        db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
+        if not db_plan:
+            return None
+
+        # Check if user exists
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+
+        # Check if already assigned
+        if db_plan.user_id is not None:
+            raise ValueError("This position is already assigned to a user")
+
+        db_plan.user_id = user_id
+        self.db.commit()
+        self.db.refresh(db_plan)
+
+        return self.get_by_id(plan_id)
+
+    def get_job_positions(self) -> List[JobPosition]:
+        """Get all active job positions"""
+        return (
+            self.db.query(JobPosition)
+            .filter(JobPosition.is_active == True)
+            .order_by(JobPosition.name)
+            .all()
+        )

@@ -166,9 +166,33 @@ export interface ResourcePlan {
     user_id?: string
     planned_hours: number
     created_by: string
-    project?: Project
-    position?: JobPosition
-    user?: User
+    created_at?: string
+    updated_at?: string
+    // Nested info from API
+    project_name?: string
+    project_code?: string
+    position_name?: string
+    user_name?: string
+    is_tbd: boolean
+}
+
+export interface ResourcePlanCreate {
+    project_id: string
+    year: number
+    month: number
+    position_id: string
+    user_id?: string
+    planned_hours: number
+}
+
+export interface ResourcePlanUpdate {
+    user_id?: string
+    planned_hours?: number
+    position_id?: string
+}
+
+export interface ResourcePlanAssign {
+    user_id: string
 }
 
 export interface WorkLog {

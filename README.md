@@ -21,6 +21,17 @@ docker compose logs -f
 - Backend API: http://localhost:8000/api/docs
 - Database: localhost:1433
 
+**기본 로그인 계정:**
+| Email | Password | Role |
+|-------|----------|------|
+| admin@edwards.com | password | ADMIN |
+| pm@edwards.com | password | PM |
+
+> ⚠️ **Note:** 첫 실행 시 DB 시딩이 필요합니다:
+> ```bash
+> docker compose exec backend bash -c "cd /app && PYTHONPATH=/app python scripts/initial_data.py"
+> ```
+
 ### 2. 개별 개발 환경
 
 **Backend:**
