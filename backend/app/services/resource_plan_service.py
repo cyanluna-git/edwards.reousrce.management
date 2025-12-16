@@ -213,3 +213,91 @@ class ResourcePlanService:
             .order_by(JobPosition.name)
             .all()
         )
+
+    def get_summary_by_project(self) -> List[dict]:
+        """Get monthly HC summary grouped by project"""
+        from sqlalchemy import func
+
+        results = (
+            self.db.query(
+                ResourcePlan.project_id,
+                ResourcePlan.year,
+                ResourcePlan.month,
+                func.sum(ResourcePlan.planned_hours).label("total_hours"),
+            )
+            .join(Project, ResourcePlan.project_id == Project.id)
+            .group_by(ResourcePlan.project_id, ResourcePlan.year, ResourcePlan.month)
+            .order_by(ResourcePlan.year, ResourcePlan.month, ResourcePlan.project_id)
+            .all()
+        )
+
+        # Get project info
+        project_map = {}
+        for r in results:
+            if r.project_id not in project_map:
+                project = (
+                    self.db.query(Project).filter(Project.id == r.project_id).first()
+                )
+                if project:
+                    project_map[r.project_id] = {
+                        "id": project.id,
+                        "code": project.code,
+                        "name": project.name,
+                    }
+
+        return [
+            {
+                "project_id": r.project_id,
+                "project_code": project_map.get(r.project_id, {}).get("code"),
+                "project_name": project_map.get(r.project_id, {}).get("name"),
+                "year": r.year,
+                "month": r.month,
+                "total_hours": float(r.total_hours) if r.total_hours else 0,
+            }
+            for r in results
+        ]
+
+    def get_summary_by_position(self) -> List[dict]:
+        """Get monthly HC summary grouped by position"""
+        from sqlalchemy import func
+
+        results = (
+            self.db.query(
+                ResourcePlan.position_id,
+                ResourcePlan.year,
+                ResourcePlan.month,
+                func.sum(ResourcePlan.planned_hours).label("total_hours"),
+                func.count(ResourcePlan.id).label("count"),
+            )
+            .join(JobPosition, ResourcePlan.position_id == JobPosition.id)
+            .group_by(ResourcePlan.position_id, ResourcePlan.year, ResourcePlan.month)
+            .order_by(ResourcePlan.year, ResourcePlan.month, ResourcePlan.position_id)
+            .all()
+        )
+
+        # Get position info
+        position_map = {}
+        for r in results:
+            if r.position_id not in position_map:
+                position = (
+                    self.db.query(JobPosition)
+                    .filter(JobPosition.id == r.position_id)
+                    .first()
+                )
+                if position:
+                    position_map[r.position_id] = {
+                        "id": position.id,
+                        "name": position.name,
+                    }
+
+        return [
+            {
+                "position_id": r.position_id,
+                "position_name": position_map.get(r.position_id, {}).get("name"),
+                "year": r.year,
+                "month": r.month,
+                "total_hours": float(r.total_hours) if r.total_hours else 0,
+                "count": r.count,
+            }
+            for r in results
+        ]

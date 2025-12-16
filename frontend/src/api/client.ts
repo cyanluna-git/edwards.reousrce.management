@@ -163,4 +163,34 @@ export const getJobPositions = async (): Promise<JobPosition[]> => {
   return response.data;
 };
 
+// ============ Resource Plan Summary API ============
+
+export interface ProjectSummary {
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  year: number;
+  month: number;
+  total_hours: number;
+}
+
+export interface PositionSummary {
+  position_id: string;
+  position_name: string;
+  year: number;
+  month: number;
+  total_hours: number;
+  count: number;
+}
+
+export const getSummaryByProject = async (): Promise<ProjectSummary[]> => {
+  const response = await apiClient.get('/resource-plans/summary/by-project');
+  return response.data;
+};
+
+export const getSummaryByPosition = async (): Promise<PositionSummary[]> => {
+  const response = await apiClient.get('/resource-plans/summary/by-position');
+  return response.data;
+};
+
 export default apiClient;

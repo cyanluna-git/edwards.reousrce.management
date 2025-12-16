@@ -41,22 +41,40 @@ def init_data(db: Session):
     db.refresh(dept_qa)
     print("Departments created.")
 
-    # 3. Job Positions
-    jp_leader = JobPosition(
-        id=str(uuid.uuid4()), name="Team Leader", department_id=dept_eng.id
-    )
-    jp_engineer = JobPosition(
-        id=str(uuid.uuid4()), name="Engineer", department_id=dept_eng.id
-    )
-    jp_manager = JobPosition(
-        id=str(uuid.uuid4()), name="Project Manager", department_id=dept_eng.id
-    )
-    db.add_all([jp_leader, jp_engineer, jp_manager])
+    # 3. Job Positions (from Resource Plan template)
+    job_positions_data = [
+        "Electrical engineer",
+        "Mechanical engineer",
+        "PM",
+        "Service engineer",
+        "Software engineer",
+        "SW test engineer",
+        "System engineer",
+        "Tech Lead",
+        "Technician",
+    ]
+
+    job_positions = []
+    for name in job_positions_data:
+        jp = JobPosition(
+            id=str(uuid.uuid4()),
+            name=name,
+            department_id=dept_eng.id,
+            is_active=True,
+        )
+        db.add(jp)
+        job_positions.append(jp)
+
     db.commit()
-    db.refresh(jp_leader)
-    db.refresh(jp_engineer)
-    db.refresh(jp_manager)
-    print("Job Positions created.")
+    for jp in job_positions:
+        db.refresh(jp)
+    print(f"Created {len(job_positions)} Job Positions.")
+
+    # Get specific positions for user creation
+    jp_manager = next((jp for jp in job_positions if jp.name == "PM"), job_positions[0])
+    jp_engineer = next(
+        (jp for jp in job_positions if jp.name == "Software engineer"), job_positions[0]
+    )
 
     # 4. Users
     user_service = UserService(db)

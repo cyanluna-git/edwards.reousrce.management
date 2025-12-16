@@ -11,7 +11,11 @@ import {
     deleteResourcePlan,
     assignUserToPlan,
     getJobPositions,
+    getSummaryByProject,
+    getSummaryByPosition,
     ResourcePlanFilters,
+    ProjectSummary,
+    PositionSummary,
 } from '@/api/client';
 import type { ResourcePlan, ResourcePlanCreate, ResourcePlanUpdate, ResourcePlanAssign, JobPosition } from '@/types';
 
@@ -23,6 +27,8 @@ const resourcePlanKeys = {
     tbd: (filters?: Pick<ResourcePlanFilters, 'project_id' | 'year' | 'month'>) => [...resourcePlanKeys.all, 'tbd', filters] as const,
     detail: (id: number) => [...resourcePlanKeys.all, 'detail', id] as const,
     positions: () => ['job-positions'] as const,
+    summaryByProject: () => [...resourcePlanKeys.all, 'summary', 'by-project'] as const,
+    summaryByPosition: () => [...resourcePlanKeys.all, 'summary', 'by-position'] as const,
 };
 
 /**
@@ -121,5 +127,25 @@ export function useAssignUserToPlan() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: resourcePlanKeys.all });
         },
+    });
+}
+
+/**
+ * Hook to fetch summary by project
+ */
+export function useSummaryByProject() {
+    return useQuery<ProjectSummary[], Error>({
+        queryKey: resourcePlanKeys.summaryByProject(),
+        queryFn: getSummaryByProject,
+    });
+}
+
+/**
+ * Hook to fetch summary by position
+ */
+export function useSummaryByPosition() {
+    return useQuery<PositionSummary[], Error>({
+        queryKey: resourcePlanKeys.summaryByPosition(),
+        queryFn: getSummaryByPosition,
     });
 }

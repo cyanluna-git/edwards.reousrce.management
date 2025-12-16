@@ -42,6 +42,33 @@ async def list_tbd_positions(
     )
 
 
+# ============ Summary Endpoints ============
+
+
+@router.get("/summary/by-project")
+async def get_summary_by_project(
+    db: Session = Depends(get_db),
+):
+    """
+    Get monthly HC summary grouped by project.
+    Returns total planned hours for each project per month.
+    """
+    service = ResourcePlanService(db)
+    return service.get_summary_by_project()
+
+
+@router.get("/summary/by-position")
+async def get_summary_by_position(
+    db: Session = Depends(get_db),
+):
+    """
+    Get monthly HC summary grouped by position/role.
+    Returns total planned hours for each position per month.
+    """
+    service = ResourcePlanService(db)
+    return service.get_summary_by_position()
+
+
 # ============ Resource Plan CRUD Endpoints ============
 
 
