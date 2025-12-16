@@ -1,6 +1,7 @@
 """
 Pydantic Schemas for Project CRUD operations
 """
+
 from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime
@@ -69,6 +70,51 @@ class Project(ProjectBase):
     program: Optional[Program] = None
     project_type: Optional[ProjectType] = None
     pm: Optional[User] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============ Milestone Schemas ============
+
+
+class MilestoneBase(BaseModel):
+    """Base schema for Milestone"""
+
+    name: str
+    type: str = "CUSTOM"  # STD_GATE or CUSTOM
+    target_date: datetime
+    actual_date: Optional[datetime] = None
+    status: str = "Pending"  # Pending, Completed, Delayed
+    is_key_gate: bool = False
+    description: Optional[str] = None
+
+
+class MilestoneCreate(MilestoneBase):
+    """Schema for creating a Milestone"""
+
+    pass
+
+
+class MilestoneUpdate(BaseModel):
+    """Schema for updating a Milestone"""
+
+    name: Optional[str] = None
+    type: Optional[str] = None
+    target_date: Optional[datetime] = None
+    actual_date: Optional[datetime] = None
+    status: Optional[str] = None
+    is_key_gate: Optional[bool] = None
+    description: Optional[str] = None
+
+
+class Milestone(MilestoneBase):
+    """Schema for returning a Milestone from the API"""
+
+    id: int
+    project_id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

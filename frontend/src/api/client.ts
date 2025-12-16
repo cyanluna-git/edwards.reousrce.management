@@ -59,4 +59,44 @@ export const loginUser = async (email: string, password: string): Promise<Token>
   return response.data;
 };
 
+// ============ Milestones API ============
+
+import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate, Program, ProjectType } from '@/types';
+
+export const getMilestones = async (projectId: string): Promise<ProjectMilestone[]> => {
+  const response = await apiClient.get(`/projects/${projectId}/milestones`);
+  return response.data;
+};
+
+export const createMilestone = async (projectId: string, data: ProjectMilestoneCreate): Promise<ProjectMilestone> => {
+  const response = await apiClient.post(`/projects/${projectId}/milestones`, data);
+  return response.data;
+};
+
+export const updateMilestone = async (
+  projectId: string,
+  milestoneId: number,
+  data: ProjectMilestoneUpdate
+): Promise<ProjectMilestone> => {
+  const response = await apiClient.put(`/projects/${projectId}/milestones/${milestoneId}`, data);
+  return response.data;
+};
+
+export const deleteMilestone = async (projectId: string, milestoneId: number): Promise<void> => {
+  await apiClient.delete(`/projects/${projectId}/milestones/${milestoneId}`);
+};
+
+// ============ Meta API ============
+
+export const getPrograms = async (): Promise<Program[]> => {
+  const response = await apiClient.get('/projects/meta/programs');
+  return response.data;
+};
+
+export const getProjectTypes = async (): Promise<ProjectType[]> => {
+  const response = await apiClient.get('/projects/meta/types');
+  return response.data;
+};
+
 export default apiClient;
+

@@ -132,6 +132,28 @@ export interface ProjectMilestone {
     status: 'Pending' | 'Completed' | 'Delayed'
     is_key_gate: boolean
     description?: string
+    created_at?: string
+    updated_at?: string
+}
+
+export interface ProjectMilestoneCreate {
+    name: string
+    type?: 'STD_GATE' | 'CUSTOM'
+    target_date: string
+    actual_date?: string
+    status?: 'Pending' | 'Completed' | 'Delayed'
+    is_key_gate?: boolean
+    description?: string
+}
+
+export interface ProjectMilestoneUpdate {
+    name?: string
+    type?: 'STD_GATE' | 'CUSTOM'
+    target_date?: string
+    actual_date?: string
+    status?: 'Pending' | 'Completed' | 'Delayed'
+    is_key_gate?: boolean
+    description?: string
 }
 
 // Resource Types

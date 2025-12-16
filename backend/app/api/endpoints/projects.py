@@ -7,10 +7,43 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.project import Project, ProjectCreate, ProjectUpdate
+from app.schemas.project import (
+    Project,
+    ProjectCreate,
+    ProjectUpdate,
+    Milestone,
+    MilestoneCreate,
+    MilestoneUpdate,
+    Program,
+    ProjectType,
+)
 from app.services.project_service import ProjectService
 
 router = APIRouter()
+
+
+# ============ Meta Endpoints (Must be before {project_id} routes) ============
+
+
+@router.get("/meta/programs", response_model=List[Program])
+async def list_programs(db: Session = Depends(get_db)):
+    """
+    List all active programs
+    """
+    service = ProjectService(db)
+    return service.get_programs()
+
+
+@router.get("/meta/types", response_model=List[ProjectType])
+async def list_project_types(db: Session = Depends(get_db)):
+    """
+    List all active project types
+    """
+    service = ProjectService(db)
+    return service.get_project_types()
+
+
+# ============ Project CRUD Endpoints ============
 
 
 @router.get("", response_model=List[Project])
@@ -37,10 +70,7 @@ async def list_projects(
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(
-    project_create: ProjectCreate,
-    db: Session = Depends(get_db)
-):
+async def create_project(project_create: ProjectCreate, db: Session = Depends(get_db)):
     """
     Create a new project
     """
@@ -65,20 +95,23 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
         )
     return project
 
+
 @router.put("/{project_id}", response_model=Project)
 async def update_project(
-    project_id: str,
-    project_update: ProjectUpdate,
-    db: Session = Depends(get_db)
+    project_id: str, project_update: ProjectUpdate, db: Session = Depends(get_db)
 ):
     """
     Update project
     """
     service = ProjectService(db)
     try:
-        updated_project = service.update_project(project_id=project_id, project_in=project_update)
+        updated_project = service.update_project(
+            project_id=project_id, project_in=project_update
+        )
         if not updated_project:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
         return updated_project
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -92,52 +125,101 @@ async def delete_project(project_id: str, db: Session = Depends(get_db)):
     service = ProjectService(db)
     deleted_project = service.delete_project(project_id=project_id)
     if not deleted_project:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    return {"message": "Project deleted successfully"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+    return None
 
 
-@router.get("/{project_id}/milestones")
+# ============ Milestone Endpoints ============
+
+
+@router.get("/{project_id}/milestones", response_model=List[Milestone])
 async def get_project_milestones(project_id: str, db: Session = Depends(get_db)):
     """
-    Get milestones for a project
+    Get all milestones for a project, sorted by target_date
     """
-    # TODO: Implement milestone listing
-    return {"message": f"Get milestones for project {project_id} - to be implemented"}
+    service = ProjectService(db)
+
+    # Check if project exists
+    project = service.get_by_id(project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    return service.get_milestones(project_id)
 
 
-@router.post("/{project_id}/milestones")
-async def create_project_milestone(project_id: str, db: Session = Depends(get_db)):
+@router.post(
+    "/{project_id}/milestones",
+    response_model=Milestone,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_project_milestone(
+    project_id: str, milestone_in: MilestoneCreate, db: Session = Depends(get_db)
+):
     """
     Create a milestone for a project
     """
-    # TODO: Implement milestone creation
-    return {"message": f"Create milestone for project {project_id} - to be implemented"}
+    service = ProjectService(db)
+    try:
+        new_milestone = service.create_milestone(project_id, milestone_in)
+        return new_milestone
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.put("/{project_id}/milestones/{milestone_id}")
+@router.put("/{project_id}/milestones/{milestone_id}", response_model=Milestone)
 async def update_project_milestone(
-    project_id: str, milestone_id: int, db: Session = Depends(get_db)
+    project_id: str,
+    milestone_id: int,
+    milestone_in: MilestoneUpdate,
+    db: Session = Depends(get_db),
 ):
     """
     Update a project milestone
     """
-    # TODO: Implement milestone update
-    return {"message": f"Update milestone {milestone_id} - to be implemented"}
+    service = ProjectService(db)
+
+    # Check if milestone exists and belongs to project
+    existing = service.get_milestone_by_id(milestone_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        )
+    if existing.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Milestone does not belong to this project",
+        )
+
+    updated_milestone = service.update_milestone(milestone_id, milestone_in)
+    return updated_milestone
 
 
-@router.get("/programs")
-async def list_programs(db: Session = Depends(get_db)):
+@router.delete(
+    "/{project_id}/milestones/{milestone_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_project_milestone(
+    project_id: str, milestone_id: int, db: Session = Depends(get_db)
+):
     """
-    List all programs
+    Delete a project milestone
     """
-    # TODO: Implement program listing
-    return {"message": "List programs endpoint - to be implemented"}
+    service = ProjectService(db)
 
+    # Check if milestone exists and belongs to project
+    existing = service.get_milestone_by_id(milestone_id)
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        )
+    if existing.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Milestone does not belong to this project",
+        )
 
-@router.get("/types")
-async def list_project_types(db: Session = Depends(get_db)):
-    """
-    List all project types
-    """
-    # TODO: Implement project type listing
-    return {"message": "List project types endpoint - to be implemented"}
+    service.delete_milestone(milestone_id)
+    return None

@@ -1,0 +1,71 @@
+{
+    "name": "Edwards Project Board",
+    "dockerComposeFile": [
+        "../docker-compose.yml",
+        "docker-compose.devcontainer.yml"
+    ],
+    "service": "devcontainer",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // Python
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-python.black-formatter",
+                "ms-python.mypy-type-checker",
+                // TypeScript/React
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                // Database
+                "ms-mssql.mssql",
+                // Docker
+                "ms-azuretools.vscode-docker",
+                // Git
+                "eamodio.gitlens",
+                // General
+                "editorconfig.editorconfig",
+                "usernamehw.errorlens",
+                "gruntfuggly.todo-tree"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.formatting.provider": "none",
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter",
+                    "editor.formatOnSave": true
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "[typescriptreact]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "editor.tabSize": 2,
+                "files.trimTrailingWhitespace": true,
+                "terminal.integrated.defaultProfile.linux": "zsh"
+            }
+        }
+    },
+    "forwardPorts": [
+        3000,
+        8000,
+        1433
+    ],
+    "portsAttributes": {
+        "3000": {
+            "label": "Frontend (Vite)"
+        },
+        "8000": {
+            "label": "Backend (FastAPI)"
+        },
+        "1433": {
+            "label": "MS SQL Server"
+        }
+    },
+    "postCreateCommand": "echo '✅ Dev Container ready! Run: cd backend && pip install -e . && cd ../frontend && pnpm install'",
+    "remoteUser": "vscode"
+}

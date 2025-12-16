@@ -1,0 +1,20 @@
+# Dev Container 전용 서비스 (기존 db/backend/frontend와 함께 실행)
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    container_name: edwards-devcontainer
+    volumes:
+      - ..:/workspace:cached
+      - devcontainer-vscode-extensions:/home/vscode/.vscode-server/extensions
+    command: sleep infinity
+    environment:
+      DATABASE_URL: "mssql+pyodbc://sa:Edwards2024@db,1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+      SECRET_KEY: "edwards-dev-secret-key"
+      VITE_API_URL: "http://localhost:8000/api"
+    networks:
+      - default
+
+volumes:
+  devcontainer-vscode-extensions:
