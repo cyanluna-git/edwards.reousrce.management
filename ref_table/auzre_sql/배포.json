@@ -1,0 +1,188 @@
+{
+  "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Resources/deployments/CreateSqlDatabase-1765954153616",
+  "name": "CreateSqlDatabase-1765954153616",
+  "type": "Microsoft.Resources/deployments",
+  "properties": {
+    "templateHash": "15252289683350075282",
+    "parameters": {
+      "resourceGroupName": {
+        "type": "String",
+        "value": "cyanluna-resoure"
+      },
+      "subscriptionId": {
+        "type": "String",
+        "value": "87498a3a-4210-4387-b4e7-fe5e5c1cfded"
+      },
+      "location": {
+        "type": "String",
+        "value": "koreacentral"
+      },
+      "tags": {
+        "type": "Object",
+        "value": {}
+      },
+      "collation": {
+        "type": "String",
+        "value": "SQL_Latin1_General_CP1_CI_AS"
+      },
+      "databaseName": {
+        "type": "String",
+        "value": "free-sql-db-3110931"
+      },
+      "tier": {
+        "type": "String",
+        "value": "GeneralPurpose"
+      },
+      "skuName": {
+        "type": "String",
+        "value": "GP_S_Gen5_2"
+      },
+      "maxSizeBytes": {
+        "type": "Int",
+        "value": 34359738368
+      },
+      "zoneRedundant": {
+        "type": "Bool",
+        "value": false
+      },
+      "readScaleOut": {
+        "type": "String",
+        "value": "Disabled"
+      },
+      "numberOfReplicas": {
+        "type": "Int",
+        "value": 0
+      },
+      "minCapacity": {
+        "type": "String",
+        "value": "0.5"
+      },
+      "autoPauseDelay": {
+        "type": "Int",
+        "value": 60
+      },
+      "enableSqlLedger": {
+        "type": "Bool",
+        "value": false
+      },
+      "availabilityZone": {
+        "type": "String",
+        "value": "NoPreference"
+      },
+      "useFreeLimit": {
+        "type": "Bool",
+        "value": true
+      },
+      "freeLimitExhaustionBehavior": {
+        "type": "String",
+        "value": "AutoPause"
+      },
+      "serverName": {
+        "type": "String",
+        "value": "cyanluna-sql"
+      },
+      "minimalTlsVersion": {
+        "type": "String",
+        "value": "1.2"
+      },
+      "publicNetworkAccess": {
+        "type": "String",
+        "value": ""
+      },
+      "allowAzureIps": {
+        "type": "Bool",
+        "value": true
+      },
+      "administrators": {
+        "type": "Object",
+        "value": {
+          "administratorType": "activeDirectory",
+          "login": "pjy8412@gmail.com",
+          "sid": "49284e42-7455-4b0b-b7af-b29463b884b7",
+          "tenantId": "ee2ba28e-fcbc-45a3-87c5-e6ee26541dec",
+          "azureADOnlyAuthentication": true,
+          "principalType": "User"
+        }
+      },
+      "administratorLogin": {
+        "type": "String",
+        "value": ""
+      },
+      "administratorLoginPassword": {
+        "type": "SecureString"
+      }
+    },
+    "mode": "Incremental",
+    "debugSetting": {
+      "detailLevel": "None"
+    },
+    "provisioningState": "Succeeded",
+    "timestamp": "2025-12-17T06:52:03.215731Z",
+    "duration": "PT2M16.0616776S",
+    "correlationId": "d3db5f9f-f014-40d3-80f8-58a3125ac5f7",
+    "providers": [
+      {
+        "namespace": "Microsoft.Sql",
+        "resourceTypes": [
+          {
+            "resourceType": "servers",
+            "locations": [
+              "koreacentral"
+            ]
+          },
+          {
+            "resourceType": "servers/firewallrules",
+            "locations": [
+              "koreacentral"
+            ]
+          },
+          {
+            "resourceType": "servers/databases",
+            "locations": [
+              "koreacentral"
+            ]
+          }
+        ]
+      }
+    ],
+    "dependencies": [
+      {
+        "dependsOn": [
+          {
+            "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql",
+            "resourceType": "Microsoft.Sql/servers",
+            "resourceName": "cyanluna-sql"
+          }
+        ],
+        "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql/firewallrules/AllowAllWindowsAzureIps",
+        "resourceType": "Microsoft.Sql/servers/firewallrules",
+        "resourceName": "cyanluna-sql/AllowAllWindowsAzureIps"
+      },
+      {
+        "dependsOn": [
+          {
+            "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql",
+            "resourceType": "Microsoft.Sql/servers",
+            "resourceName": "cyanluna-sql"
+          }
+        ],
+        "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql/databases/free-sql-db-3110931",
+        "resourceType": "Microsoft.Sql/servers/databases",
+        "resourceName": "cyanluna-sql/free-sql-db-3110931"
+      }
+    ],
+    "outputResources": [
+      {
+        "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql"
+      },
+      {
+        "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql/databases/free-sql-db-3110931"
+      },
+      {
+        "id": "/subscriptions/87498a3a-4210-4387-b4e7-fe5e5c1cfded/resourceGroups/cyanluna-resoure/providers/Microsoft.Sql/servers/cyanluna-sql/firewallrules/AllowAllWindowsAzureIps"
+      }
+    ],
+    "validationLevel": "Template"
+  },
+  "tags": {}
+}

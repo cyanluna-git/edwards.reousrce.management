@@ -1,0 +1,2 @@
+# Azure App Service Startup Script
+gunicorn --bind=0.0.0.0 --timeout 600 --workers=2 --worker-class=uvicorn.workers.UvicornWorker app.main:app
