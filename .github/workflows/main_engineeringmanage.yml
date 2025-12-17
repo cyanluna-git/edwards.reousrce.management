@@ -59,4 +59,4 @@ jobs:
           app-name: 'engineeringmanage'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: 'python-app/backend'
+          package: 'python-app'
