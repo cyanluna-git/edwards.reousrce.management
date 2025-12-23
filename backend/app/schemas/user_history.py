@@ -1,6 +1,7 @@
 """
 Pydantic Schemas for User History
 """
+
 from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -8,8 +9,8 @@ from datetime import datetime
 
 class UserHistoryBase(BaseModel):
     user_id: str
-    department_id: int
-    sub_team_id: Optional[int] = None
+    department_id: str
+    sub_team_id: Optional[str] = None
     position_id: str
     start_date: datetime
     end_date: Optional[datetime] = None

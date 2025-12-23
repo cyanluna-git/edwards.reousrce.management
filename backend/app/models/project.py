@@ -7,7 +7,8 @@ from datetime import datetime
 from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from app.models.scenario import ProjectScenario # Explicitly import ProjectScenario
+from app.models.scenario import ProjectScenario  # Explicitly import ProjectScenario
+
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -47,6 +48,23 @@ class ProjectType(Base):
     projects = relationship("Project", back_populates="project_type")
 
 
+class ProductLine(Base):
+    """제품군 - 제품 라인/패밀리 분류"""
+
+    __tablename__ = "product_lines"
+
+    id = Column(String(50), primary_key=True)  # e.g., "PL_GEN3", "PL_GEN4"
+    name = Column(String(100), nullable=False)  # e.g., "Gen3", "Gen4", "Ruby"
+    code = Column(String(50), unique=True, nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    projects = relationship("Project", back_populates="product_line")
+
+
 class Project(Base):
     """프로젝트"""
 
@@ -61,6 +79,8 @@ class Project(Base):
         String(20), default="WIP"
     )  # WIP, Hold, Completed, Cancelled, Forecast
     complexity = Column(String(20), nullable=True)  # Simple, Derivative, Complex
+    scale = Column(String(20), nullable=True)  # CIP, A&D, Simple, Complex, Platform
+    product_line_id = Column(String(50), ForeignKey("product_lines.id"), nullable=True)
     pm_id = Column(String(36), ForeignKey("users.id"), nullable=True)
     start_date = Column(DateTime, nullable=True)
     end_date = Column(DateTime, nullable=True)
@@ -73,6 +93,7 @@ class Project(Base):
     # Relationships
     program = relationship("Program", back_populates="projects")
     project_type = relationship("ProjectType", back_populates="projects")
+    product_line = relationship("ProductLine", back_populates="projects")
     pm = relationship("User", back_populates="managed_projects")
     milestones = relationship("ProjectMilestone", back_populates="project")
     worklogs = relationship("WorkLog", back_populates="project")

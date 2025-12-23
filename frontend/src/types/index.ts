@@ -7,7 +7,7 @@ export interface BusinessUnit {
 }
 
 export interface Department {
-    id: number
+    id: string
     business_unit_id: string
     name: string
     code: string
@@ -16,8 +16,8 @@ export interface Department {
 }
 
 export interface SubTeam {
-    id: number
-    department_id: number
+    id: string
+    department_id: string
     name: string
     code: string
     is_active: boolean
@@ -27,9 +27,9 @@ export interface SubTeam {
 export interface JobPosition {
     id: string
     name: string
-    department_id: number
-    sub_team_id?: number
-    std_hourly_rate: number
+    department_id?: string
+    sub_team_id?: string
+    std_hourly_rate?: number
     is_active: boolean
 }
 
@@ -80,8 +80,16 @@ export interface ProjectType {
     description?: string
 }
 
+export interface ProductLine {
+    id: string
+    name: string
+    code: string
+    description?: string
+}
+
 export type ProjectStatus = 'WIP' | 'Hold' | 'Completed' | 'Cancelled' | 'Forecast'
 export type ProjectComplexity = 'Simple' | 'Derivative' | 'Complex'
+export type ProjectScale = 'CIP' | 'A&D' | 'Simple' | 'Complex' | 'Platform'
 
 export interface ProjectBase {
     program_id: string
@@ -90,6 +98,8 @@ export interface ProjectBase {
     name: string
     status: ProjectStatus
     complexity?: ProjectComplexity
+    scale?: ProjectScale
+    product_line_id?: string
     pm_id?: string
     start_date?: string
     end_date?: string
@@ -107,6 +117,8 @@ export interface ProjectUpdate {
     name?: string
     status?: ProjectStatus
     complexity?: ProjectComplexity
+    scale?: ProjectScale
+    product_line_id?: string
     pm_id?: string
     start_date?: string
     end_date?: string
@@ -119,6 +131,7 @@ export interface Project extends ProjectBase {
     id: string
     program?: Program
     project_type?: ProjectType
+    product_line?: ProductLine
     pm?: User
 }
 

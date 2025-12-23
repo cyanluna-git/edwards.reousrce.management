@@ -12,6 +12,7 @@ from app.models.project import (
     ProjectMilestone,
     Program as ProgramModel,
     ProjectType as ProjectTypeModel,
+    ProductLine as ProductLineModel,
 )
 from app.schemas.project import (
     ProjectCreate,
@@ -32,6 +33,7 @@ class ProjectService:
             .options(
                 joinedload(Project.program),
                 joinedload(Project.project_type),
+                joinedload(Project.product_line),
                 joinedload(Project.pm),
             )
             .filter(Project.id == project_id)
@@ -51,6 +53,7 @@ class ProjectService:
         query = self.db.query(Project).options(
             joinedload(Project.program),
             joinedload(Project.project_type),
+            joinedload(Project.product_line),
             joinedload(Project.pm),
         )
 
@@ -191,5 +194,14 @@ class ProjectService:
             self.db.query(ProjectTypeModel)
             .filter(ProjectTypeModel.is_active == True)
             .order_by(ProjectTypeModel.name)
+            .all()
+        )
+
+    def get_product_lines(self) -> List["ProductLine"]:
+        """Get all active product lines."""
+        return (
+            self.db.query(ProductLineModel)
+            .filter(ProductLineModel.is_active == True)
+            .order_by(ProductLineModel.name)
             .all()
         )

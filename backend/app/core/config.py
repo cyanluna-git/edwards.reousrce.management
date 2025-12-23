@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = (
-        "mssql+pyodbc://sa:YourStrong@Password123@localhost:1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+        "postgresql://postgres:password@localhost:5432/edwards"
     )
 
     # JWT

@@ -54,7 +54,6 @@ class Department(Base):
     # Relationships
     business_unit = relationship("BusinessUnit", back_populates="departments")
     sub_teams = relationship("SubTeam", back_populates="department")
-    job_positions = relationship("JobPosition", back_populates="department")
     users = relationship("User", back_populates="department")
 
 
@@ -73,26 +72,21 @@ class SubTeam(Base):
 
     # Relationships
     department = relationship("Department", back_populates="sub_teams")
-    job_positions = relationship("JobPosition", back_populates="sub_team")
     users = relationship("User", back_populates="sub_team")
 
 
 class JobPosition(Base):
-    """직급/직무"""
+    """직급/직무 - 전사 공통 (부서 독립적)"""
 
     __tablename__ = "job_positions"
 
-    id = Column(String(50), primary_key=True)  # e.g., "POS_SW_SENIOR"
+    id = Column(String(50), primary_key=True)  # e.g., "JP_ENGINEER"
     name = Column(String(100), nullable=False)  # NVARCHAR
-    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
-    sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     std_hourly_rate = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    department = relationship("Department", back_populates="job_positions")
-    sub_team = relationship("SubTeam", back_populates="job_positions")
     users = relationship("User", back_populates="position")
     resource_plans = relationship("ResourcePlan", back_populates="position")

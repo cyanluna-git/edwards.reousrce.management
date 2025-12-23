@@ -27,6 +27,17 @@ class ProjectType(BaseModel):
         from_attributes = True
 
 
+# Schema for ProductLine
+class ProductLine(BaseModel):
+    id: str
+    name: str
+    code: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 # Base schema for Project
 class ProjectBase(BaseModel):
     program_id: str
@@ -35,6 +46,8 @@ class ProjectBase(BaseModel):
     name: str
     status: str = "WIP"
     complexity: Optional[str] = None
+    scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
+    product_line_id: Optional[str] = None
     pm_id: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -56,6 +69,8 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     status: Optional[str] = None
     complexity: Optional[str] = None
+    scale: Optional[str] = None
+    product_line_id: Optional[str] = None
     pm_id: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -69,6 +84,7 @@ class Project(ProjectBase):
     id: str
     program: Optional[Program] = None
     project_type: Optional[ProjectType] = None
+    product_line: Optional[ProductLine] = None
     pm: Optional[User] = None
 
     class Config:

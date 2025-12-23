@@ -240,12 +240,14 @@ export const getMyDashboard = async (): Promise<DashboardData> => {
 export interface JobPositionCreate {
   name: string;
   department_id?: string;
+  sub_team_id?: string;
   is_active?: boolean;
 }
 
 export interface JobPositionUpdate {
   name?: string;
   department_id?: string;
+  sub_team_id?: string;
   is_active?: boolean;
 }
 
@@ -315,6 +317,218 @@ export const getCapacitySummary = async (year?: number): Promise<CapacitySummary
 export const getWorklogSummary = async (year?: number): Promise<WorklogSummary> => {
   const params = year ? `?year=${year}` : '';
   const response = await apiClient.get(`/reports/worklog-summary${params}`);
+  return response.data;
+};
+
+// ============ Organization API ============
+
+export interface BusinessUnit {
+  id: string;
+  name: string;
+  code: string;
+  is_active: boolean;
+}
+
+export interface Department {
+  id: string;
+  name: string;
+  code: string;
+  business_unit_id: string;
+  is_active: boolean;
+}
+
+export interface SubTeam {
+  id: string;
+  name: string;
+  code: string;
+  department_id: string;
+  is_active: boolean;
+}
+
+export interface UserDetails {
+  id: string;
+  name: string;
+  korean_name: string | null;
+  email: string;
+  department_id: string;
+  sub_team_id: string | null;
+  position_id: string;
+  role: string;
+  is_active: boolean;
+}
+
+export interface UserHistoryEntry {
+  id: number;
+  user_id: string;
+  department_id: string;
+  sub_team_id: string | null;
+  position_id: string;
+  start_date: string;
+  end_date: string | null;
+  change_type: string;
+  remarks: string | null;
+}
+
+// Business Units
+export const getBusinessUnits = async (): Promise<BusinessUnit[]> => {
+  const response = await apiClient.get('/departments/business-units');
+  return response.data;
+};
+
+export const createBusinessUnit = async (data: Omit<BusinessUnit, 'id'>): Promise<BusinessUnit> => {
+  const response = await apiClient.post('/departments/business-units', data);
+  return response.data;
+};
+
+export const updateBusinessUnit = async (id: string, data: Partial<BusinessUnit>): Promise<BusinessUnit> => {
+  const response = await apiClient.put(`/departments/business-units/${id}`, data);
+  return response.data;
+};
+
+export const deleteBusinessUnit = async (id: string): Promise<void> => {
+  await apiClient.delete(`/departments/business-units/${id}`);
+};
+
+// Departments
+export const getDepartments = async (businessUnitId?: string): Promise<Department[]> => {
+  const params = businessUnitId ? `?business_unit_id=${businessUnitId}` : '';
+  const response = await apiClient.get(`/departments${params}`);
+  return response.data;
+};
+
+export const createDepartment = async (data: Omit<Department, 'id'>): Promise<Department> => {
+  const response = await apiClient.post('/departments', data);
+  return response.data;
+};
+
+export const updateDepartment = async (id: string, data: Partial<Department>): Promise<Department> => {
+  const response = await apiClient.put(`/departments/${id}`, data);
+  return response.data;
+};
+
+export const deleteDepartment = async (id: string): Promise<void> => {
+  await apiClient.delete(`/departments/${id}`);
+};
+
+// Sub-Teams
+export const getSubTeams = async (departmentId: string): Promise<SubTeam[]> => {
+  const response = await apiClient.get(`/departments/${departmentId}/sub-teams`);
+  return response.data;
+};
+
+export const createSubTeam = async (departmentId: string, data: Omit<SubTeam, 'id' | 'department_id'>): Promise<SubTeam> => {
+  const response = await apiClient.post(`/departments/${departmentId}/sub-teams`, { ...data, department_id: departmentId });
+  return response.data;
+};
+
+export const updateSubTeam = async (id: string, data: Partial<SubTeam>): Promise<SubTeam> => {
+  const response = await apiClient.put(`/departments/sub-teams/${id}`, data);
+  return response.data;
+};
+
+export const deleteSubTeam = async (id: string): Promise<void> => {
+  await apiClient.delete(`/departments/sub-teams/${id}`);
+};
+
+// Users (for Resources tab)
+export const getUsers = async (departmentId?: string, isActive?: boolean): Promise<UserDetails[]> => {
+  const params = new URLSearchParams();
+  if (departmentId) params.append('department_id', departmentId);
+  if (isActive !== undefined) params.append('is_active', String(isActive));
+  params.append('limit', '500');
+  const response = await apiClient.get(`/users?${params.toString()}`);
+  return response.data;
+};
+
+export const getUserHistory = async (userId: string): Promise<UserHistoryEntry[]> => {
+  const response = await apiClient.get(`/users/${userId}/history`);
+  return response.data;
+};
+
+export const createUserHistory = async (userId: string, data: Omit<UserHistoryEntry, 'id' | 'user_id'>): Promise<UserHistoryEntry> => {
+  const response = await apiClient.post(`/users/${userId}/history`, data);
+  return response.data;
+};
+
+export const updateUserHistory = async (userId: string, historyId: number, data: Partial<UserHistoryEntry>): Promise<UserHistoryEntry> => {
+  const response = await apiClient.put(`/users/${userId}/history/${historyId}`, data);
+  return response.data;
+};
+
+export const deleteUserHistory = async (userId: string, historyId: number): Promise<void> => {
+  await apiClient.delete(`/users/${userId}/history/${historyId}`);
+};
+
+export interface UserUpdate {
+  name?: string;
+  korean_name?: string;
+  department_id?: string;
+  sub_team_id?: string | null;
+  position_id?: string;
+  role?: string;
+  is_active?: boolean;
+}
+
+export const updateUser = async (userId: string, data: UserUpdate): Promise<UserDetails> => {
+  const response = await apiClient.put(`/users/${userId}`, data);
+  return response.data;
+};
+
+// ============ Hiring Plans API ============
+
+export interface HiringPlan {
+  id: string;
+  department_id: string;
+  position_id: string | null;
+  target_date: string;
+  headcount: number;
+  status: string;
+  remarks: string | null;
+  hired_user_id: string | null;
+}
+
+export interface HeadcountForecast {
+  target_date: string;
+  department_id: string | null;
+  current_headcount: number;
+  planned_hires: number;
+  forecasted_headcount: number;
+}
+
+export const getHiringPlans = async (filters?: { department_id?: string; status?: string; from_date?: string; to_date?: string }): Promise<HiringPlan[]> => {
+  const params = new URLSearchParams();
+  if (filters?.department_id) params.append('department_id', filters.department_id);
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.from_date) params.append('from_date', filters.from_date);
+  if (filters?.to_date) params.append('to_date', filters.to_date);
+  const response = await apiClient.get(`/hiring-plans?${params.toString()}`);
+  return response.data;
+};
+
+export const createHiringPlan = async (data: Omit<HiringPlan, 'id' | 'hired_user_id'>): Promise<HiringPlan> => {
+  const response = await apiClient.post('/hiring-plans', data);
+  return response.data;
+};
+
+export const updateHiringPlan = async (id: string, data: Partial<HiringPlan>): Promise<HiringPlan> => {
+  const response = await apiClient.put(`/hiring-plans/${id}`, data);
+  return response.data;
+};
+
+export const deleteHiringPlan = async (id: string): Promise<void> => {
+  await apiClient.delete(`/hiring-plans/${id}`);
+};
+
+export const getHeadcountForecast = async (targetDate: string, departmentId?: string): Promise<HeadcountForecast> => {
+  const params = new URLSearchParams();
+  params.append('target_date', targetDate);
+  if (departmentId) params.append('department_id', departmentId);
+  const response = await apiClient.get(`/hiring-plans/forecast/headcount?${params.toString()}`);
+  return response.data;
+};
+
+export const fillHiringPlan = async (planId: string, userId: string): Promise<{ message: string; plan_id: string; hired_user_id: string; hired_user_name: string }> => {
+  const response = await apiClient.post(`/hiring-plans/${planId}/fill?user_id=${userId}`);
   return response.data;
 };
 

@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("", response_model=List[User])
 async def list_users(
-    department_id: Optional[int] = Query(None),
+    department_id: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(True),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
@@ -105,7 +105,7 @@ async def get_user_history(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
-    
+
     history = service.get_history_by_user_id(user_id=user_id)
     return history
 
@@ -117,3 +117,134 @@ async def get_user_worklogs(user_id: str, db: Session = Depends(get_db)):
     """
     # TODO: Implement user worklogs retrieval via a WorklogService
     return {"message": f"Get worklogs for user {user_id} - to be implemented"}
+
+
+# ============================================================
+# User History CRUD
+# ============================================================
+
+from pydantic import BaseModel
+from datetime import datetime
+from app.models.user import UserHistory as UserHistoryModel
+
+
+class UserHistoryCreate(BaseModel):
+    department_id: str
+    sub_team_id: Optional[str] = None
+    position_id: str
+    start_date: datetime
+    end_date: Optional[datetime] = None
+    change_type: str  # HIRE, TRANSFER_IN, TRANSFER_OUT, PROMOTION, RESIGN
+    remarks: Optional[str] = None
+
+
+class UserHistoryUpdate(BaseModel):
+    department_id: Optional[str] = None
+    sub_team_id: Optional[str] = None
+    position_id: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    change_type: Optional[str] = None
+    remarks: Optional[str] = None
+
+
+@router.post(
+    "/{user_id}/history",
+    response_model=UserHistory,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_user_history(
+    user_id: str,
+    history_in: UserHistoryCreate,
+    db: Session = Depends(get_db),
+):
+    """
+    Add a new history entry for a user (e.g., department transfer, promotion).
+    """
+    service = UserService(db)
+    user = service.get_by_id(user_id=user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    history = UserHistoryModel(
+        user_id=user_id,
+        department_id=history_in.department_id,
+        sub_team_id=history_in.sub_team_id,
+        position_id=history_in.position_id,
+        start_date=history_in.start_date,
+        end_date=history_in.end_date,
+        change_type=history_in.change_type,
+        remarks=history_in.remarks,
+    )
+    db.add(history)
+    db.commit()
+    db.refresh(history)
+    return history
+
+
+@router.put("/{user_id}/history/{history_id}", response_model=UserHistory)
+async def update_user_history(
+    user_id: str,
+    history_id: int,
+    history_in: UserHistoryUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Update an existing history entry.
+    """
+    history = (
+        db.query(UserHistoryModel)
+        .filter(
+            UserHistoryModel.id == history_id,
+            UserHistoryModel.user_id == user_id,
+        )
+        .first()
+    )
+
+    if not history:
+        raise HTTPException(status_code=404, detail="History entry not found")
+
+    if history_in.department_id is not None:
+        history.department_id = history_in.department_id
+    if history_in.sub_team_id is not None:
+        history.sub_team_id = history_in.sub_team_id
+    if history_in.position_id is not None:
+        history.position_id = history_in.position_id
+    if history_in.start_date is not None:
+        history.start_date = history_in.start_date
+    if history_in.end_date is not None:
+        history.end_date = history_in.end_date
+    if history_in.change_type is not None:
+        history.change_type = history_in.change_type
+    if history_in.remarks is not None:
+        history.remarks = history_in.remarks
+
+    db.commit()
+    db.refresh(history)
+    return history
+
+
+@router.delete("/{user_id}/history/{history_id}")
+async def delete_user_history(
+    user_id: str,
+    history_id: int,
+    db: Session = Depends(get_db),
+):
+    """
+    Delete a history entry.
+    """
+    history = (
+        db.query(UserHistoryModel)
+        .filter(
+            UserHistoryModel.id == history_id,
+            UserHistoryModel.user_id == user_id,
+        )
+        .first()
+    )
+
+    if not history:
+        raise HTTPException(status_code=404, detail="History entry not found")
+
+    db.delete(history)
+    db.commit()
+    return {"message": "History entry deleted"}

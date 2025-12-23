@@ -1,17 +1,17 @@
 services:
-  # MS SQL Server (Azure SQL Edge for ARM64/Apple Silicon)
+  # PostgreSQL for local development (Lighter than MS SQL)
   db:
-    image: mcr.microsoft.com/azure-sql-edge
-    container_name: edwards-mssql
+    image: postgres:15-alpine
+    container_name: edwards-postgres
     ports:
-      - "1433:1433"
+      - "5432:5432"
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Edwards2024"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: edwards
     volumes:
-      - mssql-data:/var/opt/mssql
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
-
 
   # FastAPI Backend
   backend:
@@ -64,5 +64,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  mssql-data:
+  postgres-data:
     driver: local

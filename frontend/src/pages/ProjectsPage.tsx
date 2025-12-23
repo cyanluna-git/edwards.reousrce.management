@@ -57,6 +57,9 @@ export function ProjectsPage() {
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Program</TableHead>
+              <TableHead>Product Line</TableHead>
+              <TableHead>Scale</TableHead>
+              <TableHead>Customer</TableHead>
               <TableHead>PM</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -71,6 +74,9 @@ export function ProjectsPage() {
                 <TableCell className="font-medium">{project.code}</TableCell>
                 <TableCell>{project.name}</TableCell>
                 <TableCell>{project.program?.name ?? 'N/A'}</TableCell>
+                <TableCell>{project.product_line?.name ?? '-'}</TableCell>
+                <TableCell>{project.scale ?? '-'}</TableCell>
+                <TableCell>{project.customer ?? '-'}</TableCell>
                 <TableCell>{project.pm?.name ?? 'N/A'}</TableCell>
                 <TableCell>{project.status}</TableCell>
               </TableRow>

@@ -20,6 +20,7 @@ from app.api.endpoints import (
     scenarios,
     dashboard,
     job_positions,
+    hiring_plans,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -55,20 +56,36 @@ app.add_middleware(
 # Startup event to create tables and seed initial data
 @app.on_event("startup")
 async def startup_event():
+    import os
+    from sqlalchemy import text
+
     engine = get_engine()
     print("Running database startup event...")
 
-    # Drop all existing tables
-    Base.metadata.drop_all(bind=engine)
-    print("All tables dropped.")
+    reset_db = os.getenv("RESET_DB", "false").lower() == "true"
 
-    # Create all new tables based on models
+    if reset_db:
+        # Drop all existing tables with CASCADE (only when explicitly requested)
+        with engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
+            conn.commit()
+        print("All tables dropped (RESET_DB=true).")
+
+    # Create all new tables based on models (creates only if not exist)
     Base.metadata.create_all(bind=engine)
-    print("All tables created.")
+    print("All tables created/verified.")
 
-    # Use closing to ensure the session is closed
+    # Seed data only if admin user doesn't exist (empty DB check)
     with closing(next(get_db())) as db:
-        init_data(db)
+        from app.models import User
+
+        admin_exists = db.query(User).filter(User.email == "admin@edwards.com").first()
+        if not admin_exists or reset_db:
+            init_data(db)
+            print("Initial data seeded.")
+        else:
+            print("Database already has data. Skipping seeding.")
     print("Database startup event complete.")
 
 
@@ -86,6 +103,9 @@ app.include_router(scenarios.router, prefix="/api", tags=["Scenarios"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(
     job_positions.router, prefix="/api/job-positions", tags=["Job Positions"]
+)
+app.include_router(
+    hiring_plans.router, prefix="/api/hiring-plans", tags=["Hiring Plans"]
 )
 
 

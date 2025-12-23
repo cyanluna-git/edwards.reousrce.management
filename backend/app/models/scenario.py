@@ -3,7 +3,16 @@ SQLAlchemy Models for Project Scenarios and Scenario Milestones
 """
 
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, Text
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Boolean,
+    ForeignKey,
+    DateTime,
+    Text,
+    Float,
+)
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -26,6 +35,9 @@ class ProjectScenario(Base):
     project = relationship("Project", back_populates="scenarios")
     milestones = relationship(
         "ScenarioMilestone", back_populates="scenario", cascade="all, delete-orphan"
+    )
+    resource_plans = relationship(
+        "ScenarioResourcePlan", back_populates="scenario", cascade="all, delete-orphan"
     )
 
 
@@ -54,3 +66,27 @@ class ScenarioMilestone(Base):
     # Relationships
     scenario = relationship("ProjectScenario", back_populates="milestones")
     base_milestone = relationship("ProjectMilestone")
+
+
+class ScenarioResourcePlan(Base):
+    """시나리오별 리소스 계획 - 시나리오마다 다른 리소스 계획 관리"""
+
+    __tablename__ = "scenario_resource_plans"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    scenario_id = Column(Integer, ForeignKey("project_scenarios.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)  # 1-12
+    position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True)  # NULL = TBD
+    planned_hours = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    scenario = relationship("ProjectScenario", back_populates="resource_plans")
+    position = relationship("JobPosition")
+    user = relationship("User", foreign_keys=[user_id])
+    creator = relationship("User", foreign_keys=[created_by])

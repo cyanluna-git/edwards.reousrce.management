@@ -16,6 +16,7 @@ from app.schemas.project import (
     MilestoneUpdate,
     Program,
     ProjectType,
+    ProductLine,
 )
 from app.services.project_service import ProjectService
 
@@ -41,6 +42,15 @@ async def list_project_types(db: Session = Depends(get_db)):
     """
     service = ProjectService(db)
     return service.get_project_types()
+
+
+@router.get("/meta/product-lines", response_model=List[ProductLine])
+async def list_product_lines(db: Session = Depends(get_db)):
+    """
+    List all active product lines (제품군)
+    """
+    service = ProjectService(db)
+    return service.get_product_lines()
 
 
 # ============ Project CRUD Endpoints ============
