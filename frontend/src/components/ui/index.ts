@@ -24,3 +24,13 @@ export {
   DialogTitle,
   DialogDescription,
 } from './dialog'
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+} from './select'

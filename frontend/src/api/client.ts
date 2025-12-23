@@ -98,6 +98,13 @@ export const getProjectTypes = async (): Promise<ProjectType[]> => {
   return response.data;
 };
 
+import type { ProductLine } from '@/types';
+
+export const getProductLines = async (): Promise<ProductLine[]> => {
+  const response = await apiClient.get('/projects/meta/product-lines');
+  return response.data;
+};
+
 // ============ Resource Plans API ============
 
 import type { ResourcePlan, ResourcePlanCreate, ResourcePlanUpdate, ResourcePlanAssign, JobPosition } from '@/types';

@@ -76,14 +76,13 @@ class Project(Base):
     code = Column(String(50), unique=True, nullable=False)  # IO Code
     name = Column(String(300), nullable=False)  # NVARCHAR
     status = Column(
-        String(20), default="WIP"
-    )  # WIP, Hold, Completed, Cancelled, Forecast
-    complexity = Column(String(20), nullable=True)  # Simple, Derivative, Complex
+        String(20), default="Prospective"
+    )  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
     scale = Column(String(20), nullable=True)  # CIP, A&D, Simple, Complex, Platform
     product_line_id = Column(String(50), ForeignKey("product_lines.id"), nullable=True)
     pm_id = Column(String(36), ForeignKey("users.id"), nullable=True)
-    start_date = Column(DateTime, nullable=True)
-    end_date = Column(DateTime, nullable=True)
+    start_month = Column(String(7), nullable=True)  # YYYY-MM format (e.g., "2025-01")
+    end_month = Column(String(7), nullable=True)  # YYYY-MM format (e.g., "2025-12")
     customer = Column(String(100), nullable=True)
     product = Column(String(200), nullable=True)
     description = Column(Text, nullable=True)

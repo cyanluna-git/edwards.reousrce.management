@@ -44,13 +44,14 @@ class ProjectBase(BaseModel):
     project_type_id: str
     code: str
     name: str
-    status: str = "WIP"
-    complexity: Optional[str] = None
+    status: str = (
+        "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
+    )
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
     product_line_id: Optional[str] = None
     pm_id: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    start_month: Optional[str] = None  # YYYY-MM format
+    end_month: Optional[str] = None  # YYYY-MM format
     customer: Optional[str] = None
     product: Optional[str] = None
     description: Optional[str] = None
@@ -68,12 +69,11 @@ class ProjectUpdate(BaseModel):
     code: Optional[str] = None
     name: Optional[str] = None
     status: Optional[str] = None
-    complexity: Optional[str] = None
     scale: Optional[str] = None
     product_line_id: Optional[str] = None
     pm_id: Optional[str] = None
-    start_date: Optional[datetime] = None
-    end_date: Optional[datetime] = None
+    start_month: Optional[str] = None
+    end_month: Optional[str] = None
     customer: Optional[str] = None
     product: Optional[str] = None
     description: Optional[str] = None

@@ -1217,7 +1217,7 @@ def init_data(db: Session):
             "name": "Gen3+, HRSD, H2D-HP x 2, HVM",
             "program_id": "EUV_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": "TSMC HVM",
         },
         {
@@ -1233,7 +1233,7 @@ def init_data(db: Session):
             "name": "Gen4, Kanarra",
             "program_id": "EUV_NPI",
             "project_type_id": "NPI",
-            "status": "Hold",
+            "status": "OnHold",
             "customer": None,
         },
         {
@@ -1241,7 +1241,7 @@ def init_data(db: Session):
             "name": "2025 Ruby - SIC integration",
             "program_id": "IS_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": None,
         },
         {
@@ -1249,7 +1249,7 @@ def init_data(db: Session):
             "name": "2025 Havasu",
             "program_id": "IS_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": "TEL",
         },
         {
@@ -1257,7 +1257,7 @@ def init_data(db: Session):
             "name": "2025 EUV Gen4 Phase 1 Tumalo",
             "program_id": "IS_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": None,
         },
         {
@@ -1265,7 +1265,7 @@ def init_data(db: Session):
             "name": "2025 Protron | Single ROW",
             "program_id": "ABT_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": None,
         },
         {
@@ -1273,7 +1273,7 @@ def init_data(db: Session):
             "name": "EUV TSMC Gen3 H2D-R(TS marked)",
             "program_id": "EUV_ETO",
             "project_type_id": "ETO",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": "TSMC",
         },
         {
@@ -1281,7 +1281,7 @@ def init_data(db: Session):
             "name": "2025 NRTL (DTLR / ARS)",
             "program_id": "ACM_NPI",
             "project_type_id": "NPI",
-            "status": "WIP",
+            "status": "InProgress",
             "customer": "SEC",
         },
     ]

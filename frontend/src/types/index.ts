@@ -87,8 +87,7 @@ export interface ProductLine {
     description?: string
 }
 
-export type ProjectStatus = 'WIP' | 'Hold' | 'Completed' | 'Cancelled' | 'Forecast'
-export type ProjectComplexity = 'Simple' | 'Derivative' | 'Complex'
+export type ProjectStatus = 'Prospective' | 'Planned' | 'InProgress' | 'OnHold' | 'Cancelled' | 'Completed'
 export type ProjectScale = 'CIP' | 'A&D' | 'Simple' | 'Complex' | 'Platform'
 
 export interface ProjectBase {
@@ -97,12 +96,11 @@ export interface ProjectBase {
     code: string
     name: string
     status: ProjectStatus
-    complexity?: ProjectComplexity
     scale?: ProjectScale
     product_line_id?: string
     pm_id?: string
-    start_date?: string
-    end_date?: string
+    start_month?: string  // YYYY-MM format
+    end_month?: string  // YYYY-MM format
     customer?: string
     product?: string
     description?: string
@@ -116,12 +114,11 @@ export interface ProjectUpdate {
     code?: string
     name?: string
     status?: ProjectStatus
-    complexity?: ProjectComplexity
     scale?: ProjectScale
     product_line_id?: string
     pm_id?: string
-    start_date?: string
-    end_date?: string
+    start_month?: string
+    end_month?: string
     customer?: string
     product?: string
     description?: string
