@@ -4,6 +4,25 @@ EUV Program IS 리소스 운영 관리 시스템 (PoC)
 
 ## 🚀 Quick Start
 
+### Option 1: Dev Container (추천)
+
+**요구사항:** VS Code + Dev Containers 확장
+
+1. VS Code에서 프로젝트 폴더 열기
+2. `Cmd+Shift+P` → "Dev Containers: Reopen in Container" 선택
+3. 컨테이너 빌드 완료 후 자동으로 종속성 설치됨
+
+**개발 서버 실행:**
+```bash
+# Terminal 1: Backend
+cd backend && uvicorn app.main:app --reload --host 0.0.0.0
+
+# Terminal 2: Frontend
+cd frontend && pnpm dev --host
+```
+
+### Option 2: Docker Compose
+
 ```bash
 # 환경 변수 복사
 cp .env.example .env
@@ -15,8 +34,27 @@ docker compose up -d
 docker compose logs -f
 ```
 
+### Option 3: 로컬 개발 (Manual)
+
+```bash
+# Database (PostgreSQL)
+docker compose up db -d
+
+# Backend
+cd backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+RESET_DB=true ./run_local.sh
+
+# Frontend (새 터미널)
+cd frontend
+pnpm install
+pnpm dev
+```
+
 **접속:**
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3000 (또는 5173)
 - Backend API: http://localhost:8000/api/docs
 
 **기본 로그인:**
@@ -52,14 +90,15 @@ docker compose logs -f
 |-------|------------|
 | Frontend | React 19, TypeScript, Vite, Tailwind, recharts |
 | Backend | FastAPI, SQLAlchemy 2.0, Pydantic v2 |
-| Database | MS SQL Server (로컬) / PostgreSQL (배포) |
-| Container | Docker, Docker Compose |
+| Database | PostgreSQL 15 |
+| Container | Docker, Docker Compose, Dev Container |
 
 ---
 
 ## 📁 Project Structure
 
 ```
+├── .devcontainer/     # VS Code Dev Container 설정
 ├── backend/           # FastAPI
 │   ├── app/
 │   │   ├── api/       # 엔드포인트

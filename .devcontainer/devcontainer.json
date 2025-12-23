@@ -19,7 +19,7 @@
                 "esbenp.prettier-vscode",
                 "bradlc.vscode-tailwindcss",
                 // Database
-                "ms-mssql.mssql",
+                "ckolkman.vscode-postgres",
                 // Docker
                 "ms-azuretools.vscode-docker",
                 // Git
@@ -53,19 +53,23 @@
     "forwardPorts": [
         3000,
         8000,
-        1433
+        5432
     ],
     "portsAttributes": {
         "3000": {
-            "label": "Frontend (Vite)"
+            "label": "Frontend (Vite)",
+            "onAutoForward": "notify"
         },
         "8000": {
-            "label": "Backend (FastAPI)"
+            "label": "Backend (FastAPI)",
+            "onAutoForward": "notify"
         },
-        "1433": {
-            "label": "MS SQL Server"
+        "5432": {
+            "label": "PostgreSQL",
+            "onAutoForward": "silent"
         }
     },
-    "postCreateCommand": "echo '✅ Dev Container ready! Run: cd backend && pip install -e . && cd ../frontend && pnpm install'",
+    "postCreateCommand": "cd /workspace/backend && pip install -r requirements.txt && cd /workspace/frontend && pnpm install",
+    "postStartCommand": "echo '✅ Dev Container ready! Backend: cd backend && uvicorn app.main:app --reload --host 0.0.0.0 | Frontend: cd frontend && pnpm dev --host'",
     "remoteUser": "vscode"
 }

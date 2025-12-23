@@ -1,5 +1,5 @@
 # Dev Container for Edwards Project Board
-# Multi-stage build with Python + Node.js
+# Python + Node.js development environment
 
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
@@ -8,11 +8,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && npm install -g pnpm
 
-# Install ODBC Driver for SQL Server
-RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev \
+# Install PostgreSQL client
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
