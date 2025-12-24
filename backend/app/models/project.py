@@ -78,6 +78,9 @@ class Project(Base):
     status = Column(
         String(20), default="Prospective"
     )  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
+    category = Column(
+        String(20), default="PROJECT"
+    )  # PROJECT, FUNCTIONAL (Added for classification)
     scale = Column(String(20), nullable=True)  # CIP, A&D, Simple, Complex, Platform
     product_line_id = Column(String(50), ForeignKey("product_lines.id"), nullable=True)
     pm_id = Column(String(36), ForeignKey("users.id"), nullable=True)

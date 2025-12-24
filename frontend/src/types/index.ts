@@ -98,6 +98,7 @@ export interface ProjectBase {
     name: string
     status: ProjectStatus
     scale?: ProjectScale
+    category?: 'PROJECT' | 'FUNCTIONAL'
     product_line_id?: string
     pm_id?: string
     start_month?: string  // YYYY-MM format

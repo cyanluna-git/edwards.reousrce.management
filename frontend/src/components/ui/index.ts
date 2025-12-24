@@ -34,3 +34,4 @@ export {
   SelectItem,
   SelectSeparator,
 } from './select'
+export * from './tabs';

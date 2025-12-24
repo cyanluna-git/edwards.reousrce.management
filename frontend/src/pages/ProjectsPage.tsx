@@ -18,6 +18,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '@/components/ui';
 import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
 
@@ -83,69 +87,91 @@ export function ProjectsPage() {
 
   return (
     <Card className="m-2">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Projects ({sortedProjects.length})</CardTitle>
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>Create Project</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
-            </DialogHeader>
-            <ProjectCreateForm onSuccess={() => setIsCreateModalOpen(false)} onCancel={() => setIsCreateModalOpen(false)} />
-          </DialogContent>
-        </Dialog>
+      <CardHeader>
+        <div className="flex flex-row items-center justify-between">
+          <CardTitle>Projects</CardTitle>
+          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+            <DialogTrigger asChild>
+              <Button>Create Project</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+              </DialogHeader>
+              <ProjectCreateForm onSuccess={() => setIsCreateModalOpen(false)} onCancel={() => setIsCreateModalOpen(false)} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Business Area</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Activity (30d)</TableHead>
-              <TableHead>Code</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Program</TableHead>
-              <TableHead>Product Line</TableHead>
-              <TableHead>Scale</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>PM</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedProjects.map((project) => (
-              <TableRow
-                key={project.id}
-                onClick={() => navigate(`/projects/${project.id}`)}
-                className="cursor-pointer"
-              >
-                <TableCell className="whitespace-nowrap">
-                  {project.program?.business_unit?.name ?? '-'}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={project.status || 'Unknown'} />
-                </TableCell>
-                <TableCell>
-                  {project.recent_activity_score ? (
-                    <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400">
-                      {project.recent_activity_score.toFixed(0)}h
-                    </span>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">-</span>
+        <Tabs defaultValue="PROJECT" className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+            <TabsTrigger value="PROJECT">Projects ({sortedProjects.filter(p => p.category !== 'FUNCTIONAL').length})</TabsTrigger>
+            <TabsTrigger value="FUNCTIONAL">Functional Activities ({sortedProjects.filter(p => p.category === 'FUNCTIONAL').length})</TabsTrigger>
+          </TabsList>
+
+          {['PROJECT', 'FUNCTIONAL'].map((category) => (
+            <TabsContent key={category} value={category}>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Business Area</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Activity (30d)</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Program</TableHead>
+                    <TableHead>Product Line</TableHead>
+                    <TableHead>Scale</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>PM</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedProjects
+                    .filter(p => (category === 'FUNCTIONAL' ? p.category === 'FUNCTIONAL' : p.category !== 'FUNCTIONAL'))
+                    .map((project) => (
+                      <TableRow
+                        key={project.id}
+                        onClick={() => navigate(`/projects/${project.id}`)}
+                        className="cursor-pointer"
+                      >
+                        <TableCell className="whitespace-nowrap">
+                          {project.program?.business_unit?.name ?? '-'}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={project.status || 'Unknown'} />
+                        </TableCell>
+                        <TableCell>
+                          {project.recent_activity_score ? (
+                            <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400">
+                              {project.recent_activity_score.toFixed(0)}h
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">{project.code}</TableCell>
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>{project.program?.name ?? 'N/A'}</TableCell>
+                        <TableCell>{project.product_line?.name ?? '-'}</TableCell>
+                        <TableCell>{project.scale ?? '-'}</TableCell>
+                        <TableCell>{project.customer ?? '-'}</TableCell>
+                        <TableCell>{project.pm?.name ?? 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  {sortedProjects.filter(p => (category === 'FUNCTIONAL' ? p.category === 'FUNCTIONAL' : p.category !== 'FUNCTIONAL')).length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-4 text-muted-foreground">
+                        No {category.toLowerCase()} found.
+                      </TableCell>
+                    </TableRow>
                   )}
-                </TableCell>
-                <TableCell className="font-medium">{project.code}</TableCell>
-                <TableCell>{project.name}</TableCell>
-                <TableCell>{project.program?.name ?? 'N/A'}</TableCell>
-                <TableCell>{project.product_line?.name ?? '-'}</TableCell>
-                <TableCell>{project.scale ?? '-'}</TableCell>
-                <TableCell>{project.customer ?? '-'}</TableCell>
-                <TableCell>{project.pm?.name ?? 'N/A'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </TableBody>
+              </Table>
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   );

@@ -59,6 +59,7 @@ class ProjectBase(BaseModel):
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
     )
+    category: Optional[str] = "PROJECT"  # PROJECT, FUNCTIONAL
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
     product_line_id: Optional[str] = None
     pm_id: Optional[str] = None
@@ -81,6 +82,7 @@ class ProjectUpdate(BaseModel):
     code: Optional[str] = None
     name: Optional[str] = None
     status: Optional[str] = None
+    category: Optional[str] = None
     scale: Optional[str] = None
     product_line_id: Optional[str] = None
     pm_id: Optional[str] = None

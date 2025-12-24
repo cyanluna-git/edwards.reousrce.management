@@ -125,11 +125,24 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                             {...register('project_id', { required: 'Project is required' })}
                         >
                             <option value="">Select a project...</option>
-                            {projects.map((project) => (
-                                <option key={project.id} value={project.id}>
-                                    {project.code} - {project.name}
-                                </option>
-                            ))}
+                            <optgroup label="Projects">
+                                {projects
+                                    .filter(p => !p.category || p.category === 'PROJECT')
+                                    .map((project) => (
+                                        <option key={project.id} value={project.id}>
+                                            {project.code} - {project.name}
+                                        </option>
+                                    ))}
+                            </optgroup>
+                            <optgroup label="Functional Activities">
+                                {projects
+                                    .filter(p => p.category === 'FUNCTIONAL')
+                                    .map((project) => (
+                                        <option key={project.id} value={project.id}>
+                                            {project.code} - {project.name}
+                                        </option>
+                                    ))}
+                            </optgroup>
                         </select>
                         {errors.project_id && (
                             <p className="text-red-500 text-sm">{errors.project_id.message}</p>
