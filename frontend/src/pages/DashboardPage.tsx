@@ -429,80 +429,89 @@ export const DashboardPage: React.FC = () => {
                     </CardContent>
                 </Card>
 
-                {/* Project vs Functional Ratio (New Horizontal Bar) */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex flex-col justify-center h-[180px]">
-                        {projectVsFunctionalData.length === 0 ? (
-                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
-                        ) : (
-                            <div className="space-y-6">
-                                {/* Horizontal Bar */}
-                                <div className="w-full h-12 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                    {projectVsFunctionalData.map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                            className="h-full flex items-center justify-center text-white font-bold text-lg transition-all duration-500 relative group"
-                                            title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
-                                        >
-                                            {/* Show label if width is sufficient */}
-                                            {parseInt(item.percentage) > 10 && (
-                                                <span className="drop-shadow-md">{item.percentage}%</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
+                {/* Charts Row */}
 
-                                {/* Legend & Details */}
-                                <div className="flex justify-between px-2">
-                                    {projectVsFunctionalData.map((item, idx) => (
-                                        <div key={idx} className="flex flex-col items-center">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                                <span className="font-medium">{item.name}</span>
+                {/* Left Column: Project vs Functional & Project List */}
+                <div className="space-y-4 lg:col-span-1">
+                    {/* Project vs Functional Ratio (Horizontal Bar) */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col justify-center h-[160px]">
+                            {projectVsFunctionalData.length === 0 ? (
+                                <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Horizontal Bar */}
+                                    <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                        {projectVsFunctionalData.map((item, idx) => (
+                                            <div
+                                                key={idx}
+                                                style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                                                className="h-full flex items-center justify-center text-white font-bold text-base transition-all duration-500 relative group"
+                                                title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
+                                            >
+                                                {parseInt(item.percentage) > 10 && (
+                                                    <span className="drop-shadow-md">{item.percentage}%</span>
+                                                )}
                                             </div>
-                                            <div className="text-2xl font-bold">{item.value.toFixed(0)}h</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {item.percentage}%
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-                {/* WorkLog by Project */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 프로젝트별 WorkLog</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {projectList.length === 0 ? (
-                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
-                        ) : (
-                            <div className="space-y-3">
-                                {projectList.map(proj => (
-                                    <div key={proj.project_id} className="flex items-center gap-4">
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium truncate">{proj.project_code} - {proj.project_name}</div>
-                                            <div className="w-full bg-slate-100 rounded-full h-2 mt-1">
-                                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
-                                            </div>
-                                        </div>
-                                        <div className="text-sm font-medium w-12 text-right">{proj.hours.toFixed(0)}h</div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
 
-                {/* Work Type Pie Chart - Interactive Drill-Down */}
-                <Card>
+                                    {/* Legend & Details */}
+                                    <div className="flex justify-between px-2 text-sm">
+                                        {projectVsFunctionalData.map((item, idx) => (
+                                            <div key={idx} className="flex flex-col items-center">
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                                    <span className="font-medium">{item.name}</span>
+                                                </div>
+                                                <div className="font-bold">{item.value.toFixed(0)}h</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* WorkLog by Project */}
+                    <Card className="flex-1">
+                        <CardHeader>
+                            <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 프로젝트별 WorkLog</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {projectList.length === 0 ? (
+                                <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {projectList.slice(0, 5).map(proj => (
+                                        <div key={proj.project_id} className="flex items-center gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium truncate" title={proj.project_name}>
+                                                    {proj.project_code} - {proj.project_name}
+                                                </div>
+                                                <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+                                                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
+                                                </div>
+                                            </div>
+                                            <div className="text-xs font-medium w-10 text-right">{proj.hours.toFixed(0)}h</div>
+                                        </div>
+                                    ))}
+                                    {projectList.length > 5 && (
+                                        <div className="text-xs text-center text-muted-foreground pt-1">
+                                            + {projectList.length - 5} more
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Column: Work Type Pie Chart */}
+                <Card className="lg:col-span-2 flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
                             {drillDownPath.length > 0 ? (
@@ -531,16 +540,16 @@ export const DashboardPage: React.FC = () => {
                         {activeChartData.length === 0 ? (
                             <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
                         ) : (
-                            <div className="flex flex-col lg:flex-row items-center gap-6">
-                                <div className="w-60 h-60 transition-all duration-300">
+                            <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
+                                <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
                                                 data={activeChartData}
                                                 cx="50%"
                                                 cy="50%"
-                                                innerRadius={55}
-                                                outerRadius={90}
+                                                innerRadius={80}
+                                                outerRadius={120}
                                                 paddingAngle={2}
                                                 dataKey="value"
                                                 animationDuration={400}
@@ -568,7 +577,7 @@ export const DashboardPage: React.FC = () => {
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div className="flex-1 space-y-2">
+                                <div className="flex-1 space-y-3 min-w-[280px]">
                                     {activeChartData.map((item, idx) => (
                                         <div
                                             key={idx}
