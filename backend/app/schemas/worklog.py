@@ -79,3 +79,11 @@ class CopyWeekRequest(BaseModel):
 
     user_id: str
     target_week_start: date  # Monday of target week
+
+
+class WorkLogWithUser(WorkLog):
+    """WorkLog with user information for table display"""
+
+    user_name: Optional[str] = None
+    user_korean_name: Optional[str] = None
+    department_name: Optional[str] = None

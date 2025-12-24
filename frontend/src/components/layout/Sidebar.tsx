@@ -9,12 +9,14 @@ import {
     BarChart3,
     Settings,
     Building2,
+    Table,
 } from 'lucide-react'
 
 const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'WorkLogs', href: '/worklogs', icon: Clock },
+    { name: 'WorkLog Table', href: '/worklogs-table', icon: Table },
     { name: 'Resource Plans', href: '/resource-plans', icon: Calendar },
     { name: 'Team', href: '/team', icon: Users },
     { name: 'Reports', href: '/reports', icon: BarChart3 },

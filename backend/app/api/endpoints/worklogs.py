@@ -8,12 +8,14 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.schemas.worklog import (
     WorkLog,
     WorkLogCreate,
     WorkLogUpdate,
     DailySummary,
     CopyWeekRequest,
+    WorkLogWithUser,
 )
 from app.services.worklog_service import WorkLogService
 
@@ -63,6 +65,69 @@ async def list_worklogs(
             "updated_at": wl.updated_at,
             "project_code": wl.project.code if wl.project else None,
             "project_name": wl.project.name if wl.project else None,
+        }
+        result.append(worklog_dict)
+
+    return result
+
+
+@router.get("/table", response_model=List[WorkLogWithUser])
+async def list_worklogs_table(
+    user_id: Optional[str] = Query(None),
+    project_id: Optional[str] = Query(None),
+    department_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    work_type: Optional[str] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(500, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),  # Returns User object, not dict
+):
+    """
+    List worklogs for table view with user info.
+    - Admin: Can view all worklogs
+    - User: Can only view their own worklogs
+    """
+    service = WorkLogService(db)
+
+    # Role-based filtering: non-admin users can only see their own worklogs
+    if current_user.role != "ADMIN":
+        user_id = current_user.id  # Force to current user's ID
+
+    worklogs = service.get_multi_with_user(
+        user_id=user_id,
+        project_id=project_id,
+        department_id=department_id,
+        start_date=start_date,
+        end_date=end_date,
+        work_type=work_type,
+        skip=skip,
+        limit=limit,
+    )
+
+    result = []
+    for wl in worklogs:
+        worklog_dict = {
+            "id": wl.id,
+            "date": wl.date.date() if hasattr(wl.date, "date") else wl.date,
+            "user_id": wl.user_id,
+            "project_id": wl.project_id,
+            "work_type": wl.work_type,
+            "hours": wl.hours,
+            "description": wl.description,
+            "meeting_type": wl.meeting_type,
+            "is_sudden_work": wl.is_sudden_work,
+            "is_business_trip": wl.is_business_trip,
+            "created_at": wl.created_at,
+            "updated_at": wl.updated_at,
+            "project_code": wl.project.code if wl.project else None,
+            "project_name": wl.project.name if wl.project else None,
+            "user_name": wl.user.name if wl.user else None,
+            "user_korean_name": wl.user.korean_name if wl.user else None,
+            "department_name": (
+                wl.user.department.name if wl.user and wl.user.department else None
+            ),
         }
         result.append(worklog_dict)
 

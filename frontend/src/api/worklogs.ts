@@ -76,3 +76,26 @@ export const getDailySummary = async (userId: string, date: string): Promise<Dai
     });
     return response.data;
 };
+
+/**
+ * WorkLog with user info for table display
+ */
+export interface WorkLogWithUser extends WorkLog {
+    user_name?: string;
+    user_korean_name?: string;
+    department_name?: string;
+}
+
+export interface WorkLogTableParams extends WorkLogListParams {
+    department_id?: string;
+}
+
+/**
+ * Get worklogs for table view with user info
+ * Admin: sees all worklogs
+ * User: sees only their own worklogs
+ */
+export const getWorklogsTable = async (params: WorkLogTableParams = {}): Promise<WorkLogWithUser[]> => {
+    const response = await apiClient.get('/worklogs/table', { params });
+    return response.data;
+};

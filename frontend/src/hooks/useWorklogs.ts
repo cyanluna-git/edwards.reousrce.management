@@ -113,3 +113,17 @@ export function useDailySummary(userId: string | undefined, date: string | undef
         enabled: !!userId && !!date,
     });
 }
+
+/**
+ * Hook to fetch worklogs for table view with user info
+ */
+import { getWorklogsTable, WorkLogTableParams } from '@/api/worklogs';
+
+const WORKLOGS_TABLE_KEY = 'worklogs-table';
+
+export function useWorklogsTable(params: WorkLogTableParams = {}) {
+    return useQuery({
+        queryKey: [WORKLOGS_TABLE_KEY, params],
+        queryFn: () => getWorklogsTable(params),
+    });
+}

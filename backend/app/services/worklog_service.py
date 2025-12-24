@@ -57,6 +57,42 @@ class WorkLogService:
 
         return query.order_by(WorkLog.date.desc()).offset(skip).limit(limit).all()
 
+    def get_multi_with_user(
+        self,
+        *,
+        user_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        department_id: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        work_type: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 500,
+    ) -> List[WorkLog]:
+        """Retrieve worklogs with user info for table display."""
+        from app.models.user import User
+
+        query = (
+            self.db.query(WorkLog)
+            .options(joinedload(WorkLog.project), joinedload(WorkLog.user))
+            .join(User, WorkLog.user_id == User.id)
+        )
+
+        if user_id:
+            query = query.filter(WorkLog.user_id == user_id)
+        if project_id:
+            query = query.filter(WorkLog.project_id == project_id)
+        if department_id:
+            query = query.filter(User.department_id == department_id)
+        if start_date:
+            query = query.filter(cast(WorkLog.date, Date) >= start_date)
+        if end_date:
+            query = query.filter(cast(WorkLog.date, Date) <= end_date)
+        if work_type:
+            query = query.filter(WorkLog.work_type == work_type)
+
+        return query.order_by(WorkLog.date.desc()).offset(skip).limit(limit).all()
+
     def get_daily_total_hours(
         self, user_id: str, target_date: date, exclude_id: Optional[int] = None
     ) -> float:
