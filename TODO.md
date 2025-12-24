@@ -29,6 +29,17 @@
 
 ## 📋 다음 작업 (TODO)
 
+### 🚀 Phase 8: 확장 대시보드 (Next)
+- [x] **User Dashboard UI 개선** - 탭 구조 전환, 차트 리사이징, 레이아웃 변경
+- [ ] **Team Dashboard 구현**
+    - [ ] 팀원별 리소스 할당 현황 (바 차트)
+    - [ ] 팀 전체 WorkLog 통계 (히트맵/파이)
+    - [ ] 부서별 프로젝트 참여율 비교
+- [ ] **Project Dashboard 구현**
+    - [ ] 프로젝트별 번다운 차트 / 진행률
+    - [ ] 프로젝트별 투입 인원 및 시간 통계
+    - [ ] 마일스톤 달성 현황 대시보드
+
 ### 🔴 배포 (다음 일정)
 - [ ] **Vercel 배포** - Frontend (React)
 - [ ] **Render 배포** - Backend (FastAPI)
