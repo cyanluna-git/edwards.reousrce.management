@@ -52,7 +52,10 @@ class WorkLog(Base):
     date = Column(Date, nullable=False)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     project_id = Column(String(36), ForeignKey("projects.id"), nullable=False)
-    work_type = Column(String(50), nullable=False)  # CommonCode reference
+    work_type = Column(String(50), nullable=False)  # Legacy - keep for compatibility
+    work_type_category_id = Column(
+        Integer, ForeignKey("work_type_categories.id"), nullable=True
+    )  # New hierarchical category
     hours = Column(Float, nullable=False)
     description = Column(Text, nullable=True)
     meeting_type = Column(
@@ -66,3 +69,4 @@ class WorkLog(Base):
     # Relationships
     user = relationship("User", back_populates="worklogs")
     project = relationship("Project", back_populates="worklogs")
+    work_type_category = relationship("WorkTypeCategory")

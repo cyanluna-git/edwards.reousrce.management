@@ -1,9 +1,10 @@
 /**
  * WorkLog Entry Modal Component
  * Modal for creating/editing worklog entries
+ * Now uses hierarchical work type categories
  */
-import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useEffect, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
     DialogContent,
@@ -14,21 +15,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { WorkTypeCategorySelect } from '@/components/WorkTypeCategorySelect';
 import type { WorkLogCreate, WorkLogUpdate, Project } from '@/types';
-
-// Work type options
-const WORK_TYPES = [
-    { value: 'DESIGN', label: 'Design' },
-    { value: 'SW_DEVELOP', label: 'Software Development' },
-    { value: 'VERIFICATION', label: 'Verification' },
-    { value: 'DOCUMENTATION', label: 'Documentation' },
-    { value: 'REVIEW', label: 'Review' },
-    { value: 'MEETING', label: 'Meeting' },
-    { value: 'CUSTOMER_SUPPORT', label: 'Customer Support' },
-    { value: 'FIELD_WORK', label: 'Field Work' },
-    { value: 'TRAINING', label: 'Training' },
-    { value: 'ADMIN_WORK', label: 'Administrative Work' },
-];
 
 const MEETING_TYPES = [
     { value: 'DECISION_MAKING', label: 'Decision Making' },
@@ -41,6 +29,7 @@ const MEETING_TYPES = [
 interface WorkLogFormData {
     project_id: string;
     work_type: string;
+    work_type_category_id?: number;
     hours: number;
     description?: string;
     meeting_type?: string;
@@ -71,10 +60,11 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
     isEditing = false,
     isLoading = false,
 }) => {
-    const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<WorkLogFormData>({
+    const { register, handleSubmit, watch, reset, control, setValue, formState: { errors } } = useForm<WorkLogFormData>({
         defaultValues: {
             project_id: '',
-            work_type: 'DESIGN',
+            work_type: '',
+            work_type_category_id: undefined,
             hours: 1,
             description: '',
             meeting_type: '',
@@ -84,14 +74,16 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         },
     });
 
+    const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
     const workType = watch('work_type');
-    const showMeetingType = workType === 'MEETING';
+    const showMeetingType = workType === 'Meeting' || workType === 'MEETING' || workType?.includes('MTG');
 
     useEffect(() => {
         if (isOpen) {
             reset({
                 project_id: '',
-                work_type: 'DESIGN',
+                work_type: '',
+                work_type_category_id: undefined,
                 hours: 1,
                 description: '',
                 meeting_type: '',
@@ -99,6 +91,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                 is_business_trip: false,
                 ...initialData,
             });
+            setSelectedCategoryName('');
         }
     }, [isOpen, initialData, reset]);
 
@@ -144,18 +137,28 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="work_type">Work Type *</Label>
-                        <select
-                            id="work_type"
-                            className="w-full p-2 border rounded-md bg-background"
-                            {...register('work_type', { required: 'Work type is required' })}
-                        >
-                            {WORK_TYPES.map((type) => (
-                                <option key={type.value} value={type.value}>
-                                    {type.label}
-                                </option>
-                            ))}
-                        </select>
+                        <Label>Work Type *</Label>
+                        <Controller
+                            name="work_type_category_id"
+                            control={control}
+                            rules={{ required: 'Work type is required' }}
+                            render={({ field }) => (
+                                <WorkTypeCategorySelect
+                                    value={field.value}
+                                    onChange={(categoryId, category) => {
+                                        field.onChange(categoryId);
+                                        // Also set legacy work_type for compatibility
+                                        setValue('work_type', category.name);
+                                        setSelectedCategoryName(category.name_ko || category.name);
+                                    }}
+                                    placeholder="업무 유형 선택..."
+                                    className="w-full"
+                                />
+                            )}
+                        />
+                        {errors.work_type_category_id && (
+                            <p className="text-red-500 text-sm">{errors.work_type_category_id.message}</p>
+                        )}
                     </div>
 
                     {showMeetingType && (

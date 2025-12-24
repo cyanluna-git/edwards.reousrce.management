@@ -15,6 +15,7 @@ from app.models.resource import ResourcePlan, WorkLog
 from app.models.common import CommonCode, Holiday
 from app.models.scenario import ProjectScenario, ScenarioMilestone, ScenarioResourcePlan
 from app.models.hiring_plan import HiringPlan
+from app.models.work_type import WorkTypeCategory, WorkTypeLegacyMapping
 
 __all__ = [
     # Organization
@@ -43,4 +44,7 @@ __all__ = [
     "Holiday",
     # Hiring
     "HiringPlan",
+    # Work Type
+    "WorkTypeCategory",
+    "WorkTypeLegacyMapping",
 ]
