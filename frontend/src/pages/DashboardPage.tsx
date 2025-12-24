@@ -192,6 +192,29 @@ export const DashboardPage: React.FC = () => {
         return map;
     }, [categoryTree]);
 
+    // Calculate Project vs Functional Ratio
+    const projectVsFunctionalData = useMemo(() => {
+        // Debug: Log first worklog's project info
+        if (currentWorklogs.length > 0) {
+            console.log('Sample Worklog Project:', currentWorklogs[0].project);
+        }
+
+        const counts = currentWorklogs.reduce((acc, wl) => {
+            const category = wl.project?.category || 'PROJECT';
+            const key = category === 'FUNCTIONAL' ? 'Functional Activity' : 'Project';
+            acc[key] = (acc[key] || 0) + wl.hours;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        return Object.entries(counts).map(([name, value]) => ({
+            name,
+            value,
+            percentage: total > 0 ? ((value / total) * 100).toFixed(0) : '0',
+            color: name === 'Project' ? '#3b82f6' : '#cbd5e1' // Blue vs Slate-300
+        })).sort((a, b) => b.value - a.value);
+    }, [currentWorklogs]);
+
     // Build Category ID Map [ID -> Code]
     const categoryIdToCode = useMemo(() => {
         const map: Record<number, string> = {};
@@ -405,10 +428,53 @@ export const DashboardPage: React.FC = () => {
                         <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
                     </CardContent>
                 </Card>
-            </div>
 
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Project vs Functional Ratio (New Horizontal Bar) */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col justify-center h-[180px]">
+                        {projectVsFunctionalData.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                        ) : (
+                            <div className="space-y-6">
+                                {/* Horizontal Bar */}
+                                <div className="w-full h-12 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                    {projectVsFunctionalData.map((item, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                                            className="h-full flex items-center justify-center text-white font-bold text-lg transition-all duration-500 relative group"
+                                            title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
+                                        >
+                                            {/* Show label if width is sufficient */}
+                                            {parseInt(item.percentage) > 10 && (
+                                                <span className="drop-shadow-md">{item.percentage}%</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Legend & Details */}
+                                <div className="flex justify-between px-2">
+                                    {projectVsFunctionalData.map((item, idx) => (
+                                        <div key={idx} className="flex flex-col items-center">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                                                <span className="font-medium">{item.name}</span>
+                                            </div>
+                                            <div className="text-2xl font-bold">{item.value.toFixed(0)}h</div>
+                                            <div className="text-sm text-muted-foreground">
+                                                {item.percentage}%
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
                 {/* WorkLog by Project */}
                 <Card>
                     <CardHeader>

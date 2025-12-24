@@ -7,6 +7,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 from app.schemas.work_type import WorkTypeCategoryFlat
+from app.schemas.project import Project
 
 
 class WorkLogBase(BaseModel):
@@ -61,6 +62,7 @@ class WorkLog(WorkLogBase):
     # Nested project info (optional)
     project_code: Optional[str] = None
     project_name: Optional[str] = None
+    project: Optional["Project"] = None
 
     # Work Type Category
     work_type_category_id: Optional[int] = None
