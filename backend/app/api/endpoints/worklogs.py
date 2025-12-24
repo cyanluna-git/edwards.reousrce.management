@@ -80,7 +80,7 @@ async def list_worklogs_table(
     end_date: Optional[date] = Query(None),
     work_type: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(500, ge=1, le=1000),
+    limit: int = Query(500, ge=1, le=5000),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),  # Returns User object, not dict
 ):

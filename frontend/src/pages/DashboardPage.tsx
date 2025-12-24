@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import React, { useState, useMemo } from 'react';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
@@ -84,7 +84,7 @@ const L2_COLORS: Record<string, Record<string, string>> = {
     },
 };
 
-type ViewMode = 'weekly' | 'monthly';
+type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
 export const DashboardPage: React.FC = () => {
     const { data, isLoading, error } = useDashboard();
@@ -97,12 +97,19 @@ export const DashboardPage: React.FC = () => {
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
     const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    const quarterStart = format(startOfQuarter(now), 'yyyy-MM-dd');
+    const quarterEnd = format(endOfQuarter(now), 'yyyy-MM-dd');
+    const halfYearStart = format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'); // last 6 months
+    const halfYearEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
+    const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
 
     const { data: weeklyWorklogs = [] } = useWorklogsTable({
         start_date: weekStart,
         end_date: weekEnd,
         user_id: user?.id,
         limit: 100,
+        enabled: viewMode === 'weekly',
     });
 
     const { data: monthlyWorklogs = [] } = useWorklogsTable({
@@ -110,9 +117,43 @@ export const DashboardPage: React.FC = () => {
         end_date: monthEnd,
         user_id: user?.id,
         limit: 200,
+        enabled: viewMode === 'monthly',
     });
 
-    const currentWorklogs = viewMode === 'weekly' ? weeklyWorklogs : monthlyWorklogs;
+    const { data: quarterlyWorklogs = [] } = useWorklogsTable({
+        start_date: quarterStart,
+        end_date: quarterEnd,
+        user_id: user?.id,
+        limit: 500,
+        enabled: viewMode === 'quarterly',
+    });
+
+    const { data: halfYearWorklogs = [] } = useWorklogsTable({
+        start_date: halfYearStart,
+        end_date: halfYearEnd,
+        user_id: user?.id,
+        limit: 1000,
+        enabled: viewMode === 'halfYear',
+    });
+
+    const { data: yearlyWorklogs = [] } = useWorklogsTable({
+        start_date: yearStart,
+        end_date: yearEnd,
+        user_id: user?.id,
+        limit: 2000,
+        enabled: viewMode === 'yearly',
+    });
+
+    const currentWorklogs = useMemo(() => {
+        switch (viewMode) {
+            case 'weekly': return weeklyWorklogs;
+            case 'monthly': return monthlyWorklogs;
+            case 'quarterly': return quarterlyWorklogs;
+            case 'halfYear': return halfYearWorklogs;
+            case 'yearly': return yearlyWorklogs;
+            default: return weeklyWorklogs;
+        }
+    }, [viewMode, weeklyWorklogs, monthlyWorklogs, quarterlyWorklogs, halfYearWorklogs, yearlyWorklogs]);
     const totalHours = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
 
     // Group by project
@@ -124,7 +165,16 @@ export const DashboardPage: React.FC = () => {
         acc[key].hours += wl.hours;
         return acc;
     }, {} as Record<string, { project_id: string; project_code: string; project_name: string; hours: number }>);
-    const projectList = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
+    const allProjects = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
+
+    // Top 5 projects + Others
+    const TOP_N = 5;
+    const topProjects = allProjects.slice(0, TOP_N);
+    const otherProjects = allProjects.slice(TOP_N);
+    const otherHours = otherProjects.reduce((sum, p) => sum + p.hours, 0);
+    const projectList = otherHours > 0
+        ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
+        : topProjects;
 
     // Group by L1 category for pie chart
     const l1Summary = currentWorklogs.reduce((acc, wl) => {
@@ -187,12 +237,21 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* View Mode Tabs */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
                     📅 이번 주
                 </Button>
                 <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
                     📆 이번 달
+                </Button>
+                <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
+                    📊 이번 분기
+                </Button>
+                <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
+                    📈 최근 6개월
+                </Button>
+                <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
+                    🗓️ 올해
                 </Button>
             </div>
 
@@ -201,13 +260,21 @@ export const DashboardPage: React.FC = () => {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
-                            {viewMode === 'weekly' ? '이번 주 WorkLog' : '이번 달 WorkLog'}
+                            {viewMode === 'weekly' && '이번 주 WorkLog'}
+                            {viewMode === 'monthly' && '이번 달 WorkLog'}
+                            {viewMode === 'quarterly' && '이번 분기 WorkLog'}
+                            {viewMode === 'halfYear' && '최근 6개월 WorkLog'}
+                            {viewMode === 'yearly' && '올해 WorkLog'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">{totalHours.toFixed(0)}h</div>
                         <p className="text-xs text-muted-foreground mt-1">
-                            {viewMode === 'weekly' ? `${weekStart} ~ ${weekEnd}` : `${monthStart} ~ ${monthEnd}`}
+                            {viewMode === 'weekly' && `${weekStart} ~ ${weekEnd}`}
+                            {viewMode === 'monthly' && `${monthStart} ~ ${monthEnd}`}
+                            {viewMode === 'quarterly' && `${quarterStart} ~ ${quarterEnd}`}
+                            {viewMode === 'halfYear' && `${halfYearStart} ~ ${halfYearEnd}`}
+                            {viewMode === 'yearly' && `${yearStart} ~ ${yearEnd}`}
                         </p>
                     </CardContent>
                 </Card>

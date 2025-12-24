@@ -121,9 +121,11 @@ import { getWorklogsTable, WorkLogTableParams } from '@/api/worklogs';
 
 const WORKLOGS_TABLE_KEY = 'worklogs-table';
 
-export function useWorklogsTable(params: WorkLogTableParams = {}) {
+export function useWorklogsTable(params: WorkLogTableParams & { enabled?: boolean } = {}) {
+    const { enabled = true, ...queryParams } = params;
     return useQuery({
-        queryKey: [WORKLOGS_TABLE_KEY, params],
-        queryFn: () => getWorklogsTable(params),
+        queryKey: [WORKLOGS_TABLE_KEY, queryParams],
+        queryFn: () => getWorklogsTable(queryParams),
+        enabled,
     });
 }
