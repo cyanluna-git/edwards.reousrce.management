@@ -264,6 +264,128 @@ L2_CATEGORIES = {
     ],
 }
 
+# L3 상세분류 (L2_code → list of L3s)
+L3_CATEGORIES = {
+    # Engineering - Design & Dev
+    "ENG-DES": [
+        {
+            "code": "ENG-DES-CON",
+            "name": "Concept / Feasibility",
+            "name_ko": "선행/검토",
+            "sort_order": 1,
+        },
+        {
+            "code": "ENG-DES-DTL",
+            "name": "Detailed Design",
+            "name_ko": "상세 설계",
+            "sort_order": 2,
+        },
+        {
+            "code": "ENG-DES-REV",
+            "name": "Design Review",
+            "name_ko": "설계 리뷰",
+            "sort_order": 3,
+        },
+        {
+            "code": "ENG-DES-RWK",
+            "name": "Rework / Fix",
+            "name_ko": "재작업/수정",
+            "sort_order": 4,
+        },
+    ],
+    # Engineering - Software Dev
+    "ENG-SW": [
+        {
+            "code": "ENG-SW-REQ",
+            "name": "Requirements Analysis",
+            "name_ko": "요구사항 분석",
+            "sort_order": 1,
+        },
+        {
+            "code": "ENG-SW-COD",
+            "name": "Implementation (Coding)",
+            "name_ko": "구현/코딩",
+            "sort_order": 2,
+        },
+        {
+            "code": "ENG-SW-TST",
+            "name": "Unit Testing",
+            "name_ko": "단위 테스트",
+            "sort_order": 3,
+        },
+        {
+            "code": "ENG-SW-DBG",
+            "name": "Debugging",
+            "name_ko": "디버깅",
+            "sort_order": 4,
+        },
+    ],
+    # Operations - Equipment Maintenance
+    "OPS-EQP": [
+        {
+            "code": "OPS-EQP-PM",
+            "name": "Preventive Maintenance",
+            "name_ko": "예방 정비",
+            "sort_order": 1,
+        },
+        {
+            "code": "OPS-EQP-CM",
+            "name": "Corrective Maintenance",
+            "name_ko": "사후 정비",
+            "sort_order": 2,
+        },
+        {
+            "code": "OPS-EQP-TRB",
+            "name": "Troubleshooting",
+            "name_ko": "트러블슈팅",
+            "sort_order": 3,
+        },
+        {
+            "code": "OPS-EQP-CAL",
+            "name": "Calibration",
+            "name_ko": "캘리브레이션",
+            "sort_order": 4,
+        },
+    ],
+    # Operations - Factory Support
+    "OPS-FAC": [
+        {
+            "code": "OPS-FAC-SUP",
+            "name": "Line Support",
+            "name_ko": "라인 지원",
+            "sort_order": 1,
+        },
+        {
+            "code": "OPS-FAC-IMP",
+            "name": "Improvement",
+            "name_ko": "개선 활동",
+            "sort_order": 2,
+        },
+    ],
+    # Project - Meeting
+    "PRJ-MTG": [
+        {
+            "code": "PRJ-MTG-INT",
+            "name": "Internal Meeting",
+            "name_ko": "내부 회의",
+            "sort_order": 1,
+        },
+        {
+            "code": "PRJ-MTG-EXT",
+            "name": "Customer/Vendor Meeting",
+            "name_ko": "고객/외부 미팅",
+            "sort_order": 2,
+        },
+        {
+            "code": "PRJ-MTG-REP",
+            "name": "Reporting",
+            "name_ko": "보고",
+            "sort_order": 3,
+        },
+    ],
+}
+
+
 # Legacy work_type → L2 mapping
 LEGACY_MAPPINGS = {
     "Meeting": "PRJ-MTG",
@@ -292,18 +414,38 @@ LEGACY_MAPPINGS = {
 def seed_work_type_categories(db: Session):
     """Seed work type categories and legacy mappings"""
 
-    # Check if already seeded
-    existing = db.query(WorkTypeCategory).first()
-    if existing:
-        print("Work type categories already exist. Skipping seed.")
-        return
+    # Check if already seeded (only checking if ANY exist might block updates, but strict check is safer for now)
+    # The user might want to UPDATE existing, but for now let's assume valid re-seed or check existence more granularly is hard in one go.
+    # However, since we are adding L3, if L1/L2 exists, we might still want to add L3.
+    # Ideally we should make this idempotent.
+    # For now, let's allow it to proceed if L3s are missing or just use 'get_or_create' logic simplified by checking if L1 exists.
+    # Actually current script exits if ANY exist.
+    # I should modify it to be able to add new items if possible, or advise user to flush.
+    # Since this is a dev environment helper, I'll allow it to continue if L1 exists but maybe add L3.
+    # But updating the check `if existing:` to be smarter is complex.
+    # Let's modify the check to NOT return early, but check existence per item.
+
+    # Actually, simpler approach: Just comment out the early exit for now to force a run,
+    # but that duplicates data if not handled.
+    # Let's rewrite the loop to check existence.
 
     print("Seeding work type categories...")
+
+    # helper to get or create
+    def get_or_create(model, **kwargs):
+        instance = db.query(model).filter_by(code=kwargs["code"]).first()
+        if instance:
+            return instance
+        instance = model(**kwargs)
+        db.add(instance)
+        db.flush()
+        return instance
 
     # Create L1 categories
     l1_map = {}
     for l1_data in L1_CATEGORIES:
-        l1 = WorkTypeCategory(
+        l1 = get_or_create(
+            WorkTypeCategory,
             code=l1_data["code"],
             name=l1_data["name"],
             name_ko=l1_data["name_ko"],
@@ -311,17 +453,18 @@ def seed_work_type_categories(db: Session):
             level=1,
             sort_order=l1_data["sort_order"],
         )
-        db.add(l1)
-        db.flush()  # Get ID
         l1_map[l1_data["code"]] = l1.id
-        print(f"  Created L1: {l1.code} - {l1.name}")
+        # print(f"  Processed L1: {l1.code}")
 
     # Create L2 categories
     l2_map = {}
     for l1_code, l2_list in L2_CATEGORIES.items():
         parent_id = l1_map.get(l1_code)
+        if not parent_id:
+            continue
         for l2_data in l2_list:
-            l2 = WorkTypeCategory(
+            l2 = get_or_create(
+                WorkTypeCategory,
                 code=l2_data["code"],
                 name=l2_data["name"],
                 name_ko=l2_data["name_ko"],
@@ -330,21 +473,47 @@ def seed_work_type_categories(db: Session):
                 sort_order=l2_data["sort_order"],
                 applicable_roles=l2_data.get("applicable_roles"),
             )
-            db.add(l2)
-            db.flush()
             l2_map[l2_data["code"]] = l2.id
-            print(f"    Created L2: {l2.code} - {l2.name}")
+            # print(f"    Processed L2: {l2.code}")
+
+    # Create L3 categories
+    l3_count = 0
+    for l2_code, l3_list in L3_CATEGORIES.items():
+        parent_id = l2_map.get(l2_code)
+        if not parent_id:
+            continue
+        for l3_data in l3_list:
+            l3 = get_or_create(
+                WorkTypeCategory,
+                code=l3_data["code"],
+                name=l3_data["name"],
+                name_ko=l3_data["name_ko"],
+                level=3,
+                parent_id=parent_id,
+                sort_order=l3_data["sort_order"],
+            )
+            l3_count += 1
+            print(f"      Processed L3: {l3.code} - {l3.name}")
 
     # Create legacy mappings
     for legacy_type, l2_code in LEGACY_MAPPINGS.items():
         category_id = l2_map.get(l2_code)
         if category_id:
-            mapping = WorkTypeLegacyMapping(
-                legacy_work_type=legacy_type,
-                category_id=category_id,
+            # Check if mapping exists
+            existing_mapping = (
+                db.query(WorkTypeLegacyMapping)
+                .filter_by(legacy_work_type=legacy_type)
+                .first()
             )
-            db.add(mapping)
-            print(f"  Mapped: '{legacy_type}' → {l2_code}")
+            if not existing_mapping:
+                mapping = WorkTypeLegacyMapping(
+                    legacy_work_type=legacy_type,
+                    category_id=category_id,
+                )
+                db.add(mapping)
+                print(f"  Mapped: '{legacy_type}' → {l2_code}")
+            # else:
+            #     print(f"  Mapping already exists: '{legacy_type}'")
 
     db.commit()
     print(

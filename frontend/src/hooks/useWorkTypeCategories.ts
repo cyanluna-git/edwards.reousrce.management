@@ -8,6 +8,7 @@ export interface WorkTypeCategory {
     name: string;
     name_ko?: string;
     level: number;
+    applicable_roles?: string;
     children: WorkTypeCategory[];
 }
 

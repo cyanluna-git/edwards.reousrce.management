@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWorkTypeCategories, WorkTypeCategory } from '@/hooks/useWorkTypeCategories';
+import { useAuth } from '@/hooks/useAuth';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface WorkTypeCategorySelectProps {
@@ -16,6 +17,7 @@ export function WorkTypeCategorySelect({
     className = '',
 }: WorkTypeCategorySelectProps) {
     const { data: categories = [], isLoading } = useWorkTypeCategories();
+    const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [expandedL1, setExpandedL1] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,19 +37,50 @@ export function WorkTypeCategorySelect({
         return null;
     }, [value, categories]);
 
-    // Filter categories based on search
+    // Filter categories based on search AND role
     const filteredCategories = useMemo(() => {
-        if (!searchTerm) return categories;
         const term = searchTerm.toLowerCase();
-        return categories.map(l1 => ({
-            ...l1,
-            children: l1.children.filter(l2 =>
-                l2.name.toLowerCase().includes(term) ||
-                l2.name_ko?.toLowerCase().includes(term) ||
-                l2.code.toLowerCase().includes(term)
-            )
-        })).filter(l1 => l1.children.length > 0 || l1.name.toLowerCase().includes(term));
-    }, [categories, searchTerm]);
+
+        return categories.map(l1 => {
+            // Filter L2s and their L3s
+            const filteredL2s = l1.children.map(l2 => {
+
+                // 1. Role Check
+                if (l2.applicable_roles && user?.role) {
+                    const allowedRoles = l2.applicable_roles.split(',');
+                    // Simple check: if user.role is not in allowed list, hide it
+                    // NOTE: If user.role matches part of string (e.g. "ENGINEER" in "SW_ENGINEER"), ensure exact match or robust check.
+                    // Seed uses "SW_ENGINEER,SYSTEM_ENGINEER", so splitting by comma is safer.
+                    if (!allowedRoles.includes(user.role)) return null;
+                }
+
+                // 2. Search Check
+                const l2Matches = !term || l2.name.toLowerCase().includes(term) ||
+                    l2.name_ko?.toLowerCase().includes(term) ||
+                    l2.code.toLowerCase().includes(term);
+
+                const filteredL3s = (l2.children || []).filter(l3 =>
+                    !term ||
+                    l3.name.toLowerCase().includes(term) ||
+                    l3.name_ko?.toLowerCase().includes(term) ||
+                    l3.code.toLowerCase().includes(term)
+                );
+
+                if (l2Matches || filteredL3s.length > 0) {
+                    return {
+                        ...l2,
+                        children: filteredL3s.length > 0 ? filteredL3s : (l2Matches ? l2.children : [])
+                    };
+                }
+                return null;
+            }).filter((l2): l2 is WorkTypeCategory => l2 !== null);
+
+            return {
+                ...l1,
+                children: filteredL2s
+            };
+        }).filter(l1 => l1.children.length > 0);
+    }, [categories, searchTerm, user]);
 
     const handleSelect = (category: WorkTypeCategory) => {
         onChange(category.id, category);
@@ -138,16 +171,34 @@ export function WorkTypeCategorySelect({
                                         {expandedL1 === l1.id && (
                                             <div className="bg-white">
                                                 {l1.children.map((l2) => (
-                                                    <button
-                                                        key={l2.id}
-                                                        type="button"
-                                                        onClick={() => handleSelect(l2)}
-                                                        className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
-                                                            }`}
-                                                    >
-                                                        <span className="text-slate-400 font-mono text-xs">{l2.code}</span>
-                                                        <span>{l2.name_ko || l2.name}</span>
-                                                    </button>
+                                                    <div key={l2.id}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleSelect(l2)}
+                                                            className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
+                                                                }`}
+                                                        >
+                                                            <span className="text-slate-400 font-mono text-xs">{l2.code}</span>
+                                                            <span>{l2.name_ko || l2.name}</span>
+                                                        </button>
+                                                        {/* L3 Children */}
+                                                        {l2.children && l2.children.length > 0 && (
+                                                            <div className="bg-slate-50/50">
+                                                                {l2.children.map((l3) => (
+                                                                    <button
+                                                                        key={l3.id}
+                                                                        type="button"
+                                                                        onClick={() => handleSelect(l3)}
+                                                                        className={`w-full flex items-center gap-2 pl-12 pr-3 py-1.5 text-xs hover:bg-blue-50 text-left ${value === l3.id ? 'bg-blue-100 text-blue-700' : 'text-slate-600'
+                                                                            }`}
+                                                                    >
+                                                                        <span className="text-slate-400 font-mono text-[10px]">└ {l3.code.split('-').pop()}</span>
+                                                                        <span>{l3.name_ko || l3.name}</span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 ))}
                                             </div>
                                         )}
