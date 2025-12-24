@@ -98,6 +98,7 @@ class Project(ProjectBase):
     project_type: Optional[ProjectType] = None
     product_line: Optional[ProductLine] = None
     pm: Optional[User] = None
+    recent_activity_score: Optional[float] = 0.0
 
     class Config:
         from_attributes = True
@@ -146,3 +147,11 @@ class Milestone(MilestoneBase):
 
     class Config:
         from_attributes = True
+
+
+class WorklogStats(BaseModel):
+    """Schema for daily worklog statistics"""
+
+    date: str
+    total_hours: float
+    count: int

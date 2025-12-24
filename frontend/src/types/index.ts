@@ -131,6 +131,7 @@ export interface Project extends ProjectBase {
     project_type?: ProjectType
     product_line?: ProductLine
     pm?: User
+    recent_activity_score?: number;
 }
 
 export interface ProjectMilestone {
@@ -266,6 +267,12 @@ export interface DailySummary {
 export interface CopyWeekRequest {
     user_id: string
     target_week_start: string
+}
+
+export interface WorklogStats {
+    date: string
+    total_hours: number
+    count: number
 }
 
 // Common Types

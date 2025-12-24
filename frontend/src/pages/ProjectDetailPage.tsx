@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { useProject } from '@/hooks/useProject';
+import { useProject, useProjectWorklogStats } from '@/hooks/useProject';
 import { useDeleteProject } from '@/hooks/useProjects';
+import { WorklogHeatmap } from '@/components/WorklogHeatmap';
 import { useMilestones, useCreateMilestone, useUpdateMilestone, useDeleteMilestone } from '@/hooks/useMilestones';
 import {
   Card,
@@ -20,6 +21,65 @@ import {
 } from '@/components/ui';
 import ProjectUpdateForm from '@/components/forms/ProjectUpdateForm';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
+import {
+  Briefcase,
+  Tag,
+  Activity,
+  Signal,
+  Building2,
+  Package,
+  User,
+  FileText
+} from 'lucide-react';
+
+// Status color mapping matching ProjectsPage
+const STATUS_COLORS_BADGE: Record<string, { bg: string; text: string }> = {
+  'InProgress': { bg: 'bg-green-100', text: 'text-green-800' },
+  'Planned': { bg: 'bg-blue-100', text: 'text-blue-800' },
+  'Prospective': { bg: 'bg-purple-100', text: 'text-purple-800' },
+  'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  'Completed': { bg: 'bg-gray-100', text: 'text-gray-600' },
+  'Closed': { bg: 'bg-gray-200', text: 'text-gray-500' },
+  'Cancelled': { bg: 'bg-red-100', text: 'text-red-800' },
+};
+
+// Status badge helper
+const StatusBadge = ({ status }: { status: string }) => {
+  const colors = STATUS_COLORS_BADGE[status] || { bg: 'bg-slate-100', text: 'text-slate-800' };
+
+  // Use dark mode overrides if needed, fitting the "slate" theme or keeping exact colors
+  // For consistency with ProjectsPage which doesn't seem to have explicit dark mode overrides in that map,
+  // we will map them slightly for dark mode visibility if possible, or just use the same.
+  // Assuming the user wants EXACT match to what they see in list (which might be light mode primarily),
+  // but let's add reasonable dark mode defaults:
+
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
+      {status}
+    </span>
+  );
+};
+
+// Property Row Component (Notion style)
+const PropertyRow = ({
+  icon: Icon,
+  label,
+  children
+}: {
+  icon: React.ElementType;
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex items-center py-2 h-9">
+    <div className="w-36 flex items-center text-sm text-muted-foreground shrink-0">
+      <Icon className="w-4 h-4 mr-2" />
+      <span>{label}</span>
+    </div>
+    <div className="flex-1 text-sm font-medium truncate">
+      {children}
+    </div>
+  </div>
+);
 
 // Status colors for milestones
 const STATUS_COLORS: Record<string, string> = {
@@ -52,6 +112,9 @@ export const ProjectDetailPage: React.FC = () => {
   const createMilestone = useCreateMilestone(id || '');
   const updateMilestone = useUpdateMilestone(id || '');
   const deleteMilestone = useDeleteMilestone(id || '');
+
+  // Worklog Stats
+  const { data: worklogStats = [], isLoading: statsLoading } = useProjectWorklogStats(id || '');
 
   // State
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -227,42 +290,76 @@ export const ProjectDetailPage: React.FC = () => {
             </Dialog>
           </div>
         </CardHeader>
+
+
         <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="font-semibold">Program:</p>
-              <p>{project.program?.name || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Project Type:</p>
-              <p>{project.project_type?.name || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Status:</p>
-              <p>{project.status}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Complexity:</p>
-              <p>{project.complexity || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Customer:</p>
-              <p>{project.customer || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="font-semibold">Product:</p>
-              <p>{project.product || 'N/A'}</p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
+            <PropertyRow icon={Briefcase} label="Program">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                {project.program?.name || 'N/A'}
+              </span>
+            </PropertyRow>
+
+            <PropertyRow icon={Tag} label="Project Type">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+                {project.project_type?.name || 'N/A'}
+              </span>
+            </PropertyRow>
+
+            <PropertyRow icon={Activity} label="Status">
+              <StatusBadge status={project.status} />
+            </PropertyRow>
+
+            <PropertyRow icon={Signal} label="Scale">
+              <span className="text-sm font-medium">{project.scale || 'N/A'}</span>
+            </PropertyRow>
+
+            <PropertyRow icon={Building2} label="Customer">
+              <span className="text-sm font-medium">{project.customer || 'N/A'}</span>
+            </PropertyRow>
+
+            <PropertyRow icon={Package} label="Product">
+              <span className="text-sm font-medium">{project.product || 'N/A'}</span>
+            </PropertyRow>
+
             {project.pm && (
-              <div>
-                <p className="font-semibold">Project Manager:</p>
-                <p>{project.pm.name || project.pm.email}</p>
-              </div>
+              <PropertyRow icon={User} label="Project Manager">
+                <div className="flex items-center">
+                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs mr-2 text-primary font-bold">
+                    {(project.pm.name || '?')[0]}
+                  </div>
+                  <span className="font-medium">{project.pm.name || project.pm.email}</span>
+                </div>
+              </PropertyRow>
             )}
-            <div className="col-span-2">
-              <p className="font-semibold">Description:</p>
-              <p>{project.description || 'No description provided.'}</p>
+
+            <div className="col-span-full pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                <FileText className="w-4 h-4 mr-2" />
+                <span>Description</span>
+              </div>
+              <div className="pl-6 text-sm text-slate-900 dark:text-slate-50 whitespace-pre-wrap leading-relaxed">
+                {project.description || <span className="text-slate-400 italic">No description provided.</span>}
+              </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Worklog Activity Heatmap */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Project Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="w-full overflow-x-auto pb-2">
+            {statsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading activity data...</div>
+            ) : worklogStats.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No activity recorded yet.</div>
+            ) : (
+              <WorklogHeatmap data={worklogStats} />
+            )}
           </div>
         </CardContent>
       </Card>

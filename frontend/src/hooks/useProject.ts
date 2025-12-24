@@ -14,3 +14,18 @@ export function useProject(id: string) {
     enabled: !!id, // Only run the query if id is available
   });
 }
+
+import type { WorklogStats } from '@/types';
+
+async function fetchProjectWorklogStats(id: string): Promise<WorklogStats[]> {
+  const { data } = await apiClient.get(`/projects/${id}/stats`);
+  return data;
+}
+
+export function useProjectWorklogStats(id: string) {
+  return useQuery<WorklogStats[], Error>({
+    queryKey: ['project-worklog-stats', id],
+    queryFn: () => fetchProjectWorklogStats(id),
+    enabled: !!id,
+  });
+}

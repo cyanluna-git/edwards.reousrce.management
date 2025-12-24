@@ -2,10 +2,12 @@
 Service layer for project-related business logic
 """
 
-from typing import List, Optional
+from typing import List, Optional, Any
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 import uuid
+from datetime import datetime, timedelta
+from sqlalchemy import func, desc
 
 from app.models.project import (
     Project,
@@ -14,6 +16,7 @@ from app.models.project import (
     ProjectType as ProjectTypeModel,
     ProductLine as ProductLineModel,
 )
+from app.models.resource import WorkLog
 from app.models.organization import BusinessUnit as BusinessUnitModel
 from app.schemas.project import (
     ProjectCreate,
@@ -49,13 +52,36 @@ class ProjectService:
         program_id: Optional[str] = None,
         project_type_id: Optional[str] = None,
         status: Optional[str] = None,
+        sort_by: Optional[str] = None,
     ) -> List[Project]:
         """Retrieve multiple projects with filters and pagination."""
-        query = self.db.query(Project).options(
-            joinedload(Project.program).joinedload(ProgramModel.business_unit),
-            joinedload(Project.project_type),
-            joinedload(Project.product_line),
-            joinedload(Project.pm),
+        # Subquery for calculating recent activity (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+
+        # Determine the activity score
+        activity_subquery = (
+            self.db.query(
+                WorkLog.project_id, func.sum(WorkLog.hours).label("activity_score")
+            )
+            .filter(WorkLog.date >= thirty_days_ago.date())
+            .group_by(WorkLog.project_id)
+            .subquery()
+        )
+
+        query = (
+            self.db.query(
+                Project,
+                func.coalesce(activity_subquery.c.activity_score, 0).label(
+                    "recent_activity_score"
+                ),
+            )
+            .outerjoin(activity_subquery, Project.id == activity_subquery.c.project_id)
+            .options(
+                joinedload(Project.program).joinedload(ProgramModel.business_unit),
+                joinedload(Project.project_type),
+                joinedload(Project.product_line),
+                joinedload(Project.pm),
+            )
         )
 
         if program_id:
@@ -65,7 +91,20 @@ class ProjectService:
         if status:
             query = query.filter(Project.status == status)
 
-        return query.order_by(Project.code).offset(skip).limit(limit).all()
+        if sort_by == "activity":
+            query = query.order_by(desc("recent_activity_score"))
+        else:
+            query = query.order_by(Project.code)
+
+        results = query.offset(skip).limit(limit).all()
+
+        # Transform results to populate the Pydantic model field
+        projects = []
+        for project, score in results:
+            project.recent_activity_score = score
+            projects.append(project)
+
+        return projects
 
     def create_project(self, project_in: ProjectCreate) -> Project:
         """Create a new project."""
@@ -180,7 +219,7 @@ class ProjectService:
 
     # ============ Programs & ProjectTypes Methods ============
 
-    def get_programs(self) -> List["Program"]:
+    def get_programs(self) -> List[ProgramModel]:
         """Get all active programs."""
         return (
             self.db.query(ProgramModel)
@@ -189,7 +228,7 @@ class ProjectService:
             .all()
         )
 
-    def get_project_types(self) -> List["ProjectType"]:
+    def get_project_types(self) -> List[ProjectTypeModel]:
         """Get all active project types."""
         return (
             self.db.query(ProjectTypeModel)
@@ -198,7 +237,7 @@ class ProjectService:
             .all()
         )
 
-    def get_product_lines(self) -> List["ProductLine"]:
+    def get_product_lines(self) -> List[ProductLineModel]:
         """Get all active product lines."""
         return (
             self.db.query(ProductLineModel)
@@ -206,3 +245,28 @@ class ProjectService:
             .order_by(ProductLineModel.name)
             .all()
         )
+
+    # ============ Worklog Statistics Methods ============
+
+    def get_worklog_stats(self, project_id: str) -> List[dict]:
+        """Get daily worklog statistics for a project."""
+        results = (
+            self.db.query(
+                WorkLog.date,
+                func.sum(WorkLog.hours).label("total_hours"),
+                func.count(WorkLog.id).label("count"),
+            )
+            .filter(WorkLog.project_id == project_id)
+            .group_by(WorkLog.date)
+            .order_by(WorkLog.date)
+            .all()
+        )
+
+        return [
+            {
+                "date": str(row.date),
+                "total_hours": float(row.total_hours) if row.total_hours else 0,
+                "count": int(row.count),
+            }
+            for row in results
+        ]

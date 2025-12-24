@@ -17,6 +17,7 @@ from app.schemas.project import (
     Program,
     ProjectType,
     ProductLine,
+    WorklogStats,
 )
 from app.services.project_service import ProjectService
 
@@ -61,6 +62,7 @@ async def list_projects(
     program_id: Optional[str] = Query(None),
     project_type_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query(None, description="Sort options: 'activity'"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -75,6 +77,7 @@ async def list_projects(
         program_id=program_id,
         project_type_id=project_type_id,
         status=status,
+        sort_by=sort_by,
     )
     return projects
 
@@ -139,6 +142,23 @@ async def delete_project(project_id: str, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
     return None
+
+
+@router.get("/{project_id}/stats", response_model=List[WorklogStats])
+async def get_project_worklog_stats(project_id: str, db: Session = Depends(get_db)):
+    """
+    Get daily worklog statistics for a project
+    """
+    service = ProjectService(db)
+
+    # Check if project exists
+    project = service.get_by_id(project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    return service.get_worklog_stats(project_id)
 
 
 # ============ Milestone Endpoints ============

@@ -22,15 +22,15 @@ import {
 import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
 
 // Status priority for sorting (lower = higher priority)
-const STATUS_PRIORITY: Record<string, number> = {
-  'InProgress': 1,
-  'Planned': 2,
-  'Prospective': 3,
-  'OnHold': 4,
-  'Completed': 5,
-  'Closed': 6,
-  'Cancelled': 7,
-};
+// const STATUS_PRIORITY: Record<string, number> = {
+//   'InProgress': 1,
+//   'Planned': 2,
+//   'Prospective': 3,
+//   'OnHold': 4,
+//   'Completed': 5,
+//   'Closed': 6,
+//   'Cancelled': 7,
+// };
 
 // Status color mapping
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -53,18 +53,24 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function ProjectsPage() {
-  const { data: projects, isLoading, error } = useProjects();
+  // Always sort by activity for now as per user request
+  const { data: projects, isLoading, error } = useProjects('activity');
   const navigate = useNavigate();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // Sort projects by status priority (InProgress first)
+  // Sorting logic now handled by backend mostly but we might want to keep client-side sort as fallback or refinement
+  // If backend returns sorted by activity, we can just use that.
+  // However, the existing code sorts by "Status Priority".
+  // The user said: "Sort in order of active projects".
+  // Let's use the backend sorting primary, but maybe keep status grouping if desired? 
+  // User prompt: "Prioritize getting activity and sort by active project order" implies this should overlap status sort.
+  // I will use the backend results directly if available.
+
   const sortedProjects = useMemo(() => {
     if (!projects) return [];
-    return [...projects].sort((a, b) => {
-      const priorityA = STATUS_PRIORITY[a.status || ''] || 99;
-      const priorityB = STATUS_PRIORITY[b.status || ''] || 99;
-      return priorityA - priorityB;
-    });
+    // If backend already sorted by activity, just return it.
+    // Or we can add a secondary sort here if needed.
+    return projects;
   }, [projects]);
 
   if (isLoading) {
@@ -97,6 +103,7 @@ export function ProjectsPage() {
             <TableRow>
               <TableHead>Business Area</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Activity (30d)</TableHead>
               <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Program</TableHead>
@@ -118,6 +125,15 @@ export function ProjectsPage() {
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={project.status || 'Unknown'} />
+                </TableCell>
+                <TableCell>
+                  {project.recent_activity_score ? (
+                    <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400">
+                      {project.recent_activity_score.toFixed(0)}h
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="font-medium">{project.code}</TableCell>
                 <TableCell>{project.name}</TableCell>
