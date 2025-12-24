@@ -1,8 +1,12 @@
 /**
  * WorkLog Table Page
- * Table view for all work logs with filters (department, project, user)
+ * Table view for all work logs with filters
  * - Admin: Can see all worklogs
  * - User: Can only see their own worklogs
+ * 
+ * Filter Logic:
+ * - 사업영역(BusinessUnit) → Program → Project 기준으로 필터 (프로젝트 종속)
+ * - 조직(Department/SubTeam/User) 기준은 별도로 필터 (인력 종속)
  */
 import { useState, useMemo, useEffect } from 'react';
 import { format, subDays } from 'date-fns';
@@ -12,14 +16,16 @@ import { Input } from '@/components/ui/input';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
+import { getBusinessUnits, getDepartments, getSubTeams, getUsers, getPrograms, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
+import type { Program } from '@/types';
 
 export function WorkLogTablePage() {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
-    // Organization data for filters
+    // Data for filters
     const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
+    const [programs, setPrograms] = useState<Program[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [subTeams, setSubTeams] = useState<SubTeam[]>([]);
     const [users, setUsers] = useState<UserDetails[]>([]);
@@ -31,16 +37,21 @@ export function WorkLogTablePage() {
     const [endDate, setEndDate] = useState(() =>
         format(new Date(), 'yyyy-MM-dd')
     );
+    // 프로젝트 기반 필터
     const [businessUnitFilter, setBusinessUnitFilter] = useState<string>('');
+    const [programFilter, setProgramFilter] = useState<string>('');
+    const [projectFilter, setProjectFilter] = useState<string>('');
+    // 조직 기반 필터
     const [departmentFilter, setDepartmentFilter] = useState<string>('');
     const [subTeamFilter, setSubTeamFilter] = useState<string>('');
     const [userFilter, setUserFilter] = useState<string>('');
-    const [projectFilter, setProjectFilter] = useState<string>('');
+    // 기타 필터
     const [workTypeFilter, setWorkTypeFilter] = useState<string>('');
 
-    // Load organization data on mount
+    // Load data on mount
     useEffect(() => {
         getBusinessUnits().then(setBusinessUnits);
+        getPrograms().then(setPrograms);
         getDepartments().then(setDepartments);
         getUsers().then(setUsers);
     }, []);
@@ -54,7 +65,7 @@ export function WorkLogTablePage() {
         }
     }, [departmentFilter]);
 
-    // Fetch data with department filter
+    // Fetch worklogs with filters
     const { data: worklogs = [], isLoading, refetch } = useWorklogsTable({
         start_date: startDate,
         end_date: endDate,
@@ -65,22 +76,34 @@ export function WorkLogTablePage() {
         limit: 500,
     });
 
-    // Filter projects - exclude Closed/Completed
+    // Get all projects
     const { data: allProjects = [] } = useProjects();
-    const activeProjects = useMemo(() =>
-        allProjects.filter(p => !['Closed', 'Completed'].includes(p.status || '')),
-        [allProjects]
-    );
 
-    // Filter departments by business unit
-    const filteredDepartments = useMemo(() =>
+    // ============ 프로젝트 기반 필터 로직 ============
+    // 1. Programs filtered by BusinessUnit
+    const filteredPrograms = useMemo(() =>
         businessUnitFilter
-            ? departments.filter(d => d.business_unit_id === businessUnitFilter)
-            : departments,
-        [departments, businessUnitFilter]
+            ? programs.filter(p => p.business_unit_id === businessUnitFilter)
+            : programs,
+        [programs, businessUnitFilter]
     );
 
-    // Filter users by department/subteam
+    // 2. Projects filtered by Program and BusinessUnit, excluding Closed/Completed
+    const filteredProjects = useMemo(() => {
+        let result = allProjects.filter(p => !['Closed', 'Completed'].includes(p.status || ''));
+
+        if (programFilter) {
+            result = result.filter(p => p.program_id === programFilter);
+        } else if (businessUnitFilter) {
+            // Filter by BusinessUnit via Program
+            const programIds = filteredPrograms.map(prg => prg.id);
+            result = result.filter(p => programIds.includes(p.program_id || ''));
+        }
+        return result;
+    }, [allProjects, programFilter, businessUnitFilter, filteredPrograms]);
+
+    // ============ 조직 기반 필터 로직 ============
+    // Users filtered by department/subteam
     const filteredUsers = useMemo(() => {
         let result = users;
         if (departmentFilter) {
@@ -106,15 +129,16 @@ export function WorkLogTablePage() {
 
     const resetFilters = () => {
         setBusinessUnitFilter('');
+        setProgramFilter('');
+        setProjectFilter('');
         setDepartmentFilter('');
         setSubTeamFilter('');
         setUserFilter('');
-        setProjectFilter('');
         setWorkTypeFilter('');
     };
 
     return (
-        <div className="w-full px-4 py-4 space-y-4">
+        <div className="w-full px-2 py-2 space-y-2">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">
@@ -136,14 +160,14 @@ export function WorkLogTablePage() {
                 <CardContent className="space-y-2 py-2">
                     {/* Row 1: Date Range */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground w-12">From:</span>
+                        <span className="text-sm text-muted-foreground w-16">Date:</span>
                         <Input
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
                             className="w-36 h-8"
                         />
-                        <span className="text-sm text-muted-foreground">To:</span>
+                        <span className="text-sm text-muted-foreground">~</span>
                         <Input
                             type="date"
                             value={endDate}
@@ -157,25 +181,52 @@ export function WorkLogTablePage() {
                         </div>
                     </div>
 
-                    {/* Row 2: Organization Filters (Admin Only) */}
+                    {/* Row 2: 프로젝트 기반 필터 - BusinessUnit → Program → Project */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm text-muted-foreground w-16">Project:</span>
+                        <select
+                            className="px-2 py-1 border rounded-md text-sm h-8"
+                            value={businessUnitFilter}
+                            onChange={(e) => {
+                                setBusinessUnitFilter(e.target.value);
+                                setProgramFilter('');
+                                setProjectFilter('');
+                            }}
+                        >
+                            <option value="">All Business Areas</option>
+                            {businessUnits.map(bu => (
+                                <option key={bu.id} value={bu.id}>{bu.name}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="px-2 py-1 border rounded-md text-sm h-8"
+                            value={programFilter}
+                            onChange={(e) => {
+                                setProgramFilter(e.target.value);
+                                setProjectFilter('');
+                            }}
+                        >
+                            <option value="">All Programs</option>
+                            {filteredPrograms.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="px-2 py-1 border rounded-md text-sm h-8 min-w-[200px]"
+                            value={projectFilter}
+                            onChange={(e) => setProjectFilter(e.target.value)}
+                        >
+                            <option value="">All Projects</option>
+                            {filteredProjects.map(p => (
+                                <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Row 3: 조직 기반 필터 (Admin Only) - Department → SubTeam → User */}
                     {isAdmin && (
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-muted-foreground w-12">Org:</span>
-                            <select
-                                className="px-2 py-1 border rounded-md text-sm h-8"
-                                value={businessUnitFilter}
-                                onChange={(e) => {
-                                    setBusinessUnitFilter(e.target.value);
-                                    setDepartmentFilter('');
-                                    setSubTeamFilter('');
-                                    setUserFilter('');
-                                }}
-                            >
-                                <option value="">All Business Units</option>
-                                {businessUnits.map(bu => (
-                                    <option key={bu.id} value={bu.id}>{bu.name}</option>
-                                ))}
-                            </select>
+                            <span className="text-sm text-muted-foreground w-16">Org:</span>
                             <select
                                 className="px-2 py-1 border rounded-md text-sm h-8"
                                 value={departmentFilter}
@@ -186,7 +237,7 @@ export function WorkLogTablePage() {
                                 }}
                             >
                                 <option value="">All Departments</option>
-                                {filteredDepartments.map(d => (
+                                {departments.map(d => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
                             </select>
@@ -217,19 +268,9 @@ export function WorkLogTablePage() {
                         </div>
                     )}
 
-                    {/* Row 3: Project & Work Type */}
+                    {/* Row 4: Work Type & Actions */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground w-12">Filter:</span>
-                        <select
-                            className="px-2 py-1 border rounded-md text-sm h-8 min-w-[200px]"
-                            value={projectFilter}
-                            onChange={(e) => setProjectFilter(e.target.value)}
-                        >
-                            <option value="">All Projects</option>
-                            {activeProjects.map(p => (
-                                <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
-                            ))}
-                        </select>
+                        <span className="text-sm text-muted-foreground w-16">Type:</span>
                         <select
                             className="px-2 py-1 border rounded-md text-sm h-8"
                             value={workTypeFilter}
@@ -240,7 +281,8 @@ export function WorkLogTablePage() {
                                 <option key={wt} value={wt}>{wt}</option>
                             ))}
                         </select>
-                        <Button variant="outline" size="sm" className="h-8" onClick={resetFilters}>Clear</Button>
+                        <div className="flex-1" />
+                        <Button variant="outline" size="sm" className="h-8" onClick={resetFilters}>Clear All</Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => refetch()}>🔄 Refresh</Button>
                     </div>
                 </CardContent>
