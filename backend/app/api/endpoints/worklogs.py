@@ -65,6 +65,7 @@ async def list_worklogs(
             "updated_at": wl.updated_at,
             "project_code": wl.project.code if wl.project else None,
             "project_name": wl.project.name if wl.project else None,
+            "project": wl.project,
         }
         result.append(worklog_dict)
 
@@ -128,6 +129,7 @@ async def list_worklogs_table(
             "department_name": (
                 wl.user.department.name if wl.user and wl.user.department else None
             ),
+            "project": wl.project,
         }
         result.append(worklog_dict)
 
@@ -162,6 +164,7 @@ async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db
             "updated_at": new_worklog.updated_at,
             "project_code": new_worklog.project.code if new_worklog.project else None,
             "project_name": new_worklog.project.name if new_worklog.project else None,
+            "project": new_worklog.project,
         }
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -207,6 +210,7 @@ async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
         "updated_at": worklog.updated_at,
         "project_code": worklog.project.code if worklog.project else None,
         "project_name": worklog.project.name if worklog.project else None,
+        "project": worklog.project,
     }
 
 
@@ -247,6 +251,7 @@ async def update_worklog(
             "project_name": (
                 updated_worklog.project.name if updated_worklog.project else None
             ),
+            "project": updated_worklog.project,
         }
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -294,6 +299,7 @@ async def copy_last_week_worklogs(
                 "updated_at": wl.updated_at,
                 "project_code": wl.project.code if wl.project else None,
                 "project_name": wl.project.name if wl.project else None,
+                "project": wl.project,
             }
         )
 
