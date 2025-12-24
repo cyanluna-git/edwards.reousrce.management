@@ -207,6 +207,20 @@ export interface ResourcePlanAssign {
     user_id: string
 }
 
+// Work Type Categories
+export interface WorkTypeCategory {
+    id: number
+    code: string
+    name: string
+    name_ko?: string
+    description?: string
+    level: number
+    parent_id?: number
+    parent?: WorkTypeCategory
+    children?: WorkTypeCategory[]
+    applicable_roles?: string
+}
+
 export interface WorkLog {
     id: number
     date: string
@@ -224,6 +238,8 @@ export interface WorkLog {
     project_name?: string
     user?: User
     project?: Project
+    work_type_category_id?: number
+    work_type_category?: WorkTypeCategory
 }
 
 export interface WorkLogCreate {

@@ -74,7 +74,11 @@ class WorkLogService:
 
         query = (
             self.db.query(WorkLog)
-            .options(joinedload(WorkLog.project), joinedload(WorkLog.user))
+            .options(
+                joinedload(WorkLog.project),
+                joinedload(WorkLog.user),
+                joinedload(WorkLog.work_type_category),
+            )
             .join(User, WorkLog.user_id == User.id)
         )
 

@@ -6,6 +6,8 @@ from datetime import date, datetime
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
+from app.schemas.work_type import WorkTypeCategoryFlat
+
 
 class WorkLogBase(BaseModel):
     """Base schema for WorkLog"""
@@ -59,6 +61,10 @@ class WorkLog(WorkLogBase):
     # Nested project info (optional)
     project_code: Optional[str] = None
     project_name: Optional[str] = None
+
+    # Work Type Category
+    work_type_category_id: Optional[int] = None
+    work_type_category: Optional["WorkTypeCategoryFlat"] = None
 
     class Config:
         from_attributes = True

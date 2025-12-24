@@ -382,6 +382,37 @@ L3_CATEGORIES = {
             "name_ko": "보고",
             "sort_order": 3,
         },
+        # New Meeting Types (Purpose-based)
+        {
+            "code": "PRJ-MTG-INF",
+            "name": "Information Sharing",
+            "name_ko": "정보 공유",
+            "sort_order": 4,
+        },
+        {
+            "code": "PRJ-MTG-DEC",
+            "name": "Decision Making",
+            "name_ko": "의사 결정",
+            "sort_order": 5,
+        },
+        {
+            "code": "PRJ-MTG-PRB",
+            "name": "Problem Solving",
+            "name_ko": "문제 해결",
+            "sort_order": 6,
+        },
+        {
+            "code": "PRJ-MTG-UPD",
+            "name": "Periodic Updates",
+            "name_ko": "정기 점검",
+            "sort_order": 7,
+        },
+        {
+            "code": "PRJ-MTG-FDB",
+            "name": "Feedback",
+            "name_ko": "피드백",
+            "sort_order": 8,
+        },
     ],
 }
 

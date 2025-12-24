@@ -3,6 +3,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarte
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
+import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -89,9 +90,11 @@ type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 export const DashboardPage: React.FC = () => {
     const { data, isLoading, error } = useDashboard();
     const { user } = useAuth();
+    const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
-    const [drillDownL1, setDrillDownL1] = useState<string | null>(null);
+    const [drillDownPath, setDrillDownPath] = useState<string[]>([]); // Stack of codes: ['ENG', 'ENG-SW']
 
+    // ... (Date calculations) ...
     const now = new Date();
     const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
@@ -176,49 +179,153 @@ export const DashboardPage: React.FC = () => {
         ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
         : topProjects;
 
-    // Group by L1 category for pie chart
-    const l1Summary = currentWorklogs.reduce((acc, wl) => {
-        const l1Code = WORK_TYPE_TO_L1[wl.work_type] || 'ADM';
-        if (!acc[l1Code]) {
-            const category = L1_CATEGORY_COLORS[l1Code] || L1_CATEGORY_COLORS['ADM'];
-            acc[l1Code] = { name: category.name_ko, code: l1Code, value: 0 };
-        }
-        acc[l1Code].value += wl.hours;
-        return acc;
-    }, {} as Record<string, { name: string; code: string; value: number }>);
-
-    const workTypeData = Object.values(l1Summary)
-        .sort((a, b) => b.value - a.value)
-        .map(item => ({
-            ...item,
-            color: L1_CATEGORY_COLORS[item.code]?.color || '#64748b',
-            percentage: totalHours > 0 ? ((item.value / totalHours) * 100).toFixed(0) : '0',
-        }));
-
-    // L2 drill-down data (when a L1 is clicked)
-    const l2DrillDownData = drillDownL1 ? currentWorklogs
-        .filter(wl => WORK_TYPE_TO_L1[wl.work_type] === drillDownL1)
-        .reduce((acc, wl) => {
-            const key = wl.work_type;
-            if (!acc[key]) {
-                acc[key] = { name: key, code: key, value: 0 };
+    // Build Category Map for easy lookup [Code -> Category Object]
+    const categoryMap = useMemo(() => {
+        const map: Record<string, any> = {};
+        const traverse = (cats: any[], parent?: any) => {
+            for (const cat of cats) {
+                map[cat.code] = { ...cat, parent };
+                if (cat.children) traverse(cat.children, cat);
             }
-            acc[key].value += wl.hours;
-            return acc;
-        }, {} as Record<string, { name: string; code: string; value: number }>)
-        : {};
+        };
+        traverse(categoryTree);
+        return map;
+    }, [categoryTree]);
 
-    const l2TotalHours = Object.values(l2DrillDownData).reduce((sum, item) => sum + item.value, 0);
-    const l2ChartData = Object.values(l2DrillDownData)
-        .sort((a, b) => b.value - a.value)
-        .map(item => ({
-            ...item,
-            color: L2_COLORS[drillDownL1 || '']?.[item.name] || L1_CATEGORY_COLORS[drillDownL1 || '']?.color || '#64748b',
-            percentage: l2TotalHours > 0 ? ((item.value / l2TotalHours) * 100).toFixed(0) : '0',
-        }));
+    // Build Category ID Map [ID -> Code]
+    const categoryIdToCode = useMemo(() => {
+        const map: Record<number, string> = {};
+        const traverse = (cats: any[]) => {
+            for (const cat of cats) {
+                map[cat.id] = cat.code;
+                if (cat.children) traverse(cat.children);
+            }
+        };
+        traverse(categoryTree);
+        return map;
+    }, [categoryTree]);
 
-    const activeChartData = drillDownL1 ? l2ChartData : workTypeData;
-    const activeLabel = drillDownL1 ? L1_CATEGORY_COLORS[drillDownL1]?.name_ko : null;
+
+    // Determine Chart Data based on Drill Down Level
+    // Level 0: L1 Distribution
+    // Level 1: L2 Distribution (filtered by L1)
+    // Level 2: L3 Distribution (filtered by L2)
+    const activeChartData = useMemo(() => {
+        const currentLevel = drillDownPath.length; // 0, 1, or 2
+        const parentCode = currentLevel > 0 ? drillDownPath[currentLevel - 1] : null;
+
+        // Bucket accumulator
+        const buckets: Record<string, { name: string; code: string; value: number; color?: string }> = {};
+
+        currentWorklogs.forEach(wl => {
+            // Determine WL's path
+            let l1 = 'Other';
+            let l2 = 'Other';
+            let l3 = 'Other';
+            let l1Name = '기타';
+            let l2Name = '기타';
+            let l3Name = '기타';
+
+            // Try to resolve from ID first (New Logic)
+            if (wl.work_type_category_id && categoryIdToCode[wl.work_type_category_id]) {
+                const code = categoryIdToCode[wl.work_type_category_id];
+                const cat = categoryMap[code];
+
+                if (cat.level === 3) {
+                    l3 = cat.code; l3Name = cat.name_ko || cat.name;
+                    l2 = cat.parent?.code; l2Name = cat.parent?.name_ko || cat.parent?.name;
+                    l1 = cat.parent?.parent?.code; l1Name = cat.parent?.parent?.name_ko || cat.parent?.parent?.name;
+                } else if (cat.level === 2) {
+                    l2 = cat.code; l2Name = cat.name_ko || cat.name;
+                    l1 = cat.parent?.code; l1Name = cat.parent?.name_ko || cat.parent?.name;
+                } else if (cat.level === 1) {
+                    l1 = cat.code; l1Name = cat.name_ko || cat.name;
+                }
+            } else {
+                // Fallback to Legacy String Mapping
+                const legacyL1 = WORK_TYPE_TO_L1[wl.work_type];
+                if (legacyL1) {
+                    l1 = legacyL1;
+                    l2 = wl.work_type; // Use legacy work_type string as L2
+                    l1Name = L1_CATEGORY_COLORS[l1]?.name_ko || l1;
+                    l2Name = l2; // Legacy strings are usually readable
+                } else {
+                    l1 = 'ADM'; // Default
+                    l1Name = '행정';
+                }
+            }
+
+            // Filtering Logic
+            let targetGroupKey: string | null = null;
+            let targetGroupName = '';
+
+            if (currentLevel === 0) {
+                targetGroupKey = l1;
+                targetGroupName = l1Name;
+            } else if (currentLevel === 1) {
+                // Showing L2s for specific L1
+                if (l1 === parentCode) {
+                    targetGroupKey = l2;
+                    targetGroupName = l2Name;
+                }
+            } else if (currentLevel === 2) {
+                // Showing L3s for specific L2
+                if (l2 === parentCode) {
+                    targetGroupKey = l3;
+                    targetGroupName = l3Name;
+                }
+            }
+
+            if (targetGroupKey) {
+                if (!buckets[targetGroupKey]) {
+                    buckets[targetGroupKey] = { name: targetGroupName, code: targetGroupKey, value: 0 };
+                }
+                buckets[targetGroupKey].value += wl.hours;
+            }
+        });
+
+        const totalFilteredHours = Object.values(buckets).reduce((sum, b) => sum + b.value, 0);
+
+        return Object.values(buckets)
+            .sort((a, b) => b.value - a.value)
+            .map(item => {
+                let color = '#64748b';
+                // Color Logic
+                if (currentLevel === 0) {
+                    color = L1_CATEGORY_COLORS[item.code]?.color || '#94a3b8';
+                } else if (currentLevel === 1) {
+                    // Try L2 Colors map first
+                    color = L2_COLORS[parentCode || '']?.[item.name] || L2_COLORS[parentCode || '']?.[item.code] || '#94a3b8';
+                    // If fail, fallback to L1 color but faded? Or generate palette.
+                    if (color === '#94a3b8' && parentCode) {
+                        color = L1_CATEGORY_COLORS[parentCode]?.color; // Fallback
+                    }
+                } else {
+                    // L3 Colors - Derived from L2 or random
+                    // Simple logic: use parent color
+                    color = '#94a3b8';
+                }
+
+                return {
+                    ...item,
+                    color,
+                    percentage: totalFilteredHours > 0 ? ((item.value / totalFilteredHours) * 100).toFixed(0) : '0',
+                };
+            });
+
+    }, [drillDownPath, currentWorklogs, categoryMap, categoryIdToCode]);
+
+    const activeLabel = useMemo(() => {
+        if (drillDownPath.length === 0) return null;
+        const lastCode = drillDownPath[drillDownPath.length - 1];
+        const cat = categoryMap[lastCode];
+        return cat ? (cat.name_ko || cat.name) : lastCode;
+    }, [drillDownPath, categoryMap]);
+
+    // Breadcrumb handler
+    const handleDrillUp = () => {
+        setDrillDownPath(prev => prev.slice(0, -1));
+    };
 
     if (isLoading) {
         return <div className="container mx-auto p-4"><div className="text-center py-12">로딩 중...</div></div>;
@@ -332,16 +439,16 @@ export const DashboardPage: React.FC = () => {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <CardTitle className="flex items-center gap-2">
-                            {drillDownL1 ? (
+                            {drillDownPath.length > 0 ? (
                                 <>
                                     <button
-                                        onClick={() => setDrillDownL1(null)}
+                                        onClick={handleDrillUp}
                                         className="p-1 hover:bg-slate-100 rounded-full transition-colors"
                                         title="뒤로가기"
                                     >
                                         ←
                                     </button>
-                                    <span style={{ color: L1_CATEGORY_COLORS[drillDownL1]?.color }}>
+                                    <span style={{ color: L1_CATEGORY_COLORS[drillDownPath[0]]?.color }}>
                                         {activeLabel}
                                     </span>
                                     <span className="text-muted-foreground text-sm font-normal">상세</span>
@@ -350,7 +457,7 @@ export const DashboardPage: React.FC = () => {
                                 <>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비율</>
                             )}
                         </CardTitle>
-                        {!drillDownL1 && (
+                        {drillDownPath.length < 2 && (
                             <span className="text-xs text-muted-foreground">클릭하여 상세 보기</span>
                         )}
                     </CardHeader>
@@ -372,17 +479,17 @@ export const DashboardPage: React.FC = () => {
                                                 dataKey="value"
                                                 animationDuration={400}
                                                 onClick={(data) => {
-                                                    if (!drillDownL1 && data.code) {
-                                                        setDrillDownL1(data.code);
+                                                    if (drillDownPath.length < 2 && data.code) {
+                                                        setDrillDownPath(prev => [...prev, data.code]);
                                                     }
                                                 }}
-                                                style={{ cursor: drillDownL1 ? 'default' : 'pointer' }}
+                                                style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
                                             >
                                                 {activeChartData.map((entry, index) => (
                                                     <Cell
                                                         key={`cell-${index}`}
                                                         fill={entry.color}
-                                                        className={!drillDownL1 ? 'hover:opacity-80 transition-opacity' : ''}
+                                                        className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
                                                     />
                                                 ))}
                                             </Pie>
@@ -399,11 +506,11 @@ export const DashboardPage: React.FC = () => {
                                     {activeChartData.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${!drillDownL1 ? 'hover:bg-slate-50 cursor-pointer' : ''
+                                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${drillDownPath.length < 2 ? 'hover:bg-slate-50 cursor-pointer' : ''
                                                 }`}
                                             onClick={() => {
-                                                if (!drillDownL1 && item.code) {
-                                                    setDrillDownL1(item.code);
+                                                if (drillDownPath.length < 2 && item.code) {
+                                                    setDrillDownPath(prev => [...prev, item.code]);
                                                 }
                                             }}
                                         >
