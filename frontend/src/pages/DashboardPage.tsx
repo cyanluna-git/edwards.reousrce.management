@@ -4,8 +4,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
-import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
+import { Construction } from 'lucide-react';
 
 // L1 Category colors
 const L1_CATEGORY_COLORS: Record<string, { color: string; name: string; name_ko: string }> = {
@@ -366,292 +367,343 @@ export const DashboardPage: React.FC = () => {
                 <p className="text-blue-100 mt-1">오늘도 좋은 하루 되세요.</p>
             </div>
 
+
             {/* View Mode Tabs */}
-            <div className="flex flex-wrap gap-2">
-                <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
-                    📅 이번 주
-                </Button>
-                <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
-                    📆 이번 달
-                </Button>
-                <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
-                    📊 이번 분기
-                </Button>
-                <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
-                    📈 최근 6개월
-                </Button>
-                <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
-                    🗓️ 올해
-                </Button>
-            </div>
+            <Tabs defaultValue="user" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="user">User Dashboard</TabsTrigger>
+                    <TabsTrigger value="team">Team Dashboard</TabsTrigger>
+                    <TabsTrigger value="project">Project Dashboard</TabsTrigger>
+                </TabsList>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            {viewMode === 'weekly' && '이번 주 WorkLog'}
-                            {viewMode === 'monthly' && '이번 달 WorkLog'}
-                            {viewMode === 'quarterly' && '이번 분기 WorkLog'}
-                            {viewMode === 'halfYear' && '최근 6개월 WorkLog'}
-                            {viewMode === 'yearly' && '올해 WorkLog'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{totalHours.toFixed(0)}h</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {viewMode === 'weekly' && `${weekStart} ~ ${weekEnd}`}
-                            {viewMode === 'monthly' && `${monthStart} ~ ${monthEnd}`}
-                            {viewMode === 'quarterly' && `${quarterStart} ~ ${quarterEnd}`}
-                            {viewMode === 'halfYear' && `${halfYearStart} ~ ${halfYearEnd}`}
-                            {viewMode === 'yearly' && `${yearStart} ~ ${yearEnd}`}
-                        </p>
-                    </CardContent>
-                </Card>
+                <TabsContent value="user" className="space-y-6">
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
+                            📅 이번 주
+                        </Button>
+                        <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
+                            📆 이번 달
+                        </Button>
+                        <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
+                            📊 이번 분기
+                        </Button>
+                        <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
+                            📈 최근 6개월
+                        </Button>
+                        <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
+                            🗓️ 올해
+                        </Button>
+                    </div>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">참여 프로젝트</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{projectList.length}개</div>
-                        <p className="text-xs text-muted-foreground mt-1">{viewMode === 'weekly' ? '이번 주' : '이번 달'}</p>
-                    </CardContent>
-                </Card>
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">
+                                    {viewMode === 'weekly' && '이번 주 WorkLog'}
+                                    {viewMode === 'monthly' && '이번 달 WorkLog'}
+                                    {viewMode === 'quarterly' && '이번 분기 WorkLog'}
+                                    {viewMode === 'halfYear' && '최근 6개월 WorkLog'}
+                                    {viewMode === 'yearly' && '올해 WorkLog'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">{totalHours.toFixed(0)}h</div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {viewMode === 'weekly' && `${weekStart} ~ ${weekEnd}`}
+                                    {viewMode === 'monthly' && `${monthStart} ~ ${monthEnd}`}
+                                    {viewMode === 'quarterly' && `${quarterStart} ~ ${quarterEnd}`}
+                                    {viewMode === 'halfYear' && `${halfYearStart} ~ ${halfYearEnd}`}
+                                    {viewMode === 'yearly' && `${yearStart} ~ ${yearEnd}`}
+                                </p>
+                            </CardContent>
+                        </Card>
 
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">이번 달 배정량</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-bold">{data.resource_allocation.total_fte} FTE</div>
-                        <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
-                    </CardContent>
-                </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">참여 프로젝트</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">{projectList.length}개</div>
+                                <p className="text-xs text-muted-foreground mt-1">{viewMode === 'weekly' ? '이번 주' : '이번 달'}</p>
+                            </CardContent>
+                        </Card>
 
-                {/* Charts Row */}
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">이번 달 배정량</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-3xl font-bold">{data.resource_allocation.total_fte} FTE</div>
+                                <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
+                            </CardContent>
+                        </Card>
+                    </div>
 
-                {/* Left Column: Project vs Functional & Project List */}
-                <div className="space-y-4 lg:col-span-1">
-                    {/* Project vs Functional Ratio (Horizontal Bar) */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col justify-center h-[160px]">
-                            {projectVsFunctionalData.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {/* Horizontal Bar */}
-                                    <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                        {projectVsFunctionalData.map((item, idx) => (
-                                            <div
-                                                key={idx}
-                                                style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                                className="h-full flex items-center justify-center text-white font-bold text-base transition-all duration-500 relative group"
-                                                title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
-                                            >
-                                                {parseInt(item.percentage) > 10 && (
-                                                    <span className="drop-shadow-md">{item.percentage}%</span>
-                                                )}
+                    {/* Charts Row */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Left Column: Project vs Functional & Project List */}
+                        <div className="space-y-4 lg:col-span-1">
+                            {/* Project vs Functional Ratio (Horizontal Bar) */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col justify-center h-[160px]">
+                                    {projectVsFunctionalData.length === 0 ? (
+                                        <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {/* Horizontal Bar */}
+                                            <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                                {projectVsFunctionalData.map((item, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
+                                                        className="h-full flex items-center justify-center text-white font-bold text-base transition-all duration-500 relative group"
+                                                        title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
+                                                    >
+                                                        {parseInt(item.percentage) > 10 && (
+                                                            <span className="drop-shadow-md">{item.percentage}%</span>
+                                                        )}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
 
-                                    {/* Legend & Details */}
-                                    <div className="flex justify-between px-2 text-sm">
-                                        {projectVsFunctionalData.map((item, idx) => (
-                                            <div key={idx} className="flex flex-col items-center">
-                                                <div className="flex items-center gap-2 mb-0.5">
-                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                                    <span className="font-medium">{item.name}</span>
-                                                </div>
-                                                <div className="font-bold">{item.value.toFixed(0)}h</div>
+                                            {/* Legend & Details */}
+                                            <div className="flex justify-between px-2 text-sm">
+                                                {projectVsFunctionalData.map((item, idx) => (
+                                                    <div key={idx} className="flex flex-col items-center">
+                                                        <div className="flex items-center gap-2 mb-0.5">
+                                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                                            <span className="font-medium">{item.name}</span>
+                                                        </div>
+                                                        <div className="font-bold">{item.value.toFixed(0)}h</div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* WorkLog by Project */}
-                    <Card className="flex-1">
-                        <CardHeader>
-                            <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 프로젝트별 WorkLog</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {projectList.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {projectList.slice(0, 5).map(proj => (
-                                        <div key={proj.project_id} className="flex items-center gap-3">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-sm font-medium truncate" title={proj.project_name}>
-                                                    {proj.project_code} - {proj.project_name}
-                                                </div>
-                                                <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
-                                                    <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
-                                                </div>
-                                            </div>
-                                            <div className="text-xs font-medium w-10 text-right">{proj.hours.toFixed(0)}h</div>
-                                        </div>
-                                    ))}
-                                    {projectList.length > 5 && (
-                                        <div className="text-xs text-center text-muted-foreground pt-1">
-                                            + {projectList.length - 5} more
                                         </div>
                                     )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                                </CardContent>
+                            </Card>
 
-                {/* Right Column: Work Type Pie Chart */}
-                <Card className="lg:col-span-2 flex flex-col">
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="flex items-center gap-2">
-                            {drillDownPath.length > 0 ? (
-                                <>
-                                    <button
-                                        onClick={handleDrillUp}
-                                        className="p-1 hover:bg-slate-100 rounded-full transition-colors"
-                                        title="뒤로가기"
-                                    >
-                                        ←
-                                    </button>
-                                    <span style={{ color: L1_CATEGORY_COLORS[drillDownPath[0]]?.color }}>
-                                        {activeLabel}
-                                    </span>
-                                    <span className="text-muted-foreground text-sm font-normal">상세</span>
-                                </>
-                            ) : (
-                                <>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비율</>
-                            )}
-                        </CardTitle>
-                        {drillDownPath.length < 2 && (
-                            <span className="text-xs text-muted-foreground">클릭하여 상세 보기</span>
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        {activeChartData.length === 0 ? (
-                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
-                        ) : (
-                            <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
-                                <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={activeChartData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={80}
-                                                outerRadius={120}
-                                                paddingAngle={2}
-                                                dataKey="value"
-                                                animationDuration={400}
-                                                onClick={(data) => {
-                                                    if (drillDownPath.length < 2 && data.code) {
-                                                        setDrillDownPath(prev => [...prev, data.code]);
-                                                    }
-                                                }}
-                                                style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
+                            {/* WorkLog by Project */}
+                            <Card className="flex-1">
+                                <CardHeader>
+                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 프로젝트별 WorkLog</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {projectList.length === 0 ? (
+                                        <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {projectList.slice(0, 5).map(proj => (
+                                                <div key={proj.project_id} className="flex items-center gap-3">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-sm font-medium truncate" title={proj.project_name}>
+                                                            {proj.project_code} - {proj.project_name}
+                                                        </div>
+                                                        <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+                                                            <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs font-medium w-10 text-right">{proj.hours.toFixed(0)}h</div>
+                                                </div>
+                                            ))}
+                                            {projectList.length > 5 && (
+                                                <div className="text-xs text-center text-muted-foreground pt-1">
+                                                    + {projectList.length - 5} more
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Right Column: Work Type Pie Chart */}
+                        <Card className="lg:col-span-2 flex flex-col">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="flex items-center gap-2">
+                                    {drillDownPath.length > 0 ? (
+                                        <>
+                                            <button
+                                                onClick={handleDrillUp}
+                                                className="p-1 hover:bg-slate-100 rounded-full transition-colors"
+                                                title="뒤로가기"
                                             >
-                                                {activeChartData.map((entry, index) => (
-                                                    <Cell
-                                                        key={`cell-${index}`}
-                                                        fill={entry.color}
-                                                        className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
+                                                ←
+                                            </button>
+                                            <span style={{ color: L1_CATEGORY_COLORS[drillDownPath[0]]?.color }}>
+                                                {activeLabel}
+                                            </span>
+                                            <span className="text-muted-foreground text-sm font-normal">상세</span>
+                                        </>
+                                    ) : (
+                                        <>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비율</>
+                                    )}
+                                </CardTitle>
+                                {drillDownPath.length < 2 && (
+                                    <span className="text-xs text-muted-foreground">클릭하여 상세 보기</span>
+                                )}
+                            </CardHeader>
+                            <CardContent>
+                                {activeChartData.length === 0 ? (
+                                    <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                ) : (
+                                    <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
+                                        <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={activeChartData}
+                                                        cx="50%"
+                                                        cy="50%"
+                                                        innerRadius={80}
+                                                        outerRadius={120}
+                                                        paddingAngle={2}
+                                                        dataKey="value"
+                                                        animationDuration={400}
+                                                        onClick={(data) => {
+                                                            if (drillDownPath.length < 2 && data.code) {
+                                                                setDrillDownPath(prev => [...prev, data.code]);
+                                                            }
+                                                        }}
+                                                        style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
+                                                    >
+                                                        {activeChartData.map((entry, index) => (
+                                                            <Cell
+                                                                key={`cell-${index}`}
+                                                                fill={entry.color}
+                                                                className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
+                                                            />
+                                                        ))}
+                                                    </Pie>
+                                                    <Tooltip
+                                                        formatter={(value: number | undefined) => [
+                                                            `${(value ?? 0).toFixed(0)}h`,
+                                                            '시간'
+                                                        ]}
                                                     />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip
-                                                formatter={(value: number | undefined) => [
-                                                    `${(value ?? 0).toFixed(0)}h`,
-                                                    '시간'
-                                                ]}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                                <div className="flex-1 space-y-3 min-w-[280px]">
-                                    {activeChartData.map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            className={`flex items-center gap-3 p-2 rounded-lg transition-all ${drillDownPath.length < 2 ? 'hover:bg-slate-50 cursor-pointer' : ''
-                                                }`}
-                                            onClick={() => {
-                                                if (drillDownPath.length < 2 && item.code) {
-                                                    setDrillDownPath(prev => [...prev, item.code]);
-                                                }
-                                            }}
-                                        >
-                                            <div
-                                                className="w-4 h-4 rounded-full"
-                                                style={{ backgroundColor: item.color }}
-                                            />
-                                            <span className="flex-1 font-medium">{item.name}</span>
-                                            <span className="font-bold text-lg">{item.value.toFixed(0)}h</span>
-                                            <span className="text-muted-foreground bg-slate-100 px-2 py-0.5 rounded text-sm">
-                                                {item.percentage}%
-                                            </span>
+                                                </PieChart>
+                                            </ResponsiveContainer>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* My Projects Timeline */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>참여 프로젝트 현황</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {data.my_projects.length === 0 ? (
-                        <div className="text-center py-4 text-muted-foreground">참여 중인 프로젝트가 없습니다.</div>
-                    ) : (
-                        <div className="space-y-4">
-                            {data.my_projects.map(project => (
-                                <div key={project.id} className="border rounded-lg p-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-medium">{project.code} - {project.name}</h3>
-                                            <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${project.status === 'WIP' ? 'bg-green-100 text-green-700' :
-                                                project.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                                                    project.status === 'Hold' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
-                                                }`}>
-                                                {project.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    {project.milestones.length > 0 && (
-                                        <div className="flex gap-4 mt-3 text-sm">
-                                            {project.milestones.map((m, idx) => (
-                                                <div key={idx} className="flex items-center gap-2">
-                                                    <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${m.status === 'Completed' ? 'bg-green-500 text-white' :
-                                                        m.status === 'At risk' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
-                                                        }`}>
-                                                        {m.name.substring(0, 2)}
-                                                    </span>
-                                                    <span className="text-muted-foreground">
-                                                        {m.target_date ? format(new Date(m.target_date), 'yy-MMM') : '-'}
+                                        <div className="flex-1 space-y-3 min-w-[280px]">
+                                            {activeChartData.map((item, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    className={`flex items-center gap-3 p-2 rounded-lg transition-all ${drillDownPath.length < 2 ? 'hover:bg-slate-50 cursor-pointer' : ''
+                                                        }`}
+                                                    onClick={() => {
+                                                        if (drillDownPath.length < 2 && item.code) {
+                                                            setDrillDownPath(prev => [...prev, item.code]);
+                                                        }
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="w-4 h-4 rounded-full"
+                                                        style={{ backgroundColor: item.color }}
+                                                    />
+                                                    <span className="flex-1 font-medium">{item.name}</span>
+                                                    <span className="font-bold text-lg">{item.value.toFixed(0)}h</span>
+                                                    <span className="text-muted-foreground bg-slate-100 px-2 py-0.5 rounded text-sm">
+                                                        {item.percentage}%
                                                     </span>
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+
+
+                    {/* My Projects Timeline */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>참여 프로젝트 현황</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {data.my_projects.length === 0 ? (
+                                <div className="text-center py-4 text-muted-foreground">참여 중인 프로젝트가 없습니다.</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {data.my_projects.map(project => (
+                                        <div key={project.id} className="border rounded-lg p-4">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h3 className="font-medium">{project.code} - {project.name}</h3>
+                                                    <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${project.status === 'WIP' ? 'bg-green-100 text-green-700' :
+                                                        project.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
+                                                            project.status === 'Hold' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                        {project.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            {project.milestones.length > 0 && (
+                                                <div className="flex gap-4 mt-3 text-sm">
+                                                    {project.milestones.map((m, idx) => (
+                                                        <div key={idx} className="flex items-center gap-2">
+                                                            <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${m.status === 'Completed' ? 'bg-green-500 text-white' :
+                                                                m.status === 'At risk' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
+                                                                }`}>
+                                                                {m.name.substring(0, 2)}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                {m.target_date ? format(new Date(m.target_date), 'yy-MMM') : '-'}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="team" className="py-8">
+                    <Card className="w-full max-w-md mx-auto text-center">
+                        <CardHeader>
+                            <div className="flex justify-center mb-4">
+                                <div className="p-4 bg-slate-100 rounded-full">
+                                    <Construction className="w-12 h-12 text-slate-500" />
+                                </div>
+                            </div>
+                            <CardTitle className="text-2xl font-bold">Coming Soon</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-slate-500">
+                                Team 대시보드는 준비 중입니다.<br />
+                                곧 업데이트될 예정입니다.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="project" className="py-8">
+                    <Card className="w-full max-w-md mx-auto text-center">
+                        <CardHeader>
+                            <div className="flex justify-center mb-4">
+                                <div className="p-4 bg-slate-100 rounded-full">
+                                    <Construction className="w-12 h-12 text-slate-500" />
+                                </div>
+                            </div>
+                            <CardTitle className="text-2xl font-bold">Coming Soon</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-slate-500">
+                                Project 대시보드는 준비 중입니다.<br />
+                                곧 업데이트될 예정입니다.
+                            </p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };
