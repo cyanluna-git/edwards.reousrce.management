@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { WeeklyCalendarGrid } from '@/components/worklogs/WeeklyCalendarGrid';
 import { WorkLogEntryModal } from '@/components/worklogs/WorkLogEntryModal';
+import { LeaveEntryModal } from '@/components/worklogs/LeaveEntryModal';
 import {
     useWorklogs,
     useCreateWorklog,
@@ -27,6 +28,7 @@ export function WorkLogsPage() {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [editingWorklog, setEditingWorklog] = useState<WorkLog | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
 
     // Calculate week range for API query
     const weekRange = {
@@ -108,6 +110,19 @@ export function WorkLogsPage() {
         }
     };
 
+    // Leave submit handler
+    const handleLeaveSubmit = async (worklogs: WorkLogCreate[]) => {
+        try {
+            for (const worklog of worklogs) {
+                await createMutation.mutateAsync(worklog);
+            }
+            setIsLeaveModalOpen(false);
+            refetch();
+        } catch (error: any) {
+            alert(error?.response?.data?.detail || 'Failed to register leave');
+        }
+    };
+
     // Calculate week total
     const weekTotal = worklogs.reduce((sum, wl) => sum + wl.hours, 0);
 
@@ -117,6 +132,9 @@ export function WorkLogsPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">WorkLogs</h1>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsLeaveModalOpen(true)}>
+                        🏖️ 휴가 등록
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleCopyWeek}>
                         📋 Copy Last Week
                     </Button>
@@ -196,6 +214,16 @@ export function WorkLogsPage() {
                 } : undefined}
                 isEditing={!!editingWorklog}
                 isLoading={createMutation.isPending || updateMutation.isPending}
+            />
+
+            {/* Leave Entry Modal */}
+            <LeaveEntryModal
+                isOpen={isLeaveModalOpen}
+                onClose={() => setIsLeaveModalOpen(false)}
+                onSubmit={handleLeaveSubmit}
+                userId={user?.id || ''}
+                defaultProjectId="8a45fd77-809a-442c-8000-f82a0597964d"
+                isLoading={createMutation.isPending}
             />
         </div>
     );
