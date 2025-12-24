@@ -72,6 +72,7 @@ export interface Program {
     business_unit_id: string
     description?: string
     is_active: boolean
+    business_unit?: BusinessUnit
 }
 
 export interface ProjectType {

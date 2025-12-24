@@ -14,6 +14,7 @@ from app.models.project import (
     ProjectType as ProjectTypeModel,
     ProductLine as ProductLineModel,
 )
+from app.models.organization import BusinessUnit as BusinessUnitModel
 from app.schemas.project import (
     ProjectCreate,
     ProjectUpdate,
@@ -31,7 +32,7 @@ class ProjectService:
         return (
             self.db.query(Project)
             .options(
-                joinedload(Project.program),
+                joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.project_type),
                 joinedload(Project.product_line),
                 joinedload(Project.pm),
@@ -51,7 +52,7 @@ class ProjectService:
     ) -> List[Project]:
         """Retrieve multiple projects with filters and pagination."""
         query = self.db.query(Project).options(
-            joinedload(Project.program),
+            joinedload(Project.program).joinedload(ProgramModel.business_unit),
             joinedload(Project.project_type),
             joinedload(Project.product_line),
             joinedload(Project.pm),

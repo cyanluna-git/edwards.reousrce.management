@@ -9,10 +9,22 @@ from datetime import datetime
 from app.schemas.user import User
 
 
+# Schema for BusinessUnit (사업영역)
+class BusinessUnit(BaseModel):
+    id: str
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
 # Schema for Program
 class Program(BaseModel):
     id: str
     name: str
+    business_unit_id: Optional[str] = None
+    business_unit: Optional[BusinessUnit] = None
 
     class Config:
         from_attributes = True
