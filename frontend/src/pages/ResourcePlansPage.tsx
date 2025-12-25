@@ -115,11 +115,14 @@ export const ResourcePlansPage: React.FC = () => {
         }> = {};
 
         allPlans.forEach(plan => {
-            const key = `${plan.position_id}-${plan.user_id || 'TBD'}`;
+            // Use project_role_id for project resource planning
+            const roleId = plan.project_role_id || plan.position_id || '';
+            const roleName = plan.project_role_name || plan.position_name || roleId;
+            const key = `${roleId}-${plan.user_id || 'TBD'}`;
             if (!rowMap[key]) {
                 rowMap[key] = {
-                    positionId: plan.position_id,
-                    positionName: plan.position_name || plan.position_id,
+                    positionId: roleId,
+                    positionName: roleName,
                     userId: plan.user_id,
                     userName: plan.user_name,
                     isTbd: plan.is_tbd,
@@ -132,6 +135,7 @@ export const ResourcePlansPage: React.FC = () => {
                 hours: plan.planned_hours,
             };
         });
+
 
         return Object.values(rowMap);
     }, [allPlans, selectedProjectId]);
@@ -215,7 +219,7 @@ export const ResourcePlansPage: React.FC = () => {
                         project_id: selectedProjectId,
                         year: m.year,
                         month: m.month,
-                        position_id: positionId,
+                        project_role_id: positionId,  // Using project roles now
                         user_id: editingRow?.userId || newUserId,
                         planned_hours: hours,
                     });

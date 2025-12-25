@@ -340,6 +340,8 @@ export interface ProjectRole {
   name: string;
   category?: string;
   is_active: boolean;
+  user_count?: number;
+  project_count?: number;
 }
 
 export interface ProjectRoleCreate {

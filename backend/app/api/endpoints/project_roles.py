@@ -37,6 +37,9 @@ class ProjectRoleResponse(BaseModel):
     name: str
     category: Optional[str] = None
     is_active: bool
+    # Aggregation info
+    user_count: int = 0
+    project_count: int = 0
 
     class Config:
         from_attributes = True
@@ -45,19 +48,49 @@ class ProjectRoleResponse(BaseModel):
 # ============ Endpoints ============
 
 
-@router.get("", response_model=List[ProjectRoleResponse])
+@router.get("")
 async def list_project_roles(
     include_inactive: bool = False,
     category: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """List all project roles"""
+    """List all project roles with aggregation info"""
+    from sqlalchemy import func, distinct
+    from app.models.resource import ResourcePlan
+
     query = db.query(ProjectRole)
     if not include_inactive:
         query = query.filter(ProjectRole.is_active == True)
     if category:
         query = query.filter(ProjectRole.category == category)
-    return query.order_by(ProjectRole.category, ProjectRole.name).all()
+
+    roles = query.order_by(ProjectRole.category, ProjectRole.name).all()
+
+    # Get aggregation for each role
+    result = []
+    for role in roles:
+        # Count distinct users and projects
+        agg = (
+            db.query(
+                func.count(distinct(ResourcePlan.user_id)).label("user_count"),
+                func.count(distinct(ResourcePlan.project_id)).label("project_count"),
+            )
+            .filter(ResourcePlan.project_role_id == role.id)
+            .first()
+        )
+
+        result.append(
+            {
+                "id": role.id,
+                "name": role.name,
+                "category": role.category,
+                "is_active": role.is_active,
+                "user_count": agg.user_count if agg else 0,
+                "project_count": agg.project_count if agg else 0,
+            }
+        )
+
+    return result
 
 
 @router.get("/{role_id}", response_model=ProjectRoleResponse)
@@ -104,7 +137,7 @@ async def create_project_role(
     return role
 
 
-@router.put("/{role_id}", response_model=ProjectRoleResponse)
+@router.put("/{role_id}")
 async def update_project_role(
     role_id: str,
     data: ProjectRoleUpdate,
@@ -112,15 +145,20 @@ async def update_project_role(
     db: Session = Depends(get_db),
 ):
     """Update a project role"""
+    from sqlalchemy import func, distinct
+    from app.models.resource import ResourcePlan
+
     role = db.query(ProjectRole).filter(ProjectRole.id == role_id).first()
     if not role:
         raise HTTPException(status_code=404, detail="Project role not found")
 
     if data.name is not None:
-        # Check for duplicate name if name is being changed
+        # Check for duplicate name if name is being changed (only among active roles)
         if data.name != role.name:
             existing = (
-                db.query(ProjectRole).filter(ProjectRole.name == data.name).first()
+                db.query(ProjectRole)
+                .filter(ProjectRole.name == data.name, ProjectRole.is_active == True)
+                .first()
             )
             if existing:
                 raise HTTPException(
@@ -134,7 +172,25 @@ async def update_project_role(
 
     db.commit()
     db.refresh(role)
-    return role
+
+    # Get aggregation info
+    agg = (
+        db.query(
+            func.count(distinct(ResourcePlan.user_id)).label("user_count"),
+            func.count(distinct(ResourcePlan.project_id)).label("project_count"),
+        )
+        .filter(ResourcePlan.project_role_id == role.id)
+        .first()
+    )
+
+    return {
+        "id": role.id,
+        "name": role.name,
+        "category": role.category,
+        "is_active": role.is_active,
+        "user_count": agg.user_count if agg else 0,
+        "project_count": agg.project_count if agg else 0,
+    }
 
 
 @router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)

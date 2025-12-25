@@ -812,6 +812,8 @@ const ProjectRolesSection: React.FC = () => {
                                 <tr className="border-b bg-slate-50">
                                     <th className="text-left py-3 px-4">역할 이름</th>
                                     <th className="text-left py-3 px-4">카테고리</th>
+                                    <th className="text-center py-3 px-4">할당 인원</th>
+                                    <th className="text-center py-3 px-4">프로젝트</th>
                                     <th className="text-right py-3 px-4 w-32">Actions</th>
                                 </tr>
                             </thead>
@@ -821,12 +823,18 @@ const ProjectRolesSection: React.FC = () => {
                                         <td className="py-3 px-4 font-medium">{role.name}</td>
                                         <td className="py-3 px-4">
                                             <span className={`px-2 py-0.5 rounded text-xs ${role.category === 'Engineering' ? 'bg-blue-100 text-blue-700' :
-                                                    role.category === 'Management' ? 'bg-purple-100 text-purple-700' :
-                                                        role.category === 'Support' ? 'bg-green-100 text-green-700' :
-                                                            'bg-gray-100 text-gray-700'
+                                                role.category === 'Management' ? 'bg-purple-100 text-purple-700' :
+                                                    role.category === 'Support' ? 'bg-green-100 text-green-700' :
+                                                        'bg-gray-100 text-gray-700'
                                                 }`}>
                                                 {role.category || '-'}
                                             </span>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                            <span className="text-blue-600 font-medium">{role.user_count || 0}</span>
+                                        </td>
+                                        <td className="py-3 px-4 text-center">
+                                            <span className="text-green-600 font-medium">{role.project_count || 0}</span>
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                             <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(role)}>

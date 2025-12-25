@@ -30,7 +30,8 @@ class ResourcePlanBase(BaseModel):
     project_id: str
     year: int
     month: int  # 1-12
-    position_id: str
+    position_id: Optional[str] = None  # Legacy: FunctionalRole (조직 직책)
+    project_role_id: Optional[str] = None  # NEW: ProjectRole (프로젝트 역할)
     user_id: Optional[str] = None  # NULL = TBD (Open Position)
     planned_hours: float = 0.0
 
@@ -47,6 +48,7 @@ class ResourcePlanUpdate(BaseModel):
     user_id: Optional[str] = None
     planned_hours: Optional[float] = None
     position_id: Optional[str] = None
+    project_role_id: Optional[str] = None
 
 
 class ResourcePlanAssign(BaseModel):
@@ -68,6 +70,7 @@ class ResourcePlan(ResourcePlanBase):
     project_name: Optional[str] = None
     project_code: Optional[str] = None
     position_name: Optional[str] = None
+    project_role_name: Optional[str] = None  # NEW: ProjectRole name
     user_name: Optional[str] = None
     is_tbd: bool = False  # Computed: True if user_id is None
 

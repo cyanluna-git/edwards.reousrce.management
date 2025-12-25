@@ -175,7 +175,8 @@ export interface ResourcePlan {
     project_id: string
     year: number
     month: number
-    position_id: string
+    position_id?: string  // Legacy: FunctionalRole
+    project_role_id?: string  // NEW: ProjectRole
     user_id?: string
     planned_hours: number
     created_by: string
@@ -185,6 +186,7 @@ export interface ResourcePlan {
     project_name?: string
     project_code?: string
     position_name?: string
+    project_role_name?: string  // NEW: ProjectRole name
     user_name?: string
     is_tbd: boolean
 }
@@ -193,7 +195,8 @@ export interface ResourcePlanCreate {
     project_id: string
     year: number
     month: number
-    position_id: string
+    position_id?: string  // Legacy: FunctionalRole
+    project_role_id?: string  // NEW: ProjectRole
     user_id?: string
     planned_hours: number
 }
@@ -202,6 +205,7 @@ export interface ResourcePlanUpdate {
     user_id?: string
     planned_hours?: number
     position_id?: string
+    project_role_id?: string
 }
 
 export interface ResourcePlanAssign {

@@ -8,7 +8,7 @@ from sqlalchemy import and_
 
 from app.models.resource import ResourcePlan
 from app.models.project import Project
-from app.models.organization import JobPosition
+from app.models.organization import JobPosition, ProjectRole
 from app.models.user import User
 from app.schemas.resource_plan import ResourcePlanCreate, ResourcePlanUpdate
 
@@ -19,12 +19,24 @@ class ResourcePlanService:
 
     def _build_response(self, plan: ResourcePlan) -> dict:
         """Convert ResourcePlan model to response dict with nested info"""
+        # Get project_role name if exists
+        project_role_name = None
+        if plan.project_role_id:
+            project_role = (
+                self.db.query(ProjectRole)
+                .filter(ProjectRole.id == plan.project_role_id)
+                .first()
+            )
+            if project_role:
+                project_role_name = project_role.name
+
         return {
             "id": plan.id,
             "project_id": plan.project_id,
             "year": plan.year,
             "month": plan.month,
             "position_id": plan.position_id,
+            "project_role_id": plan.project_role_id,
             "user_id": plan.user_id,
             "planned_hours": plan.planned_hours,
             "created_by": plan.created_by,
@@ -33,6 +45,7 @@ class ResourcePlanService:
             "project_name": plan.project.name if plan.project else None,
             "project_code": plan.project.code if plan.project else None,
             "position_name": plan.position.name if plan.position else None,
+            "project_role_name": project_role_name,
             "user_name": plan.user.name if plan.user else None,
             "is_tbd": plan.user_id is None,
         }
@@ -105,32 +118,51 @@ class ResourcePlanService:
         if not project:
             raise ValueError(f"Project {plan_in.project_id} not found")
 
-        # Check if position exists
-        position = (
-            self.db.query(JobPosition)
-            .filter(JobPosition.id == plan_in.position_id)
-            .first()
-        )
-        if not position:
-            raise ValueError(f"Position {plan_in.position_id} not found")
-
-        # Check for duplicates (same project, year, month, position, user)
-        existing = (
-            self.db.query(ResourcePlan)
-            .filter(
-                and_(
-                    ResourcePlan.project_id == plan_in.project_id,
-                    ResourcePlan.year == plan_in.year,
-                    ResourcePlan.month == plan_in.month,
-                    ResourcePlan.position_id == plan_in.position_id,
-                    ResourcePlan.user_id == plan_in.user_id,
-                )
+        # Check if project_role exists (primary for project resource planning)
+        if plan_in.project_role_id:
+            project_role = (
+                self.db.query(ProjectRole)
+                .filter(ProjectRole.id == plan_in.project_role_id)
+                .first()
             )
-            .first()
+            if not project_role:
+                raise ValueError(f"Project Role {plan_in.project_role_id} not found")
+
+        # Check if position exists (legacy/optional)
+        if plan_in.position_id:
+            position = (
+                self.db.query(JobPosition)
+                .filter(JobPosition.id == plan_in.position_id)
+                .first()
+            )
+            if not position:
+                raise ValueError(f"Position {plan_in.position_id} not found")
+
+        # At least one role must be specified
+        if not plan_in.project_role_id and not plan_in.position_id:
+            raise ValueError("Either project_role_id or position_id must be provided")
+
+        # Check for duplicates
+        duplicate_filter = and_(
+            ResourcePlan.project_id == plan_in.project_id,
+            ResourcePlan.year == plan_in.year,
+            ResourcePlan.month == plan_in.month,
+            ResourcePlan.user_id == plan_in.user_id,
         )
+        if plan_in.project_role_id:
+            duplicate_filter = and_(
+                duplicate_filter,
+                ResourcePlan.project_role_id == plan_in.project_role_id,
+            )
+        if plan_in.position_id:
+            duplicate_filter = and_(
+                duplicate_filter, ResourcePlan.position_id == plan_in.position_id
+            )
+
+        existing = self.db.query(ResourcePlan).filter(duplicate_filter).first()
         if existing:
             raise ValueError(
-                "Duplicate resource plan exists for this project, period, and position"
+                "Duplicate resource plan exists for this project, period, and role"
             )
 
         db_plan = ResourcePlan(
