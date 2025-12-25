@@ -42,6 +42,19 @@ async def get_worklog_summary(
     return service.get_worklog_summary(year)
 
 
+@router.get("/worklog-summary/by-project")
+async def get_worklog_summary_by_project(
+    db: Session = Depends(get_db),
+):
+    """
+    Get monthly worklog summary grouped by project.
+    Returns hours and FTE (hours/160) for each project/month combination.
+    Used for comparing actual vs planned resources.
+    """
+    service = ReportService(db)
+    return service.get_worklog_summary_by_project()
+
+
 @router.get("/capacity")
 async def get_capacity_report(
     department_id: Optional[int] = Query(None),

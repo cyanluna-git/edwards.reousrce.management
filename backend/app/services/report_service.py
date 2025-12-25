@@ -158,3 +158,48 @@ class ReportService:
                 for p in by_project
             ],
         }
+
+    def get_worklog_summary_by_project(self) -> list:
+        """
+        Get monthly worklog summary grouped by project.
+        Returns FTE (hours / 160) for comparison with resource plans.
+        """
+        # Query worklogs grouped by project, year, month
+        results = (
+            self.db.query(
+                WorkLog.project_id,
+                Project.code.label("project_code"),
+                Project.name.label("project_name"),
+                extract("year", WorkLog.date).label("year"),
+                extract("month", WorkLog.date).label("month"),
+                func.sum(WorkLog.hours).label("total_hours"),
+            )
+            .join(Project, WorkLog.project_id == Project.id)
+            .group_by(
+                WorkLog.project_id,
+                Project.code,
+                Project.name,
+                extract("year", WorkLog.date),
+                extract("month", WorkLog.date),
+            )
+            .order_by(
+                extract("year", WorkLog.date).desc(),
+                extract("month", WorkLog.date).desc(),
+            )
+            .all()
+        )
+
+        return [
+            {
+                "project_id": r.project_id,
+                "project_code": r.project_code,
+                "project_name": r.project_name,
+                "year": int(r.year),
+                "month": int(r.month),
+                "total_hours": float(r.total_hours) if r.total_hours else 0,
+                "total_fte": (
+                    round(float(r.total_hours) / 160, 2) if r.total_hours else 0
+                ),
+            }
+            for r in results
+        ]

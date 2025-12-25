@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, addMonths, startOfMonth } from 'date-fns';
+import { useQuery } from '@tanstack/react-query';
 import {
     useResourcePlans,
     useCreateResourcePlan,
@@ -8,6 +9,7 @@ import {
     useJobPositions,
     useSummaryByProject,
 } from '@/hooks/useResourcePlans';
+import { getWorklogSummaryByProject, WorklogProjectSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 import { useProject } from '@/hooks/useProject';
 import { useMilestones } from '@/hooks/useMilestones';
@@ -72,8 +74,19 @@ export const ResourcePlansPage: React.FC = () => {
     // Summary data
     const { data: projectSummary = [] } = useSummaryByProject();
 
+    // Worklog actual data for plan vs actual comparison
+    const { data: worklogSummary = [] } = useQuery<WorklogProjectSummary[]>({
+        queryKey: ['worklog-summary-by-project'],
+        queryFn: getWorklogSummaryByProject,
+    });
+
     // Fetch all resource plans for role-by-business-area analysis
     const { data: allResourcePlans = [] } = useResourcePlans({});
+
+    // Current month for past/present/future logic
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
 
     // Mutations
     const createPlan = useCreateResourcePlan();
@@ -514,8 +527,18 @@ export const ResourcePlansPage: React.FC = () => {
             {
                 activeTab === 'project-summary' && (
                     <Card>
-                        <CardHeader>
+                        <CardHeader className="flex flex-row items-start justify-between">
                             <CardTitle>프로젝트별 리소스 집계</CardTitle>
+                            <div className="text-xs bg-slate-50 rounded-md px-3 py-2 border">
+                                <div className="font-medium mb-1">📋 표시 형식: 계획/실적</div>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-600">
+                                    <span><span className="text-blue-600">●</span> 과거</span>
+                                    <span><span className="text-orange-600">●</span> 현재</span>
+                                    <span><span className="text-slate-400">●</span> 미래(계획만)</span>
+                                    <span><span className="text-red-600">●</span> 초과</span>
+                                    <span><span className="text-green-600">●</span> 여유</span>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent className="overflow-x-auto">
                             {projectSummary.length === 0 ? (
@@ -537,20 +560,29 @@ export const ResourcePlansPage: React.FC = () => {
                                     </thead>
                                     <tbody>
                                         {(() => {
+                                            // Build worklog map: project_id -> { year-month -> fte }
+                                            const worklogMap: Record<string, Record<string, number>> = {};
+                                            worklogSummary.forEach(w => {
+                                                if (!worklogMap[w.project_id]) {
+                                                    worklogMap[w.project_id] = {};
+                                                }
+                                                worklogMap[w.project_id][`${w.year}-${w.month}`] = w.total_fte;
+                                            });
+
                                             // Group by project with business unit info
                                             type ProjectData = {
                                                 id: string;
                                                 code: string;
                                                 name: string;
                                                 businessUnit: string;
-                                                data: Record<string, number>;
+                                                planData: Record<string, number>;
+                                                actualData: Record<string, number>;
                                                 totalFte: number;
                                             };
                                             const projectMap: Record<string, ProjectData> = {};
 
                                             projectSummary.forEach(s => {
                                                 if (!projectMap[s.project_id]) {
-                                                    // Find project in loaded projects to get business unit
                                                     const proj = projects.find(p => p.id === s.project_id);
                                                     const buName = proj?.program?.business_unit?.name || 'Others';
 
@@ -559,11 +591,12 @@ export const ResourcePlansPage: React.FC = () => {
                                                         code: s.project_code,
                                                         name: s.project_name,
                                                         businessUnit: buName,
-                                                        data: {},
+                                                        planData: {},
+                                                        actualData: worklogMap[s.project_id] || {},
                                                         totalFte: 0
                                                     };
                                                 }
-                                                projectMap[s.project_id].data[`${s.year}-${s.month}`] = s.total_hours;
+                                                projectMap[s.project_id].planData[`${s.year}-${s.month}`] = s.total_hours;
                                                 projectMap[s.project_id].totalFte += s.total_hours;
                                             });
 
@@ -584,6 +617,55 @@ export const ResourcePlansPage: React.FC = () => {
                                                 grouped[bu].sort((a, b) => b.totalFte - a.totalFte);
                                             });
 
+                                            // Helper: determine time period (past/current/future)
+                                            const getTimePeriod = (year: number, month: number) => {
+                                                if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                                                    return 'past';
+                                                } else if (year === currentYear && month === currentMonth) {
+                                                    return 'current';
+                                                } else {
+                                                    return 'future';
+                                                }
+                                            };
+
+                                            // Helper: render cell based on period
+                                            const renderCell = (plan: number, actual: number, period: 'past' | 'current' | 'future') => {
+                                                if (period === 'future') {
+                                                    // Future: show plan only (gray)
+                                                    return (
+                                                        <span className="text-slate-400">
+                                                            {plan > 0 ? Number(plan.toFixed(1)) : '-'}
+                                                        </span>
+                                                    );
+                                                } else if (period === 'current') {
+                                                    // Current: show plan/actual (orange)
+                                                    if (plan === 0 && actual === 0) return <span>-</span>;
+                                                    return (
+                                                        <span className="text-orange-600 font-medium">
+                                                            {Number(plan.toFixed(1))}/{Number(actual.toFixed(1))}
+                                                        </span>
+                                                    );
+                                                } else {
+                                                    // Past: show plan/actual with color coding
+                                                    if (actual === 0 && plan === 0) {
+                                                        return <span>-</span>;
+                                                    }
+                                                    const diff = actual - plan;
+                                                    let colorClass = 'text-blue-600'; // Default
+                                                    if (plan > 0 && actual > 0) {
+                                                        if (diff > 0.1) colorClass = 'text-red-600'; // Over (actual > plan)
+                                                        else if (diff < -0.1) colorClass = 'text-green-600'; // Under (actual < plan)
+                                                    }
+                                                    const planDisplay = plan > 0 ? Number(plan.toFixed(1)) : '-';
+                                                    const actualDisplay = actual > 0 ? Number(actual.toFixed(1)) : '-';
+                                                    return (
+                                                        <span className={colorClass}>
+                                                            {planDisplay}/{actualDisplay}
+                                                        </span>
+                                                    );
+                                                }
+                                            };
+
                                             // Render by business area
                                             return businessAreaOrder
                                                 .filter(area => grouped[area]?.length > 0)
@@ -601,7 +683,7 @@ export const ResourcePlansPage: React.FC = () => {
                                                                 {months.map(m => {
                                                                     const key = `${m.year}-${m.month}`;
                                                                     const monthTotal = areaProjects.reduce(
-                                                                        (sum, p) => sum + (p.data[key] || 0), 0
+                                                                        (sum, p) => sum + (p.planData[key] || 0), 0
                                                                     );
                                                                     return (
                                                                         <td key={key} className="text-center py-2 px-1 border-l font-medium text-blue-700">
@@ -621,10 +703,12 @@ export const ResourcePlansPage: React.FC = () => {
                                                                     </td>
                                                                     {months.map(m => {
                                                                         const key = `${m.year}-${m.month}`;
-                                                                        const val = proj.data[key] || 0;
+                                                                        const plan = proj.planData[key] || 0;
+                                                                        const actual = proj.actualData[key] || 0;
+                                                                        const period = getTimePeriod(m.year, m.month);
                                                                         return (
-                                                                            <td key={key} className="text-center py-1.5 px-1 border-l">
-                                                                                {val > 0 ? Number(val.toFixed(1)) : '-'}
+                                                                            <td key={key} className="text-center py-1.5 px-1 border-l text-xs">
+                                                                                {renderCell(plan, actual, period)}
                                                                             </td>
                                                                         );
                                                                     })}

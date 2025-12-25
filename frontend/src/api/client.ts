@@ -383,6 +383,22 @@ export const getWorklogSummary = async (year?: number): Promise<WorklogSummary> 
   return response.data;
 };
 
+// Worklog Summary by Project (for Plan vs Actual comparison)
+export interface WorklogProjectSummary {
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  year: number;
+  month: number;
+  total_hours: number;
+  total_fte: number;
+}
+
+export const getWorklogSummaryByProject = async (): Promise<WorklogProjectSummary[]> => {
+  const response = await apiClient.get('/reports/worklog-summary/by-project');
+  return response.data;
+};
+
 // ============ Organization API ============
 
 export interface BusinessUnit {
