@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { format, addMonths, startOfMonth } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { type JobPosition } from '@/types';
@@ -232,6 +232,39 @@ export const ResourcePlansPage: React.FC = () => {
         userId: string | undefined;
         monthlyHours: Record<string, number>;
     } | null>(null);
+
+    // Auto-map Functional Role (Job Position) based on User or Project Role
+    useEffect(() => {
+        // If editing and we have an original value, we might want to preserve it UNLESS user changes something?
+        // But user said "Functional Role editing is not needed".
+        // Strategy: 
+        // 1. If User is selected, ALWAYS use User's Position.
+        // 2. If no User, try to match Project Role Name to Job Position Name.
+        // 3. Fallback: Keep existing or use first available.
+
+        if (newUserId) {
+            const user = users.find(u => u.id === newUserId);
+            if (user?.position_id) {
+                setNewJobPositionId(user.position_id);
+            }
+        } else if (newProjectRoleId) {
+            // If no user, try to match by name
+            const pRole = positions.find(p => p.id === newProjectRoleId);
+            if (pRole) {
+                const match = jobPositions.find(j => j.name === pRole.name);
+                if (match) {
+                    setNewJobPositionId(match.id);
+                } else if (!editingRow && jobPositions.length > 0) {
+                    // If adding new and no match, default to first (to satisfy Not Null)
+                    // Only if currently empty
+                    setNewJobPositionId(prev => prev || jobPositions[0].id);
+                }
+            }
+        } else if (!editingRow && !newJobPositionId && jobPositions.length > 0) {
+            // Default for new row
+            setNewJobPositionId(jobPositions[0].id);
+        }
+    }, [newUserId, newProjectRoleId, users, positions, jobPositions, editingRow]);
 
     // Handle save
     const handleSave = async () => {
@@ -478,20 +511,7 @@ export const ResourcePlansPage: React.FC = () => {
                             {/* Role Selectors */}
                             <div className="space-y-4">
                                 <div className="space-y-4 border p-4 rounded-md bg-gray-50">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium">Functional Role (직무/포지션) *</label>
-                                        <select
-                                            className="w-full px-3 py-2 border rounded-md"
-                                            value={newJobPositionId}
-                                            onChange={(e) => setNewJobPositionId(e.target.value)}
-                                        >
-                                            <option value="">선택하세요 (필수)</option>
-                                            {jobPositions.map((p: JobPosition) => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <p className="text-xs text-muted-foreground">실제 직무(HR 포지션)를 선택해주세요.</p>
-                                    </div>
+                                    {/* Functional Role Auto-mapped */}
 
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium">Project Role (프로젝트 역할)</label>
