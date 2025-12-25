@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format, addMonths, startOfMonth } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
+import { type JobPosition } from '@/types';
 import {
     useResourcePlans,
     useCreateResourcePlan,
@@ -8,7 +9,7 @@ import {
     useDeleteResourcePlan,
     useSummaryByProject,
 } from '@/hooks/useResourcePlans';
-import { getWorklogSummaryByProject, getProjectRoles, type ProjectRole, WorklogProjectSummary } from '@/api/client';
+import { getWorklogSummaryByProject, getProjectRoles, getJobPositionsList, type ProjectRole, WorklogProjectSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 // Removed unused imports
 import { useUsers } from '@/hooks/useUsers';
@@ -114,9 +115,13 @@ export const ResourcePlansPage: React.FC = () => {
     // Data fetching
     const { data: projects = [] } = useProjects();
     // Removed unused useProject and useMilestones calls
-    const { data: positions = [] } = useQuery({
+    const { data: positions = [] } = useQuery<ProjectRole[]>({
         queryKey: ['project-roles'],
         queryFn: () => getProjectRoles(),
+    });
+    const { data: jobPositions = [] } = useQuery<JobPosition[]>({
+        queryKey: ['job-positions'],
+        queryFn: () => getJobPositionsList(),
     });
     const { data: users = [] } = useUsers(undefined, true); // Active users only
 
@@ -198,19 +203,28 @@ export const ResourcePlansPage: React.FC = () => {
         });
         setMonthlyValues(values);
         setEditingPlanIds(planIds);
-        setNewPositionId(row.positionId);
+        setNewProjectRoleId(row.projectRoleId);
+        setNewJobPositionId(row.positionId);
         setNewUserId(row.userId);
         setIsAddModalOpen(true);
     };
 
     // Form state for new row
-    const [newPositionId, setNewPositionId] = useState('');
+    const [newProjectRoleId, setNewProjectRoleId] = useState('');
+    const [newJobPositionId, setNewJobPositionId] = useState('');
     const [newUserId, setNewUserId] = useState<string | undefined>(undefined);
 
     // Handle save
     const handleSave = async () => {
-        const positionId = newPositionId;
-        if (!positionId || !selectedProjectId) return;
+        const projectRoleId = newProjectRoleId;
+        const jobPositionId = newJobPositionId;
+
+        if (!jobPositionId || !selectedProjectId) {
+            // Basic validation: Job Position is mandatory (DB constraint)
+            // If user only selected Project Role, we might need to handle it or show error.
+            // For now, assuming UI prevents this or we error out if jobPositionId is empty.
+            if (!jobPositionId) return;
+        }
 
         // For each month with a value, create or update plan
         for (const m of months) {
@@ -227,7 +241,8 @@ export const ResourcePlansPage: React.FC = () => {
                         planId: existingPlanId,
                         data: {
                             planned_hours: hours,
-                            project_role_id: positionId,
+                            project_role_id: projectRoleId,
+                            position_id: jobPositionId,
                             user_id: newUserId
                         },
                     });
@@ -237,7 +252,8 @@ export const ResourcePlansPage: React.FC = () => {
                         project_id: selectedProjectId,
                         year: m.year,
                         month: m.month,
-                        project_role_id: positionId,
+                        project_role_id: projectRoleId,
+                        position_id: jobPositionId,
                         user_id: newUserId,
                         planned_hours: hours,
                     });
@@ -249,7 +265,8 @@ export const ResourcePlansPage: React.FC = () => {
         }
 
         setIsAddModalOpen(false);
-        setNewPositionId('');
+        setNewProjectRoleId('');
+        setNewJobPositionId('');
         setNewUserId(undefined);
         setEditingRow(null);
         setMonthlyValues({});
@@ -430,21 +447,38 @@ export const ResourcePlansPage: React.FC = () => {
                                     {editingRow ? `${editingRow.positionName} 수정` : '팀원/포지션 추가'}
                                 </DialogTitle>
                             </DialogHeader>
-
+                            {/* Role Selectors */}
                             <div className="space-y-4">
-                                {/* Position and User selector for new row */}
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">프로젝트 역할 *</label>
-                                    <select
-                                        className="w-full px-3 py-2 border rounded-md"
-                                        value={newPositionId}
-                                        onChange={(e) => setNewPositionId(e.target.value)}
-                                    >
-                                        <option value="">선택하세요</option>
-                                        {positions.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
+                                <div className="space-y-4 border p-4 rounded-md bg-gray-50">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Functional Role (직무/포지션) *</label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-md"
+                                            value={newJobPositionId}
+                                            onChange={(e) => setNewJobPositionId(e.target.value)}
+                                        >
+                                            <option value="">선택하세요 (필수)</option>
+                                            {jobPositions.map((p: JobPosition) => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">실제 직무(HR 포지션)를 선택해주세요.</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Project Role (프로젝트 역할)</label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-md"
+                                            value={newProjectRoleId}
+                                            onChange={(e) => setNewProjectRoleId(e.target.value)}
+                                        >
+                                            <option value="">선택하세요 (옵션)</option>
+                                            {positions.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">프로젝트 내 수행 역할을 선택해주세요.</p>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -499,7 +533,7 @@ export const ResourcePlansPage: React.FC = () => {
                                 <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>취소</Button>
                                 <Button
                                     onClick={handleSave}
-                                    disabled={!editingRow && !newPositionId}
+                                    disabled={!editingRow && !newJobPositionId}
                                 >
                                     저장
                                 </Button>

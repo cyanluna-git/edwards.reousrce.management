@@ -4,6 +4,7 @@ import { Button } from '@/components/ui';
 
 export interface ResourceRow {
     positionId: string;
+    projectRoleId: string;
     positionName: string;
     userId?: string;
     userName?: string;
@@ -34,15 +35,22 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = ({
         const rowMap: Record<string, ResourceRow> = {};
 
         plans.forEach(plan => {
-            const roleId = plan.project_role_id || plan.position_id || '';
-            const roleName = plan.project_role_name || plan.position_name || roleId;
+            // We group by the "Display Role" which is Project Role > Position
+            const displayRoleId = plan.project_role_id || plan.position_id || '';
+            const displayRoleName = plan.project_role_name || plan.position_name || displayRoleId;
+
+            // Authentic IDs for editing
+            const fRoleId = plan.position_id || '';
+            const pRoleId = plan.project_role_id || '';
+
             // Key by role+user combination to group monthly data
-            const key = `${roleId}-${plan.user_id || 'TBD'}`;
+            const key = `${displayRoleId}-${plan.user_id || 'TBD'}`;
 
             if (!rowMap[key]) {
                 rowMap[key] = {
-                    positionId: roleId,
-                    positionName: roleName,
+                    positionId: fRoleId,
+                    projectRoleId: pRoleId,
+                    positionName: displayRoleName,
                     userId: plan.user_id,
                     userName: plan.user_name,
                     isTbd: plan.is_tbd,
