@@ -180,6 +180,7 @@ export const ResourcePlansPage: React.FC = () => {
         setSelectedProjectId(projectId);
         setEditingRow(null);
         setMonthlyValues({});
+        setOriginalValues(null);
         setIsAddModalOpen(true);
     };
 
@@ -202,10 +203,20 @@ export const ResourcePlansPage: React.FC = () => {
             }
         });
         setMonthlyValues(values);
+        setMonthlyValues(values);
         setEditingPlanIds(planIds);
         setNewProjectRoleId(row.projectRoleId);
         setNewJobPositionId(row.positionId);
         setNewUserId(row.userId);
+
+        // Store original snapshot for optimization
+        setOriginalValues({
+            projectRoleId: row.projectRoleId,
+            jobPositionId: row.positionId,
+            userId: row.userId,
+            monthlyHours: { ...values },
+        });
+
         setIsAddModalOpen(true);
     };
 
@@ -213,6 +224,14 @@ export const ResourcePlansPage: React.FC = () => {
     const [newProjectRoleId, setNewProjectRoleId] = useState('');
     const [newJobPositionId, setNewJobPositionId] = useState('');
     const [newUserId, setNewUserId] = useState<string | undefined>(undefined);
+
+    // Optimization state
+    const [originalValues, setOriginalValues] = useState<{
+        projectRoleId: string;
+        jobPositionId: string;
+        userId: string | undefined;
+        monthlyHours: Record<string, number>;
+    } | null>(null);
 
     // Handle save
     const handleSave = async () => {
@@ -226,6 +245,12 @@ export const ResourcePlansPage: React.FC = () => {
             if (!jobPositionId) return;
         }
 
+        // Check if core identifiers changed
+        const isRoleUserChanged = !originalValues ||
+            (originalValues.projectRoleId || '') !== (projectRoleId || '') ||
+            (originalValues.jobPositionId || '') !== (jobPositionId || '') ||
+            originalValues.userId !== newUserId;
+
         // For each month with a value, create or update plan
         for (const m of months) {
             const key = `${m.year}-${m.month}`;
@@ -234,33 +259,36 @@ export const ResourcePlansPage: React.FC = () => {
             // Determine if we are updating existing plan
             const existingPlanId = editingPlanIds[key];
 
-            if (hours > 0) {
-                if (existingPlanId) {
-                    // Update
-                    await updatePlan.mutateAsync({
-                        planId: existingPlanId,
-                        data: {
-                            planned_hours: hours,
-                            project_role_id: projectRoleId,
-                            position_id: jobPositionId,
-                            user_id: newUserId
-                        },
-                    });
+            if (existingPlanId) {
+                if (hours === 0) {
+                    // Delete if set to 0
+                    await deletePlan.mutateAsync(existingPlanId);
                 } else {
-                    // Create
-                    await createPlan.mutateAsync({
-                        project_id: selectedProjectId,
-                        year: m.year,
-                        month: m.month,
-                        project_role_id: projectRoleId,
-                        position_id: jobPositionId,
-                        user_id: newUserId,
-                        planned_hours: hours,
-                    });
+                    // Update only if changed
+                    const originalHours = originalValues?.monthlyHours[key] || 0;
+                    if (isRoleUserChanged || hours !== originalHours) {
+                        await updatePlan.mutateAsync({
+                            planId: existingPlanId,
+                            data: {
+                                planned_hours: hours,
+                                project_role_id: projectRoleId,
+                                position_id: jobPositionId,
+                                user_id: newUserId
+                            },
+                        });
+                    }
                 }
-            } else if (existingPlanId && hours === 0) {
-                // Delete if set to 0
-                await deletePlan.mutateAsync(existingPlanId);
+            } else if (hours > 0) {
+                // Create
+                await createPlan.mutateAsync({
+                    project_id: selectedProjectId,
+                    year: m.year,
+                    month: m.month,
+                    project_role_id: projectRoleId,
+                    position_id: jobPositionId,
+                    user_id: newUserId,
+                    planned_hours: hours,
+                });
             }
         }
 
