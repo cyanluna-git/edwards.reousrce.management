@@ -80,7 +80,7 @@ async def list_resource_plans(
     position_id: Optional[str] = Query(None),
     user_id: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(100, ge=1, le=10000),
     db: Session = Depends(get_db),
 ):
     """
