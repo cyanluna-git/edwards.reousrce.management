@@ -76,12 +76,17 @@ class SubTeam(Base):
 
 
 class JobPosition(Base):
-    """직급/직무 - 전사 공통 (부서 독립적)"""
+    """
+    조직 내 공식 직책/직급 (FunctionalRole) - 회사에서 부여한 Job Title
+    예: Manager, Function Leader, Tech Lead, Senior Engineer, Junior Engineer
+    기존 호환성을 위해 테이블명 job_positions 유지
+    """
 
     __tablename__ = "job_positions"
 
-    id = Column(String(50), primary_key=True)  # e.g., "JP_ENGINEER"
-    name = Column(String(100), nullable=False)  # NVARCHAR
+    id = Column(String(50), primary_key=True)
+    name = Column(String(100), nullable=False)
+    level = Column(Integer, default=0)  # 직급 레벨 (정렬/비교용)
     std_hourly_rate = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -90,3 +95,27 @@ class JobPosition(Base):
     # Relationships
     users = relationship("User", back_populates="position")
     resource_plans = relationship("ResourcePlan", back_populates="position")
+
+
+class ProjectRole(Base):
+    """
+    프로젝트 수행 역할 - 프로젝트에서의 기술적 역할
+    예: SW Engineer, HW Engineer, Mechanical Engineer, PM, Controls Engineer
+    """
+
+    __tablename__ = "project_roles"
+
+    id = Column(String(50), primary_key=True)
+    name = Column(String(100), nullable=False)
+    category = Column(String(50), nullable=True)  # Engineering, Management, Support
+    std_hourly_rate = Column(Float, default=0.0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    resource_plans = relationship("ResourcePlan", back_populates="project_role")
+
+
+# Alias for conceptual clarity
+FunctionalRole = JobPosition

@@ -20,6 +20,7 @@ from app.api.endpoints import (
     scenarios,
     dashboard,
     job_positions,
+    project_roles,
     hiring_plans,
     work_types,
 )
@@ -103,7 +104,12 @@ app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 app.include_router(scenarios.router, prefix="/api", tags=["Scenarios"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(
-    job_positions.router, prefix="/api/job-positions", tags=["Job Positions"]
+    job_positions.router,
+    prefix="/api/job-positions",
+    tags=["Job Positions (Functional Roles)"],
+)
+app.include_router(
+    project_roles.router, prefix="/api/project-roles", tags=["Project Roles"]
 )
 app.include_router(
     hiring_plans.router, prefix="/api/hiring-plans", tags=["Hiring Plans"]

@@ -333,6 +333,45 @@ export const deleteJobPosition = async (id: string): Promise<void> => {
   await apiClient.delete(`/job-positions/${id}`);
 };
 
+// ============ Project Roles API ============
+
+export interface ProjectRole {
+  id: string;
+  name: string;
+  category?: string;
+  is_active: boolean;
+}
+
+export interface ProjectRoleCreate {
+  name: string;
+  category?: string;
+}
+
+export interface ProjectRoleUpdate {
+  name?: string;
+  category?: string;
+  is_active?: boolean;
+}
+
+export const getProjectRoles = async (includeInactive = false): Promise<ProjectRole[]> => {
+  const response = await apiClient.get(`/project-roles?include_inactive=${includeInactive}`);
+  return response.data;
+};
+
+export const createProjectRole = async (data: ProjectRoleCreate): Promise<ProjectRole> => {
+  const response = await apiClient.post('/project-roles', data);
+  return response.data;
+};
+
+export const updateProjectRole = async (id: string, data: ProjectRoleUpdate): Promise<ProjectRole> => {
+  const response = await apiClient.put(`/project-roles/${id}`, data);
+  return response.data;
+};
+
+export const deleteProjectRole = async (id: string): Promise<void> => {
+  await apiClient.delete(`/project-roles/${id}`);
+};
+
 // ============ Reports API ============
 
 export interface CapacitySummary {

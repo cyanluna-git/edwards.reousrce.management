@@ -18,7 +18,6 @@ router = APIRouter()
 # Pydantic schemas
 class JobPositionBase(BaseModel):
     name: str
-    department_id: Optional[str] = None
     is_active: bool = True
 
 
@@ -28,14 +27,12 @@ class JobPositionCreate(JobPositionBase):
 
 class JobPositionUpdate(BaseModel):
     name: Optional[str] = None
-    department_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 
 class JobPositionResponse(BaseModel):
     id: str
     name: str
-    department_id: Optional[str] = None
     is_active: bool
 
     class Config:
@@ -79,7 +76,6 @@ async def create_job_position(
 ):
     """Create a new job position"""
     import uuid
-    from app.models.organization import Department
 
     # Check for duplicate name
     existing = db.query(JobPosition).filter(JobPosition.name == data.name).first()
@@ -88,17 +84,9 @@ async def create_job_position(
             status_code=400, detail="Job position with this name already exists"
         )
 
-    # Get default department if not provided
-    department_id = data.department_id
-    if not department_id:
-        default_dept = db.query(Department).first()
-        if default_dept:
-            department_id = default_dept.id
-
     position = JobPosition(
         id=str(uuid.uuid4()),
         name=data.name,
-        department_id=department_id,
         is_active=data.is_active,
     )
     db.add(position)
@@ -129,8 +117,6 @@ async def update_job_position(
 
     if data.name is not None:
         position.name = data.name
-    if data.department_id is not None:
-        position.department_id = data.department_id
     if data.is_active is not None:
         position.is_active = data.is_active
 

@@ -28,6 +28,9 @@ class ResourcePlan(Base):
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)  # 1-12
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
+    project_role_id = Column(
+        String(50), ForeignKey("project_roles.id"), nullable=True
+    )  # NEW: 프로젝트 역할
     user_id = Column(String(36), ForeignKey("users.id"), nullable=True)  # NULL = TBD
     planned_hours = Column(Float, default=0.0)
     created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
@@ -37,6 +40,7 @@ class ResourcePlan(Base):
     # Relationships
     project = relationship("Project", back_populates="resource_plans")
     position = relationship("JobPosition", back_populates="resource_plans")
+    project_role = relationship("ProjectRole", back_populates="resource_plans")
     user = relationship("User", back_populates="resource_plans", foreign_keys=[user_id])
     creator = relationship(
         "User", back_populates="created_resource_plans", foreign_keys=[created_by]
