@@ -203,7 +203,6 @@ async def list_job_positions(db: Session = Depends(get_db)):
         {
             "id": p.id,
             "name": p.name,
-            "department_id": p.department_id,
         }
         for p in positions
     ]
