@@ -242,6 +242,62 @@ export const getMyDashboard = async (): Promise<DashboardData> => {
   return response.data;
 };
 
+// Team Dashboard Types
+export type TeamDashboardScope = 'sub_team' | 'department' | 'business_unit' | 'all';
+export type DashboardViewMode = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface TeamDashboardData {
+  team_info: {
+    name: string;
+    code: string;
+    scope: TeamDashboardScope;
+    member_count: number;
+    org_path: string[];
+  };
+  date_range: {
+    start: string;
+    end: string;
+    view_mode: DashboardViewMode;
+  };
+  team_worklogs: {
+    total_hours: number;
+    by_project: Array<{
+      project_id: string;
+      project_code: string;
+      project_name: string;
+      hours: number;
+    }>;
+    project_vs_functional: {
+      Project: number;
+      Functional: number;
+    };
+  };
+  member_contributions: Array<{
+    user_id: string;
+    name: string;
+    korean_name: string | null;
+    hours: number;
+    percentage: number;
+  }>;
+  resource_allocation: {
+    current_month: string;
+    total_planned_fte: number;
+    active_projects: number;
+  };
+  org_context: {
+    org_total_hours: number;
+    team_percentage: number;
+  };
+}
+
+export const getTeamDashboard = async (
+  scope: TeamDashboardScope = 'department',
+  viewMode: DashboardViewMode = 'weekly'
+): Promise<TeamDashboardData> => {
+  const response = await apiClient.get(`/dashboard/team-summary?scope=${scope}&view_mode=${viewMode}`);
+  return response.data;
+};
+
 // ============ Job Positions API ============
 
 export interface JobPositionCreate {

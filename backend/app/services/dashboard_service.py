@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
 
 from app.models.user import User
+from app.models.organization import Department
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
 
@@ -139,4 +140,255 @@ class DashboardService:
                 "active_projects": active_projects_count,
             },
             "my_projects": my_projects,
+        }
+
+    def get_team_dashboard(
+        self, user_id: str, scope: str = "department", view_mode: str = "weekly"
+    ) -> dict:
+        """
+        Get team dashboard data based on user's organization.
+
+        Args:
+            user_id: Current user ID
+            scope: "sub_team" | "department" | "business_unit" | "all"
+            view_mode: "weekly" | "monthly" | "quarterly" | "yearly"
+
+        Returns:
+            Team dashboard data including:
+            - team_info: Team name, member count, org hierarchy
+            - team_worklogs: Aggregated WorkLog for the team
+            - member_contributions: Per-member breakdown
+            - org_context: Comparison with upper organization
+        """
+        user = (
+            self.db.query(User)
+            .options(
+                joinedload(User.department),
+                joinedload(User.sub_team),
+            )
+            .filter(User.id == user_id)
+            .first()
+        )
+        if not user:
+            return {}
+
+        # Date range calculation
+        today = datetime.now().date()
+        if view_mode == "weekly":
+            start_date = today - timedelta(days=today.weekday())
+            end_date = start_date + timedelta(days=6)
+        elif view_mode == "monthly":
+            start_date = today.replace(day=1)
+            next_month = today.replace(day=28) + timedelta(days=4)
+            end_date = next_month.replace(day=1) - timedelta(days=1)
+        elif view_mode == "quarterly":
+            quarter = (today.month - 1) // 3
+            start_date = today.replace(month=quarter * 3 + 1, day=1)
+            if quarter == 3:
+                end_date = today.replace(month=12, day=31)
+            else:
+                end_date = today.replace(
+                    month=(quarter + 1) * 3 + 1, day=1
+                ) - timedelta(days=1)
+        else:  # yearly
+            start_date = today.replace(month=1, day=1)
+            end_date = today.replace(month=12, day=31)
+
+        # Determine team members based on scope
+        team_query = self.db.query(User).filter(User.is_active == True)
+
+        if scope == "sub_team" and user.sub_team_id:
+            team_query = team_query.filter(User.sub_team_id == user.sub_team_id)
+            team_name = user.sub_team.name if user.sub_team else "Unknown"
+            team_code = user.sub_team.code if user.sub_team else ""
+        elif scope == "department":
+            team_query = team_query.filter(User.department_id == user.department_id)
+            team_name = user.department.name if user.department else "Unknown"
+            team_code = user.department.code if user.department else ""
+        elif scope == "business_unit":
+            # Get all departments in the same business unit
+            dept_ids = [
+                d.id
+                for d in self.db.query(Department)
+                .filter(Department.business_unit_id == user.department.business_unit_id)
+                .all()
+            ]
+            team_query = team_query.filter(User.department_id.in_(dept_ids))
+            bu = user.department.business_unit if user.department else None
+            team_name = bu.name if bu else "Unknown"
+            team_code = bu.code if bu else ""
+        else:  # all - entire engineering
+            team_name = "PCAS Engineering"
+            team_code = "ENG"
+
+        team_members = team_query.all()
+        team_member_ids = [m.id for m in team_members]
+
+        # Get team worklogs
+        team_worklogs = (
+            self.db.query(
+                WorkLog.user_id,
+                WorkLog.project_id,
+                func.sum(WorkLog.hours).label("total_hours"),
+            )
+            .filter(
+                and_(
+                    WorkLog.user_id.in_(team_member_ids),
+                    WorkLog.date >= start_date,
+                    WorkLog.date <= end_date,
+                )
+            )
+            .group_by(WorkLog.user_id, WorkLog.project_id)
+            .all()
+        )
+
+        # Aggregate by project
+        project_hours: dict = {}
+        member_hours: dict = {}
+        for wl in team_worklogs:
+            project_hours[wl.project_id] = (
+                project_hours.get(wl.project_id, 0) + wl.total_hours
+            )
+            member_hours[wl.user_id] = member_hours.get(wl.user_id, 0) + wl.total_hours
+
+        total_team_hours = sum(project_hours.values())
+
+        # Get project details
+        project_ids = list(project_hours.keys())
+        projects_map = {}
+        if project_ids:
+            projects = self.db.query(Project).filter(Project.id.in_(project_ids)).all()
+            projects_map = {
+                p.id: {"code": p.code, "name": p.name, "category": p.category}
+                for p in projects
+            }
+
+        # Build project summary (top 5 + others)
+        sorted_projects = sorted(
+            project_hours.items(), key=lambda x: x[1], reverse=True
+        )
+        project_summary = []
+        for pid, hours in sorted_projects[:5]:
+            proj = projects_map.get(pid, {})
+            project_summary.append(
+                {
+                    "project_id": pid,
+                    "project_code": proj.get("code", ""),
+                    "project_name": proj.get("name", ""),
+                    "hours": float(hours),
+                }
+            )
+        if len(sorted_projects) > 5:
+            other_hours = sum(h for _, h in sorted_projects[5:])
+            project_summary.append(
+                {
+                    "project_id": "others",
+                    "project_code": "기타",
+                    "project_name": f"{len(sorted_projects) - 5}개 프로젝트",
+                    "hours": float(other_hours),
+                }
+            )
+
+        # Project vs Functional ratio
+        project_func_ratio = {"Project": 0.0, "Functional": 0.0}
+        for pid, hours in project_hours.items():
+            cat = projects_map.get(pid, {}).get("category", "PROJECT")
+            if cat == "FUNCTIONAL":
+                project_func_ratio["Functional"] += hours
+            else:
+                project_func_ratio["Project"] += hours
+
+        # Member contributions
+        member_contributions = []
+        for member in team_members:
+            hours = member_hours.get(member.id, 0)
+            member_contributions.append(
+                {
+                    "user_id": member.id,
+                    "name": member.name,
+                    "korean_name": member.korean_name,
+                    "hours": float(hours),
+                    "percentage": (
+                        round((hours / total_team_hours) * 100, 1)
+                        if total_team_hours > 0
+                        else 0
+                    ),
+                }
+            )
+        member_contributions.sort(key=lambda x: x["hours"], reverse=True)
+
+        # Team resource allocation (current month)
+        current_month = today.month
+        current_year = today.year
+        team_resource_plans = (
+            self.db.query(ResourcePlan)
+            .filter(
+                and_(
+                    ResourcePlan.user_id.in_(team_member_ids),
+                    ResourcePlan.year == current_year,
+                    ResourcePlan.month == current_month,
+                )
+            )
+            .all()
+        )
+        total_planned_fte = sum(p.planned_hours for p in team_resource_plans)
+        active_projects = len(set(p.project_id for p in team_resource_plans))
+
+        # Organization hierarchy path
+        org_path = []
+        if user.department:
+            if user.department.business_unit:
+                org_path.append(user.department.business_unit.name)
+            org_path.append(user.department.name)
+        if user.sub_team:
+            org_path.append(user.sub_team.name)
+
+        # Upper organization comparison (entire Engineering)
+        all_users = self.db.query(User).filter(User.is_active == True).all()
+        all_user_ids = [u.id for u in all_users]
+        org_total_hours = (
+            self.db.query(func.sum(WorkLog.hours))
+            .filter(
+                and_(
+                    WorkLog.user_id.in_(all_user_ids),
+                    WorkLog.date >= start_date,
+                    WorkLog.date <= end_date,
+                )
+            )
+            .scalar()
+            or 0
+        )
+
+        return {
+            "team_info": {
+                "name": team_name,
+                "code": team_code,
+                "scope": scope,
+                "member_count": len(team_members),
+                "org_path": org_path,
+            },
+            "date_range": {
+                "start": str(start_date),
+                "end": str(end_date),
+                "view_mode": view_mode,
+            },
+            "team_worklogs": {
+                "total_hours": float(total_team_hours),
+                "by_project": project_summary,
+                "project_vs_functional": project_func_ratio,
+            },
+            "member_contributions": member_contributions,
+            "resource_allocation": {
+                "current_month": f"{current_year}-{current_month:02d}",
+                "total_planned_fte": total_planned_fte,
+                "active_projects": active_projects,
+            },
+            "org_context": {
+                "org_total_hours": float(org_total_hours),
+                "team_percentage": (
+                    round((total_team_hours / org_total_hours) * 100, 1)
+                    if org_total_hours > 0
+                    else 0
+                ),
+            },
         }

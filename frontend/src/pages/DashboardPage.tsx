@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { useDashboard } from '@/hooks/useDashboard';
+import { useDashboard, useTeamDashboard } from '@/hooks/useDashboard';
+import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
-import { Construction } from 'lucide-react';
+import { Construction, Users, Building, Building2 } from 'lucide-react';
 
 // L1 Category colors
 const L1_CATEGORY_COLORS: Record<string, { color: string; name: string; name_ko: string }> = {
@@ -88,12 +89,278 @@ const L2_COLORS: Record<string, Record<string, string>> = {
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
+// Team Dashboard Scope Labels
+const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
+    sub_team: { label: '소그룹', icon: <Users className="w-4 h-4" /> },
+    department: { label: '부서', icon: <Building className="w-4 h-4" /> },
+    business_unit: { label: '사업부', icon: <Building2 className="w-4 h-4" /> },
+    all: { label: '전체', icon: <Building2 className="w-4 h-4" /> },
+};
+
+// Team Dashboard Content Component
+interface TeamDashboardContentProps {
+    teamScope: TeamDashboardScope;
+    setTeamScope: (scope: TeamDashboardScope) => void;
+    teamViewMode: DashboardViewMode;
+    setTeamViewMode: (mode: DashboardViewMode) => void;
+}
+
+const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
+    teamScope,
+    setTeamScope,
+    teamViewMode,
+    setTeamViewMode,
+}) => {
+    const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode);
+
+    if (teamLoading) {
+        return <div className="text-center py-12">팀 데이터 로딩 중...</div>;
+    }
+
+    if (teamError || !teamData) {
+        return <div className="text-center py-12 text-red-500">팀 대시보드를 불러오는데 실패했습니다.</div>;
+    }
+
+    const { team_info, date_range, team_worklogs, member_contributions, resource_allocation, org_context } = teamData;
+    const projectVsFunctionalTotal = team_worklogs.project_vs_functional.Project + team_worklogs.project_vs_functional.Functional;
+    const projectPercent = projectVsFunctionalTotal > 0
+        ? Math.round((team_worklogs.project_vs_functional.Project / projectVsFunctionalTotal) * 100)
+        : 0;
+    const functionalPercent = 100 - projectPercent;
+
+    return (
+        <>
+            {/* Scope Selector */}
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex gap-2">
+                    {(['sub_team', 'department', 'business_unit', 'all'] as TeamDashboardScope[]).map(scope => (
+                        <Button
+                            key={scope}
+                            variant={teamScope === scope ? 'default' : 'outline'}
+                            onClick={() => setTeamScope(scope)}
+                            size="sm"
+                            className="gap-1"
+                        >
+                            {SCOPE_LABELS[scope].icon}
+                            {SCOPE_LABELS[scope].label}
+                        </Button>
+                    ))}
+                </div>
+                <div className="h-6 w-px bg-slate-200" />
+                <div className="flex gap-2">
+                    <Button variant={teamViewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('weekly')} size="sm">📅 이번 주</Button>
+                    <Button variant={teamViewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('monthly')} size="sm">📆 이번 달</Button>
+                    <Button variant={teamViewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('quarterly')} size="sm">📊 이번 분기</Button>
+                    <Button variant={teamViewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('yearly')} size="sm">🗓️ 올해</Button>
+                </div>
+            </div>
+
+            {/* Team Info Header */}
+            <Card className="bg-gradient-to-r from-teal-600 to-teal-800 text-white">
+                <CardContent className="py-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-teal-100 text-sm">{team_info.org_path.join(' > ')}</p>
+                            <h2 className="text-2xl font-bold mt-1">{team_info.name}</h2>
+                            <p className="text-teal-100 mt-1">👥 {team_info.member_count}명</p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-teal-100 text-sm">{date_range.start} ~ {date_range.end}</p>
+                            <p className="text-3xl font-bold mt-1">{team_worklogs.total_hours.toFixed(0)}h</p>
+                            <p className="text-teal-100 text-sm">Engineering 대비 {org_context.team_percentage}%</p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">팀 WorkLog</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{team_worklogs.total_hours.toFixed(0)}h</div>
+                        <p className="text-xs text-muted-foreground mt-1">{date_range.start} ~ {date_range.end}</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">활성 프로젝트</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{resource_allocation.active_projects}개</div>
+                        <p className="text-xs text-muted-foreground mt-1">{resource_allocation.current_month}</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">팀 배정량</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{resource_allocation.total_planned_fte} FTE</div>
+                        <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Project vs Functional */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Project vs Functional</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col justify-center h-[160px]">
+                        {projectVsFunctionalTotal === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                    <div
+                                        style={{ width: `${projectPercent}%`, backgroundColor: '#3b82f6' }}
+                                        className="h-full flex items-center justify-center text-white font-bold text-base"
+                                        title={`Project: ${team_worklogs.project_vs_functional.Project.toFixed(0)}h`}
+                                    >
+                                        {projectPercent > 10 && <span className="drop-shadow-md">{projectPercent}%</span>}
+                                    </div>
+                                    <div
+                                        style={{ width: `${functionalPercent}%`, backgroundColor: '#cbd5e1' }}
+                                        className="h-full flex items-center justify-center text-slate-700 font-bold text-base"
+                                        title={`Functional: ${team_worklogs.project_vs_functional.Functional.toFixed(0)}h`}
+                                    >
+                                        {functionalPercent > 10 && <span>{functionalPercent}%</span>}
+                                    </div>
+                                </div>
+                                <div className="flex justify-between px-2 text-sm">
+                                    <div className="flex flex-col items-center">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                                            <span className="font-medium">Project</span>
+                                        </div>
+                                        <div className="font-bold">{team_worklogs.project_vs_functional.Project.toFixed(0)}h</div>
+                                    </div>
+                                    <div className="flex flex-col items-center">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                                            <span className="font-medium">Functional</span>
+                                        </div>
+                                        <div className="font-bold">{team_worklogs.project_vs_functional.Functional.toFixed(0)}h</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Projects by Hours */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>프로젝트별 WorkLog</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {team_worklogs.by_project.length === 0 ? (
+                            <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {team_worklogs.by_project.slice(0, 5).map(proj => (
+                                    <div key={proj.project_id} className="flex items-center gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium truncate" title={proj.project_name}>
+                                                {proj.project_code} - {proj.project_name}
+                                            </div>
+                                            <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+                                                <div
+                                                    className="bg-teal-600 h-1.5 rounded-full"
+                                                    style={{ width: `${Math.min((proj.hours / team_worklogs.total_hours) * 100, 100)}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="text-xs font-medium w-10 text-right">{proj.hours.toFixed(0)}h</div>
+                                    </div>
+                                ))}
+                                {team_worklogs.by_project.length > 5 && (
+                                    <div className="text-xs text-center text-muted-foreground pt-1">
+                                        + {team_worklogs.by_project.length - 5} more
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Member Contributions Table */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>팀원 기여도</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {member_contributions.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">팀원 데이터가 없습니다.</div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="text-left py-2 px-2">이름</th>
+                                        <th className="text-right py-2 px-2">시간</th>
+                                        <th className="text-right py-2 px-2">비율</th>
+                                        <th className="py-2 px-2 w-1/3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {member_contributions.slice(0, 10).map((member, idx) => (
+                                        <tr key={member.user_id} className="border-b last:border-0 hover:bg-slate-50">
+                                            <td className="py-2 px-2">
+                                                <span className="font-medium">{member.korean_name || member.name}</span>
+                                                {member.korean_name && (
+                                                    <span className="text-muted-foreground ml-1 text-xs">({member.name})</span>
+                                                )}
+                                            </td>
+                                            <td className="text-right py-2 px-2 font-medium">{member.hours.toFixed(0)}h</td>
+                                            <td className="text-right py-2 px-2">
+                                                <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-xs">
+                                                    {member.percentage}%
+                                                </span>
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                <div className="w-full bg-slate-100 rounded-full h-2">
+                                                    <div
+                                                        className="bg-teal-500 h-2 rounded-full transition-all"
+                                                        style={{ width: `${member.percentage}%` }}
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {member_contributions.length > 10 && (
+                                <div className="text-center text-sm text-muted-foreground mt-2">
+                                    + {member_contributions.length - 10}명 더
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </>
+    );
+};
+
 export const DashboardPage: React.FC = () => {
     const { data, isLoading, error } = useDashboard();
     const { user } = useAuth();
     const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
     const [drillDownPath, setDrillDownPath] = useState<string[]>([]); // Stack of codes: ['ENG', 'ENG-SW']
+
+    // Team Dashboard state
+    const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
+    const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
 
     // ... (Date calculations) ...
     const now = new Date();
@@ -361,13 +628,6 @@ export const DashboardPage: React.FC = () => {
 
     return (
         <div className="container mx-auto p-4 space-y-6">
-            {/* Welcome Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-lg p-6">
-                <h1 className="text-2xl font-bold">👋 안녕하세요, {data.user.name}님!</h1>
-                <p className="text-blue-100 mt-1">오늘도 좋은 하루 되세요.</p>
-            </div>
-
-
             {/* View Mode Tabs */}
             <Tabs defaultValue="user" className="space-y-4">
                 <TabsList>
@@ -666,23 +926,13 @@ export const DashboardPage: React.FC = () => {
                     </Card>
                 </TabsContent>
 
-                <TabsContent value="team" className="py-8">
-                    <Card className="w-full max-w-md mx-auto text-center">
-                        <CardHeader>
-                            <div className="flex justify-center mb-4">
-                                <div className="p-4 bg-slate-100 rounded-full">
-                                    <Construction className="w-12 h-12 text-slate-500" />
-                                </div>
-                            </div>
-                            <CardTitle className="text-2xl font-bold">Coming Soon</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-slate-500">
-                                Team 대시보드는 준비 중입니다.<br />
-                                곧 업데이트될 예정입니다.
-                            </p>
-                        </CardContent>
-                    </Card>
+                <TabsContent value="team" className="space-y-6">
+                    <TeamDashboardContent
+                        teamScope={teamScope}
+                        setTeamScope={setTeamScope}
+                        teamViewMode={teamViewMode}
+                        setTeamViewMode={setTeamViewMode}
+                    />
                 </TabsContent>
 
                 <TabsContent value="project" className="py-8">
