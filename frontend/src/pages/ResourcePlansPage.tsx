@@ -6,10 +6,9 @@ import {
     useCreateResourcePlan,
     useUpdateResourcePlan,
     useDeleteResourcePlan,
-    useJobPositions,
     useSummaryByProject,
 } from '@/hooks/useResourcePlans';
-import { getWorklogSummaryByProject, WorklogProjectSummary } from '@/api/client';
+import { getWorklogSummaryByProject, getProjectRoles, type ProjectRole, WorklogProjectSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 import { useProject } from '@/hooks/useProject';
 import { useMilestones } from '@/hooks/useMilestones';
@@ -69,7 +68,10 @@ export const ResourcePlansPage: React.FC = () => {
     const { data: projects = [] } = useProjects();
     const { data: projectDetail } = useProject(selectedProjectId);
     const { data: milestones = [] } = useMilestones(selectedProjectId);
-    const { data: positions = [] } = useJobPositions();
+    const { data: positions = [] } = useQuery({
+        queryKey: ['project-roles'],
+        queryFn: () => getProjectRoles(),
+    });
     const { data: users = [] } = useUsers(undefined, true); // Active users only
 
     // Fetch all plans for selected project across all 12 months
@@ -496,7 +498,7 @@ export const ResourcePlansPage: React.FC = () => {
                                 {!editingRow && (
                                     <>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium">포지션/역할 *</label>
+                                            <label className="text-sm font-medium">프로젝트 역할 *</label>
                                             <select
                                                 className="w-full px-3 py-2 border rounded-md"
                                                 value={newPositionId}
