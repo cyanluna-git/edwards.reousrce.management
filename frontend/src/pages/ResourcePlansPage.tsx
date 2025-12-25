@@ -7,7 +7,6 @@ import {
     useDeleteResourcePlan,
     useJobPositions,
     useSummaryByProject,
-    useSummaryByPosition,
 } from '@/hooks/useResourcePlans';
 import { useProjects } from '@/hooks/useProjects';
 import { useProject } from '@/hooks/useProject';
@@ -72,7 +71,9 @@ export const ResourcePlansPage: React.FC = () => {
 
     // Summary data
     const { data: projectSummary = [] } = useSummaryByProject();
-    const { data: positionSummary = [] } = useSummaryByPosition();
+
+    // Fetch all resource plans for role-by-business-area analysis
+    const { data: allResourcePlans = [] } = useResourcePlans({});
 
     // Mutations
     const createPlan = useCreateResourcePlan();
@@ -661,15 +662,15 @@ export const ResourcePlansPage: React.FC = () => {
                 )
             }
 
-            {/* Role Summary Tab */}
+            {/* Role Summary Tab - By Business Area */}
             {
                 activeTab === 'role-summary' && (
                     <Card>
                         <CardHeader>
-                            <CardTitle>롤별 리소스 집계</CardTitle>
+                            <CardTitle>롤별 리소스 집계 (사업영역별)</CardTitle>
                         </CardHeader>
                         <CardContent className="overflow-x-auto">
-                            {positionSummary.length === 0 ? (
+                            {allResourcePlans.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                     등록된 리소스 계획이 없습니다.
                                 </div>
@@ -677,52 +678,129 @@ export const ResourcePlansPage: React.FC = () => {
                                 <table className="w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-slate-100">
-                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[150px]">포지션</th>
+                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">포지션</th>
                                             {months.map(m => (
                                                 <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                                     {m.label}
                                                 </th>
                                             ))}
+                                            <th className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">합계</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {(() => {
-                                            // Group by position
-                                            const posMap: Record<string, { name: string; data: Record<string, number> }> = {};
-                                            positionSummary.forEach(s => {
-                                                if (!posMap[s.position_id]) {
-                                                    posMap[s.position_id] = { name: s.position_name, data: {} };
-                                                }
-                                                posMap[s.position_id].data[`${s.year}-${s.month}`] = s.total_hours;
+                                            // Build project -> business unit mapping
+                                            const projectBuMap: Record<string, string> = {};
+                                            projects.forEach(p => {
+                                                projectBuMap[p.id] = p.program?.business_unit?.name || 'Others';
                                             });
-                                            return Object.entries(posMap).map(([id, pos]) => (
-                                                <tr key={id} className="border-b hover:bg-slate-50">
-                                                    <td className="py-2 px-2 sticky left-0 bg-white">{pos.name}</td>
-                                                    {months.map(m => {
-                                                        const key = `${m.year}-${m.month}`;
-                                                        const val = pos.data[key] || 0;
-                                                        return (
-                                                            <td key={key} className="text-center py-2 px-1 border-l">
-                                                                {val > 0 ? Number(val.toFixed(1)) : '-'}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ));
+
+                                            // Group resource plans by: business_unit -> position -> month
+                                            type PositionData = {
+                                                id: string;
+                                                name: string;
+                                                data: Record<string, number>;
+                                                totalFte: number;
+                                            };
+                                            type BusinessAreaData = Record<string, PositionData>;
+
+                                            const grouped: Record<string, BusinessAreaData> = {};
+
+                                            allResourcePlans.forEach(plan => {
+                                                const bu = projectBuMap[plan.project_id] || 'Others';
+                                                const posId = plan.position_id;
+                                                const posName = plan.position_name || posId;
+                                                const monthKey = `${plan.year}-${plan.month}`;
+
+                                                if (!grouped[bu]) {
+                                                    grouped[bu] = {};
+                                                }
+                                                if (!grouped[bu][posId]) {
+                                                    grouped[bu][posId] = {
+                                                        id: posId,
+                                                        name: posName,
+                                                        data: {},
+                                                        totalFte: 0
+                                                    };
+                                                }
+
+                                                grouped[bu][posId].data[monthKey] =
+                                                    (grouped[bu][posId].data[monthKey] || 0) + plan.planned_hours;
+                                                grouped[bu][posId].totalFte += plan.planned_hours;
+                                            });
+
+                                            // Render by business area
+                                            const businessAreaOrder = ['Integrated System', 'Abatement', 'ACM', 'Others'];
+
+                                            return businessAreaOrder
+                                                .filter(area => grouped[area] && Object.keys(grouped[area]).length > 0)
+                                                .map(area => {
+                                                    const areaPositions = Object.values(grouped[area])
+                                                        .sort((a, b) => b.totalFte - a.totalFte);
+                                                    const areaTotal = areaPositions.reduce((sum, p) => sum + p.totalFte, 0);
+
+                                                    return (
+                                                        <React.Fragment key={area}>
+                                                            {/* Business Area Header */}
+                                                            <tr className="bg-purple-50 border-t-2 border-purple-200">
+                                                                <td className="py-2 px-2 sticky left-0 bg-purple-50 font-semibold text-purple-800">
+                                                                    📁 {area} ({areaPositions.length}개 포지션)
+                                                                </td>
+                                                                {months.map(m => {
+                                                                    const key = `${m.year}-${m.month}`;
+                                                                    const monthTotal = areaPositions.reduce(
+                                                                        (sum, p) => sum + (p.data[key] || 0), 0
+                                                                    );
+                                                                    return (
+                                                                        <td key={key} className="text-center py-2 px-1 border-l font-medium text-purple-700">
+                                                                            {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                                <td className="text-center py-2 px-1 border-l font-bold text-purple-800">
+                                                                    {Number(areaTotal.toFixed(1))}
+                                                                </td>
+                                                            </tr>
+                                                            {/* Positions in this area */}
+                                                            {areaPositions.map(pos => (
+                                                                <tr key={`${area}-${pos.id}`} className="border-b hover:bg-slate-50">
+                                                                    <td className="py-1.5 px-4 sticky left-0 bg-white text-sm">
+                                                                        {pos.name}
+                                                                    </td>
+                                                                    {months.map(m => {
+                                                                        const key = `${m.year}-${m.month}`;
+                                                                        const val = pos.data[key] || 0;
+                                                                        return (
+                                                                            <td key={key} className="text-center py-1.5 px-1 border-l">
+                                                                                {val > 0 ? Number(val.toFixed(1)) : '-'}
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                    <td className="text-center py-1.5 px-1 border-l font-medium">
+                                                                        {Number(pos.totalFte.toFixed(1))}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </React.Fragment>
+                                                    );
+                                                });
                                         })()}
-                                        <tr className="bg-green-50 font-medium">
-                                            <td className="py-2 px-2 sticky left-0 bg-green-50">합계</td>
+                                        <tr className="bg-green-50 font-bold border-t-2 border-green-300">
+                                            <td className="py-2 px-2 sticky left-0 bg-green-50">🔢 전체 합계</td>
                                             {months.map(m => {
                                                 const key = `${m.year}-${m.month}`;
-                                                const total = positionSummary
-                                                    .filter(s => s.year === m.year && s.month === m.month)
-                                                    .reduce((sum, s) => sum + s.total_hours, 0);
+                                                const total = allResourcePlans
+                                                    .filter(p => p.year === m.year && p.month === m.month)
+                                                    .reduce((sum, p) => sum + p.planned_hours, 0);
                                                 return (
                                                     <td key={key} className="text-center py-2 px-1 border-l">
                                                         {total > 0 ? Number(total.toFixed(1)) : '-'}
                                                     </td>
                                                 );
                                             })}
+                                            <td className="text-center py-2 px-1 border-l">
+                                                {Number(allResourcePlans.reduce((sum, p) => sum + p.planned_hours, 0).toFixed(1))}
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
