@@ -26,6 +26,26 @@ import {
 } from '@/components/ui';
 import { ProjectResourceTable, type ResourceRow } from '@/components/resource-plans/ProjectResourceTable';
 
+// Status color mapping
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+    'InProgress': { bg: 'bg-green-100', text: 'text-green-800' },
+    'Planned': { bg: 'bg-blue-100', text: 'text-blue-800' },
+    'Prospective': { bg: 'bg-purple-100', text: 'text-purple-800' },
+    'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+    'Completed': { bg: 'bg-gray-100', text: 'text-gray-600' },
+    'Closed': { bg: 'bg-gray-200', text: 'text-gray-500' },
+    'Cancelled': { bg: 'bg-red-100', text: 'text-red-800' },
+};
+
+function StatusBadge({ status }: { status: string }) {
+    const colors = STATUS_COLORS[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+    return (
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.text} border border-opacity-20`}>
+            {status}
+        </span>
+    );
+}
+
 // Generate 12 months starting from offset months before current
 const generate12Months = (offsetMonths: number = -2) => {
     const months: { year: number; month: number; label: string }[] = [];
@@ -89,6 +109,7 @@ export const ResourcePlansPage: React.FC = () => {
     const [editingRow, setEditingRow] = useState<{ positionId: string; userId?: string; positionName: string } | null>(null);
     const [monthlyValues, setMonthlyValues] = useState<Record<string, number>>({});
     const [editingPlanIds, setEditingPlanIds] = useState<Record<string, number>>({}); // Store plan IDs for editing
+    const [showCompleted, setShowCompleted] = useState(false); // Filter completed projects
 
     // Data fetching
     const { data: projects = [] } = useProjects();
@@ -111,10 +132,16 @@ export const ResourcePlansPage: React.FC = () => {
         queryFn: getWorklogSummaryByProject,
     });
 
+    // Filter projects based on showCompleted state
+    const filteredProjects = useMemo(() => {
+        if (showCompleted) return projects;
+        return projects.filter(p => !['Completed', 'Cancelled'].includes(p.status || ''));
+    }, [projects, showCompleted]);
+
     // Group projects by BusinessUnit
     const projectsByUnit = useMemo(() => {
         const grouped: Record<string, { unitName: string; projects: typeof projects }> = {};
-        projects.forEach(project => {
+        filteredProjects.forEach(project => {
             const unitName = project.program?.business_unit?.name || 'Unassigned';
             const unitId = project.program?.business_unit?.id || 'unassigned';
             if (!grouped[unitId]) {
@@ -123,7 +150,7 @@ export const ResourcePlansPage: React.FC = () => {
             grouped[unitId].projects.push(project);
         });
         return grouped;
-    }, [projects]);
+    }, [filteredProjects]);
 
     // Removed plansByProject logic (moved to ProjectResourceTable)
 
@@ -241,25 +268,37 @@ export const ResourcePlansPage: React.FC = () => {
             {/* Tabs and Calendar Navigation */}
             <div className="flex justify-between items-center border-b">
                 {/* Tabs */}
-                <div className="flex gap-2">
-                    <button
-                        className={`px-4 py-2 -mb-px ${activeTab === 'detail' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                        onClick={() => setActiveTab('detail')}
-                    >
-                        프로젝트 상세
-                    </button>
-                    <button
-                        className={`px-4 py-2 -mb-px ${activeTab === 'project-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                        onClick={() => setActiveTab('project-summary')}
-                    >
-                        프로젝트별 집계
-                    </button>
-                    <button
-                        className={`px-4 py-2 -mb-px ${activeTab === 'role-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                        onClick={() => setActiveTab('role-summary')}
-                    >
-                        롤별 집계
-                    </button>
+                <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 mr-4">
+                        <button
+                            className={`px-4 py-2 -mb-px ${activeTab === 'detail' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                            onClick={() => setActiveTab('detail')}
+                        >
+                            프로젝트 상세
+                        </button>
+                        <button
+                            className={`px-4 py-2 -mb-px ${activeTab === 'project-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                            onClick={() => setActiveTab('project-summary')}
+                        >
+                            프로젝트별 집계
+                        </button>
+                        <button
+                            className={`px-4 py-2 -mb-px ${activeTab === 'role-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                            onClick={() => setActiveTab('role-summary')}
+                        >
+                            롤별 집계
+                        </button>
+                    </div>
+                    {/* Filter Toggle */}
+                    <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer hover:text-slate-900 border px-3 py-1 rounded bg-slate-50">
+                        <input
+                            type="checkbox"
+                            checked={showCompleted}
+                            onChange={(e) => setShowCompleted(e.target.checked)}
+                            className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        Completed/Cancelled 포함
+                    </label>
                 </div>
 
                 {/* Calendar Navigation */}
@@ -344,6 +383,7 @@ export const ResourcePlansPage: React.FC = () => {
                                                         <span className="font-medium text-sm">
                                                             {project.code} - {project.name}
                                                         </span>
+                                                        <StatusBadge status={project.status || 'Unknown'} />
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
@@ -707,7 +747,7 @@ export const ResourcePlansPage: React.FC = () => {
                                 <table className="w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-slate-100">
-                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">포지션</th>
+                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">프로젝트 역할</th>
                                             {months.map(m => (
                                                 <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                                     {m.label}
@@ -737,25 +777,28 @@ export const ResourcePlansPage: React.FC = () => {
 
                                             allResourcePlans.forEach(plan => {
                                                 const bu = projectBuMap[plan.project_id] || 'Others';
-                                                const posId = plan.position_id ? String(plan.position_id) : 'unknown';
-                                                const posName = plan.position_name || posId;
+                                                // Prefer Project Role, fallback to Position (Functional Role)
+                                                const roleId = plan.project_role_id
+                                                    ? String(plan.project_role_id)
+                                                    : (plan.position_id ? String(plan.position_id) : 'unknown');
+                                                const roleName = plan.project_role_name || plan.position_name || roleId;
                                                 const monthKey = `${plan.year}-${plan.month}`;
 
                                                 if (!grouped[bu]) {
                                                     grouped[bu] = {};
                                                 }
-                                                if (!grouped[bu][posId]) {
-                                                    grouped[bu][posId] = {
-                                                        id: posId,
-                                                        name: posName,
+                                                if (!grouped[bu][roleId]) {
+                                                    grouped[bu][roleId] = {
+                                                        id: roleId,
+                                                        name: roleName,
                                                         data: {},
                                                         totalFte: 0
                                                     };
                                                 }
 
-                                                grouped[bu][posId].data[monthKey] =
-                                                    (grouped[bu][posId].data[monthKey] || 0) + plan.planned_hours;
-                                                grouped[bu][posId].totalFte += plan.planned_hours;
+                                                grouped[bu][roleId].data[monthKey] =
+                                                    (grouped[bu][roleId].data[monthKey] || 0) + plan.planned_hours;
+                                                grouped[bu][roleId].totalFte += plan.planned_hours;
                                             });
 
                                             // Render by business area
