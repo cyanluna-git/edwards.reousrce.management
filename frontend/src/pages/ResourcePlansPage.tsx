@@ -29,10 +29,10 @@ import {
 import { ProjectSelector } from '@/components/ui/ProjectSelector';
 import type { ProjectMilestone } from '@/types';
 
-// Generate 12 months starting from 2 months ago
-const generate12Months = () => {
+// Generate 12 months starting from offset months before current
+const generate12Months = (offsetMonths: number = -2) => {
     const months: { year: number; month: number; label: string }[] = [];
-    const startDate = addMonths(startOfMonth(new Date()), -2);
+    const startDate = addMonths(startOfMonth(new Date()), offsetMonths);
 
     for (let i = 0; i < 12; i++) {
         const date = addMonths(startDate, i);
@@ -46,7 +46,13 @@ const generate12Months = () => {
 };
 
 export const ResourcePlansPage: React.FC = () => {
-    const months = useMemo(() => generate12Months(), []);
+    // Calendar offset state (default: -2 = start from 2 months ago)
+    const [calendarOffset, setCalendarOffset] = useState(-2);
+    const months = useMemo(() => generate12Months(calendarOffset), [calendarOffset]);
+
+    // Navigation handlers
+    const moveCalendar = (delta: number) => setCalendarOffset(prev => prev + delta);
+    const resetCalendar = () => setCalendarOffset(-2);
 
     // Tab state: 'detail' | 'project-summary' | 'role-summary'
     const [activeTab, setActiveTab] = useState<'detail' | 'project-summary' | 'role-summary'>('detail');
@@ -241,26 +247,71 @@ export const ResourcePlansPage: React.FC = () => {
                 <h1 className="text-2xl font-bold">리소스 계획</h1>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 border-b">
-                <button
-                    className={`px-4 py-2 -mb-px ${activeTab === 'detail' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                    onClick={() => setActiveTab('detail')}
-                >
-                    프로젝트 상세
-                </button>
-                <button
-                    className={`px-4 py-2 -mb-px ${activeTab === 'project-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                    onClick={() => setActiveTab('project-summary')}
-                >
-                    프로젝트별 집계
-                </button>
-                <button
-                    className={`px-4 py-2 -mb-px ${activeTab === 'role-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
-                    onClick={() => setActiveTab('role-summary')}
-                >
-                    롤별 집계
-                </button>
+            {/* Tabs and Calendar Navigation */}
+            <div className="flex justify-between items-center border-b">
+                {/* Tabs */}
+                <div className="flex gap-2">
+                    <button
+                        className={`px-4 py-2 -mb-px ${activeTab === 'detail' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('detail')}
+                    >
+                        프로젝트 상세
+                    </button>
+                    <button
+                        className={`px-4 py-2 -mb-px ${activeTab === 'project-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('project-summary')}
+                    >
+                        프로젝트별 집계
+                    </button>
+                    <button
+                        className={`px-4 py-2 -mb-px ${activeTab === 'role-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('role-summary')}
+                    >
+                        롤별 집계
+                    </button>
+                </div>
+
+                {/* Calendar Navigation */}
+                <div className="flex items-center gap-1 text-sm pb-1">
+                    <button
+                        onClick={() => moveCalendar(-3)}
+                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
+                        title="3개월 이전"
+                    >
+                        ◀◀
+                    </button>
+                    <button
+                        onClick={() => moveCalendar(-1)}
+                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
+                        title="1개월 이전"
+                    >
+                        ◀
+                    </button>
+                    <button
+                        onClick={resetCalendar}
+                        className={`px-3 py-1 rounded ${calendarOffset === -2 ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}
+                        title="기본 뷰 (오늘 기준)"
+                    >
+                        📍 오늘
+                    </button>
+                    <button
+                        onClick={() => moveCalendar(1)}
+                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
+                        title="1개월 이후"
+                    >
+                        ▶
+                    </button>
+                    <button
+                        onClick={() => moveCalendar(3)}
+                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
+                        title="3개월 이후"
+                    >
+                        ▶▶
+                    </button>
+                    <span className="ml-2 text-xs text-slate-400">
+                        {months[0]?.label} ~ {months[months.length - 1]?.label}
+                    </span>
+                </div>
             </div>
 
             {/* Tab Content */}
