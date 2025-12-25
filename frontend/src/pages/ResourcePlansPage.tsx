@@ -24,8 +24,7 @@ import {
     DialogTitle,
     DialogFooter,
 } from '@/components/ui';
-// Removed unused ProjectSelector import
-import type { ProjectMilestone } from '@/types';
+import { ProjectResourceTable, type ResourceRow } from '@/components/resource-plans/ProjectResourceTable';
 
 // Generate 12 months starting from offset months before current
 const generate12Months = (offsetMonths: number = -2) => {
@@ -89,6 +88,7 @@ export const ResourcePlansPage: React.FC = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingRow, setEditingRow] = useState<{ positionId: string; userId?: string; positionName: string } | null>(null);
     const [monthlyValues, setMonthlyValues] = useState<Record<string, number>>({});
+    const [editingPlanIds, setEditingPlanIds] = useState<Record<string, number>>({}); // Store plan IDs for editing
 
     // Data fetching
     const { data: projects = [] } = useProjects();
@@ -99,8 +99,8 @@ export const ResourcePlansPage: React.FC = () => {
     });
     const { data: users = [] } = useUsers(undefined, true); // Active users only
 
-    // Fetch all resource plans for tree view
-    const { data: allResourcePlans = [], isLoading, error } = useResourcePlans({});
+    // Fetch all resource plans for summary tabs only (Legacy mode for summary)
+    const { data: allResourcePlans = [] } = useResourcePlans({}, { enabled: activeTab !== 'detail' });
 
     // Summary data
     const { data: projectSummary = [] } = useSummaryByProject();
@@ -125,17 +125,7 @@ export const ResourcePlansPage: React.FC = () => {
         return grouped;
     }, [projects]);
 
-    // Group resource plans by project
-    const plansByProject = useMemo(() => {
-        const grouped: Record<string, typeof allResourcePlans> = {};
-        allResourcePlans.forEach(plan => {
-            if (!grouped[plan.project_id]) {
-                grouped[plan.project_id] = [];
-            }
-            grouped[plan.project_id].push(plan);
-        });
-        return grouped;
-    }, [allResourcePlans]);
+    // Removed plansByProject logic (moved to ProjectResourceTable)
 
     // Current month for past/present/future logic
     const currentDate = new Date();
@@ -147,74 +137,40 @@ export const ResourcePlansPage: React.FC = () => {
     const updatePlan = useUpdateResourcePlan();
     const deletePlan = useDeleteResourcePlan();
 
-    // Get resource rows for a specific project
-    const getResourceRowsForProject = (projectId: string) => {
-        const plans = plansByProject[projectId] || [];
-        const rowMap: Record<string, {
-            positionId: string;
-            positionName: string;
-            userId?: string;
-            userName?: string;
-            isTbd: boolean;
-            monthlyData: Record<string, { planId: number; hours: number }>;
-        }> = {};
+    // Removed getResourceRowsForProject (moved to ProjectResourceTable)
 
-        plans.forEach(plan => {
-            // Use project_role_id for project resource planning
-            const roleId = plan.project_role_id || plan.position_id || '';
-            const roleName = plan.project_role_name || plan.position_name || roleId;
-            const key = `${roleId}-${plan.user_id || 'TBD'}`;
-            if (!rowMap[key]) {
-                rowMap[key] = {
-                    positionId: roleId,
-                    positionName: roleName,
-                    userId: plan.user_id,
-                    userName: plan.user_name,
-                    isTbd: plan.is_tbd,
-                    monthlyData: {},
-                };
-            }
-            const monthKey = `${plan.year}-${plan.month}`;
-            rowMap[key].monthlyData[monthKey] = {
-                planId: plan.id,
-                hours: plan.planned_hours,
-            };
-        });
-
-        return Object.values(rowMap);
-    };
-
-    // Legacy: resourceRows for currently selected project (for modal editing)
-    const resourceRows = useMemo(() => {
-        if (!selectedProjectId) return [];
-        return getResourceRowsForProject(selectedProjectId);
-    }, [selectedProjectId, plansByProject]);
+    // Removed resourceRows legacy memo
 
     // Removed unused monthlyTotals and getMilestoneForMonth
 
     // Handle add new row
-    const handleAddRow = () => {
+    const handleAddRow = (projectId: string) => {
+        setSelectedProjectId(projectId);
         setEditingRow(null);
         setMonthlyValues({});
         setIsAddModalOpen(true);
     };
 
     // Handle edit row
-    const handleEditRow = (row: typeof resourceRows[0]) => {
+    const handleEditRow = (row: ResourceRow, projectId: string) => {
+        setSelectedProjectId(projectId);
         setEditingRow({
             positionId: row.positionId,
             userId: row.userId,
             positionName: row.positionName,
         });
-        // Pre-fill monthly values
+        // Pre-fill monthly values and plan IDs
         const values: Record<string, number> = {};
+        const planIds: Record<string, number> = {};
         months.forEach(m => {
             const key = `${m.year}-${m.month}`;
             if (row.monthlyData[key]) {
                 values[key] = row.monthlyData[key].hours;
+                planIds[key] = row.monthlyData[key].planId;
             }
         });
         setMonthlyValues(values);
+        setEditingPlanIds(planIds);
         setIsAddModalOpen(true);
     };
 
@@ -232,17 +188,14 @@ export const ResourcePlansPage: React.FC = () => {
             const key = `${m.year}-${m.month}`;
             const hours = monthlyValues[key] || 0;
 
-            // Find existing plan for this month
-            const existingRow = resourceRows.find(
-                r => r.positionId === positionId && r.userId === editingRow?.userId
-            );
-            const existingPlan = existingRow?.monthlyData[key];
+            // Determine if we are updating existing plan
+            const existingPlanId = editingPlanIds[key];
 
             if (hours > 0) {
-                if (existingPlan) {
+                if (existingPlanId) {
                     // Update
                     await updatePlan.mutateAsync({
-                        planId: existingPlan.planId,
+                        planId: existingPlanId,
                         data: { planned_hours: hours },
                     });
                 } else {
@@ -256,9 +209,9 @@ export const ResourcePlansPage: React.FC = () => {
                         planned_hours: hours,
                     });
                 }
-            } else if (existingPlan && hours === 0) {
+            } else if (existingPlanId && hours === 0) {
                 // Delete if set to 0
-                await deletePlan.mutateAsync(existingPlan.planId);
+                await deletePlan.mutateAsync(existingPlanId);
             }
         }
 
@@ -270,7 +223,7 @@ export const ResourcePlansPage: React.FC = () => {
     };
 
     // Handle delete row
-    const handleDeleteRow = async (row: typeof resourceRows[0]) => {
+    const handleDeleteRow = async (row: ResourceRow) => {
         if (!confirm(`"${row.positionName}" 행을 삭제하시겠습니까?`)) return;
 
         for (const data of Object.values(row.monthlyData)) {
@@ -356,13 +309,8 @@ export const ResourcePlansPage: React.FC = () => {
             {activeTab === 'detail' && (
                 <>
                     {/* Tree View - Grouped by Business Unit */}
-                    {isLoading ? (
-                        <div className="text-center py-8">로딩 중...</div>
-                    ) : error ? (
-                        <div className="text-center py-8 text-red-500">
-                            데이터를 불러오는 중 오류가 발생했습니다: {(error as Error).message}
-                        </div>
-                    ) : Object.keys(projectsByUnit).length === 0 ? (
+                    {/* Tree View - Grouped by Business Unit */}
+                    {Object.keys(projectsByUnit).length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             등록된 프로젝트가 없습니다.
                         </div>
@@ -385,154 +333,42 @@ export const ResourcePlansPage: React.FC = () => {
                                     {/* Projects under this Business Unit */}
                                     {expandedUnits.has(unitId) && (
                                         <div className="pl-4">
-                                            {unitProjects.map(project => {
-                                                const projectRows = getResourceRowsForProject(project.id);
-                                                const projectTotals: Record<string, number> = {};
-                                                months.forEach(m => {
-                                                    const key = `${m.year}-${m.month}`;
-                                                    projectTotals[key] = projectRows.reduce((sum, row) => {
-                                                        return sum + (row.monthlyData[key]?.hours || 0);
-                                                    }, 0);
-                                                });
-
-                                                return (
-                                                    <div key={project.id} className="border-b last:border-b-0">
-                                                        {/* Project Header */}
-                                                        <div
-                                                            className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-50"
-                                                            onClick={() => toggleProject(project.id)}
+                                            {unitProjects.map(project => (
+                                                <div key={project.id} className="border-b last:border-b-0">
+                                                    {/* Project Header */}
+                                                    <div
+                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-50"
+                                                        onClick={() => toggleProject(project.id)}
+                                                    >
+                                                        <span>{expandedProjects.has(project.id) ? '▼' : '▶'}</span>
+                                                        <span className="font-medium text-sm">
+                                                            {project.code} - {project.name}
+                                                        </span>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="ml-auto h-6 text-xs"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleAddRow(project.id);
+                                                            }}
                                                         >
-                                                            <span>{expandedProjects.has(project.id) ? '▼' : '▶'}</span>
-                                                            <span className="font-medium text-sm">
-                                                                {project.code} - {project.name}
-                                                            </span>
-                                                            <span className="text-xs text-muted-foreground">
-                                                                ({projectRows.length}명)
-                                                            </span>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="ml-auto h-6 text-xs"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedProjectId(project.id);
-                                                                    handleAddRow();
-                                                                }}
-                                                            >
-                                                                + 팀원 추가
-                                                            </Button>
-                                                        </div>
-
-                                                        {/* Resource Table for this Project */}
-                                                        {expandedProjects.has(project.id) && (
-                                                            <div className="px-3 pb-3 overflow-x-auto">
-                                                                <table className="w-full text-sm border-collapse">
-                                                                    <thead>
-                                                                        <tr className="bg-slate-100">
-                                                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[160px]">
-                                                                                팀원/포지션
-                                                                            </th>
-                                                                            {months.map(m => (
-                                                                                <th
-                                                                                    key={`${m.year}-${m.month}`}
-                                                                                    className="text-center py-2 px-1 border-b text-xs font-medium min-w-[50px]"
-                                                                                >
-                                                                                    {m.label}
-                                                                                </th>
-                                                                            ))}
-                                                                            <th className="text-center py-2 px-2 border-b min-w-[60px]">액션</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {projectRows.length === 0 ? (
-                                                                            <tr>
-                                                                                <td colSpan={months.length + 2} className="text-center py-4 text-muted-foreground">
-                                                                                    등록된 리소스가 없습니다.
-                                                                                </td>
-                                                                            </tr>
-                                                                        ) : (
-                                                                            <>
-                                                                                {projectRows.map((row) => (
-                                                                                    <tr
-                                                                                        key={`${row.positionId}-${row.userId || 'TBD'}`}
-                                                                                        className={`border-b hover:bg-slate-50 ${row.isTbd ? 'bg-yellow-50' : ''}`}
-                                                                                    >
-                                                                                        <td className={`py-2 px-2 sticky left-0 ${row.isTbd ? 'bg-yellow-50' : 'bg-white'}`}>
-                                                                                            <div>
-                                                                                                <span className="font-medium">
-                                                                                                    {row.isTbd ? `TBD - ${row.positionName}` : row.userName}
-                                                                                                </span>
-                                                                                                {!row.isTbd && (
-                                                                                                    <span className="text-xs text-muted-foreground ml-2">
-                                                                                                        ({row.positionName})
-                                                                                                    </span>
-                                                                                                )}
-                                                                                            </div>
-                                                                                        </td>
-                                                                                        {months.map(m => {
-                                                                                            const key = `${m.year}-${m.month}`;
-                                                                                            const data = row.monthlyData[key];
-                                                                                            return (
-                                                                                                <td key={key} className="text-center py-2 px-1 border-l">
-                                                                                                    {data ? (
-                                                                                                        <span className={data.hours >= 1 ? 'font-medium' : 'text-muted-foreground'}>
-                                                                                                            {data.hours}
-                                                                                                        </span>
-                                                                                                    ) : (
-                                                                                                        <span className="text-slate-300">-</span>
-                                                                                                    )}
-                                                                                                </td>
-                                                                                            );
-                                                                                        })}
-                                                                                        <td className="text-center py-2 px-2 border-l">
-                                                                                            <Button
-                                                                                                variant="ghost"
-                                                                                                size="sm"
-                                                                                                className="text-xs h-6 px-2"
-                                                                                                onClick={() => {
-                                                                                                    setSelectedProjectId(project.id);
-                                                                                                    handleEditRow(row);
-                                                                                                }}
-                                                                                            >
-                                                                                                수정
-                                                                                            </Button>
-                                                                                            <Button
-                                                                                                variant="ghost"
-                                                                                                size="sm"
-                                                                                                className="text-xs h-6 px-2 text-red-500"
-                                                                                                onClick={() => {
-                                                                                                    setSelectedProjectId(project.id);
-                                                                                                    handleDeleteRow(row);
-                                                                                                }}
-                                                                                            >
-                                                                                                삭제
-                                                                                            </Button>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                                {/* Totals row */}
-                                                                                <tr className="bg-green-50 font-medium">
-                                                                                    <td className="py-2 px-2 sticky left-0 bg-green-50">합계</td>
-                                                                                    {months.map(m => {
-                                                                                        const key = `${m.year}-${m.month}`;
-                                                                                        const total = projectTotals[key] || 0;
-                                                                                        return (
-                                                                                            <td key={key} className="text-center py-2 px-1 border-l">
-                                                                                                {total > 0 ? Number(total.toFixed(1)) : '-'}
-                                                                                            </td>
-                                                                                        );
-                                                                                    })}
-                                                                                    <td className="border-l"></td>
-                                                                                </tr>
-                                                                            </>
-                                                                        )}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        )}
+                                                            + 팀원 추가
+                                                        </Button>
                                                     </div>
-                                                );
-                                            })}
+
+                                                    {/* Resource Table for this Project (Lazy Loaded) */}
+                                                    {expandedProjects.has(project.id) && (
+                                                        <ProjectResourceTable
+                                                            projectId={project.id}
+                                                            months={months}
+                                                            onAddMember={() => handleAddRow(project.id)}
+                                                            onEditRow={(row) => handleEditRow(row, project.id)}
+                                                            onDeleteRow={(row) => handleDeleteRow(row)}
+                                                        />
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
                                 </Card>
@@ -901,7 +737,7 @@ export const ResourcePlansPage: React.FC = () => {
 
                                             allResourcePlans.forEach(plan => {
                                                 const bu = projectBuMap[plan.project_id] || 'Others';
-                                                const posId = plan.position_id;
+                                                const posId = plan.position_id ? String(plan.position_id) : 'unknown';
                                                 const posName = plan.position_name || posId;
                                                 const monthKey = `${plan.year}-${plan.month}`;
 

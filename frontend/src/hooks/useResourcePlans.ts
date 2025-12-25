@@ -34,10 +34,11 @@ const resourcePlanKeys = {
 /**
  * Hook to fetch resource plans with filters
  */
-export function useResourcePlans(filters?: ResourcePlanFilters) {
+export function useResourcePlans(filters?: ResourcePlanFilters, options?: { enabled?: boolean }) {
     return useQuery<ResourcePlan[], Error>({
         queryKey: resourcePlanKeys.list(filters || {}),
         queryFn: () => getResourcePlans(filters),
+        enabled: options?.enabled,
     });
 }
 
