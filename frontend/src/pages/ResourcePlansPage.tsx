@@ -525,41 +525,119 @@ export const ResourcePlansPage: React.FC = () => {
                                 <table className="w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-slate-100">
-                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">프로젝트</th>
+                                            <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[300px]">프로젝트</th>
                                             {months.map(m => (
                                                 <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                                     {m.label}
                                                 </th>
                                             ))}
+                                            <th className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">합계</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {(() => {
-                                            // Group by project
-                                            const projectMap: Record<string, { code: string; name: string; data: Record<string, number> }> = {};
+                                            // Group by project with business unit info
+                                            type ProjectData = {
+                                                id: string;
+                                                code: string;
+                                                name: string;
+                                                businessUnit: string;
+                                                data: Record<string, number>;
+                                                totalFte: number;
+                                            };
+                                            const projectMap: Record<string, ProjectData> = {};
+
                                             projectSummary.forEach(s => {
                                                 if (!projectMap[s.project_id]) {
-                                                    projectMap[s.project_id] = { code: s.project_code, name: s.project_name, data: {} };
+                                                    // Find project in loaded projects to get business unit
+                                                    const proj = projects.find(p => p.id === s.project_id);
+                                                    const buName = proj?.program?.business_unit?.name || 'Others';
+
+                                                    projectMap[s.project_id] = {
+                                                        id: s.project_id,
+                                                        code: s.project_code,
+                                                        name: s.project_name,
+                                                        businessUnit: buName,
+                                                        data: {},
+                                                        totalFte: 0
+                                                    };
                                                 }
                                                 projectMap[s.project_id].data[`${s.year}-${s.month}`] = s.total_hours;
+                                                projectMap[s.project_id].totalFte += s.total_hours;
                                             });
-                                            return Object.entries(projectMap).map(([id, proj]) => (
-                                                <tr key={id} className="border-b hover:bg-slate-50">
-                                                    <td className="py-2 px-2 sticky left-0 bg-white">{proj.code} - {proj.name}</td>
-                                                    {months.map(m => {
-                                                        const key = `${m.year}-${m.month}`;
-                                                        const val = proj.data[key] || 0;
-                                                        return (
-                                                            <td key={key} className="text-center py-2 px-1 border-l">
-                                                                {val > 0 ? Number(val.toFixed(1)) : '-'}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ));
+
+                                            // Group by business unit
+                                            const businessAreaOrder = ['Integrated System', 'Abatement', 'ACM', 'Others'];
+                                            const grouped: Record<string, ProjectData[]> = {};
+
+                                            Object.values(projectMap).forEach(proj => {
+                                                const bu = proj.businessUnit;
+                                                if (!grouped[bu]) {
+                                                    grouped[bu] = [];
+                                                }
+                                                grouped[bu].push(proj);
+                                            });
+
+                                            // Sort each group by totalFte descending
+                                            Object.keys(grouped).forEach(bu => {
+                                                grouped[bu].sort((a, b) => b.totalFte - a.totalFte);
+                                            });
+
+                                            // Render by business area
+                                            return businessAreaOrder
+                                                .filter(area => grouped[area]?.length > 0)
+                                                .map(area => {
+                                                    const areaProjects = grouped[area];
+                                                    const areaTotal = areaProjects.reduce((sum, p) => sum + p.totalFte, 0);
+
+                                                    return (
+                                                        <React.Fragment key={area}>
+                                                            {/* Business Area Header */}
+                                                            <tr className="bg-blue-50 border-t-2 border-blue-200">
+                                                                <td className="py-2 px-2 sticky left-0 bg-blue-50 font-semibold text-blue-800">
+                                                                    📁 {area} ({areaProjects.length}개 프로젝트)
+                                                                </td>
+                                                                {months.map(m => {
+                                                                    const key = `${m.year}-${m.month}`;
+                                                                    const monthTotal = areaProjects.reduce(
+                                                                        (sum, p) => sum + (p.data[key] || 0), 0
+                                                                    );
+                                                                    return (
+                                                                        <td key={key} className="text-center py-2 px-1 border-l font-medium text-blue-700">
+                                                                            {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                                <td className="text-center py-2 px-1 border-l font-bold text-blue-800">
+                                                                    {Number(areaTotal.toFixed(1))}
+                                                                </td>
+                                                            </tr>
+                                                            {/* Projects in this area */}
+                                                            {areaProjects.map(proj => (
+                                                                <tr key={proj.id} className="border-b hover:bg-slate-50">
+                                                                    <td className="py-1.5 px-4 sticky left-0 bg-white text-sm">
+                                                                        {proj.code} - {proj.name}
+                                                                    </td>
+                                                                    {months.map(m => {
+                                                                        const key = `${m.year}-${m.month}`;
+                                                                        const val = proj.data[key] || 0;
+                                                                        return (
+                                                                            <td key={key} className="text-center py-1.5 px-1 border-l">
+                                                                                {val > 0 ? Number(val.toFixed(1)) : '-'}
+                                                                            </td>
+                                                                        );
+                                                                    })}
+                                                                    <td className="text-center py-1.5 px-1 border-l font-medium">
+                                                                        {Number(proj.totalFte.toFixed(1))}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </React.Fragment>
+                                                    );
+                                                });
                                         })()}
-                                        <tr className="bg-green-50 font-medium">
-                                            <td className="py-2 px-2 sticky left-0 bg-green-50">합계</td>
+                                        <tr className="bg-green-50 font-bold border-t-2 border-green-300">
+                                            <td className="py-2 px-2 sticky left-0 bg-green-50">🔢 전체 합계</td>
                                             {months.map(m => {
                                                 const key = `${m.year}-${m.month}`;
                                                 const total = projectSummary
@@ -571,6 +649,9 @@ export const ResourcePlansPage: React.FC = () => {
                                                     </td>
                                                 );
                                             })}
+                                            <td className="text-center py-2 px-1 border-l">
+                                                {Number(projectSummary.reduce((sum, s) => sum + s.total_hours, 0).toFixed(1))}
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
