@@ -34,13 +34,11 @@ else {
     Write-Warning ".env file not found. Using default settings."
 }
 
-# 포트 설정 (환경 변수 PORT가 있으면 사용, 없으면 8002)
-# if (-not $env:PORT) {
-#     $env:PORT = "8002"
-# }
-# $port = $env:PORT
-$port = "8002" # For diagnostics, forcing port to 8002 and ignoring .env
-Write-Host "Diagnostics: Forcing port to 8002, ignoring any .env configuration."
+# 포트 설정 (환경 변수 PORT가 있으면 사용, 없으면 8000)
+if (-not $env:PORT) {
+    $env:PORT = "8002"
+}
+$port = $env:PORT
 
 # 해당 포트가 사용 중인지 확인 (Listening 상태인 것만)
 $tcpConnection = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
