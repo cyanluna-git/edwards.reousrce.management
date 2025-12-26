@@ -11,7 +11,6 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { getCapacitySummary, getWorklogSummary, CapacitySummary, WorklogSummary } from '@/api/client';
@@ -69,8 +68,8 @@ export const ReportsPage: React.FC = () => {
             <div className="flex gap-2 border-b">
                 <button
                     className={`px-4 py-2 -mb-px ${activeTab === 'capacity'
-                            ? 'border-b-2 border-blue-600 text-blue-600 font-medium'
-                            : 'text-muted-foreground'
+                        ? 'border-b-2 border-blue-600 text-blue-600 font-medium'
+                        : 'text-muted-foreground'
                         }`}
                     onClick={() => setActiveTab('capacity')}
                 >
@@ -78,8 +77,8 @@ export const ReportsPage: React.FC = () => {
                 </button>
                 <button
                     className={`px-4 py-2 -mb-px ${activeTab === 'worklog'
-                            ? 'border-b-2 border-blue-600 text-blue-600 font-medium'
-                            : 'text-muted-foreground'
+                        ? 'border-b-2 border-blue-600 text-blue-600 font-medium'
+                        : 'text-muted-foreground'
                         }`}
                     onClick={() => setActiveTab('worklog')}
                 >
@@ -239,7 +238,7 @@ export const ReportsPage: React.FC = () => {
                                                         cx="50%"
                                                         cy="50%"
                                                         outerRadius={80}
-                                                        label={(entry) => entry.type}
+                                                        label={({ name }: { name?: string }) => name || ''}
                                                     >
                                                         {worklogData?.by_type.map((_, index) => (
                                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

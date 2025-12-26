@@ -3,7 +3,7 @@
  * Modal for creating/editing worklog entries
  * Now uses hierarchical work type categories
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
@@ -74,7 +74,6 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         },
     });
 
-    const [selectedCategoryName, setSelectedCategoryName] = useState<string>('');
     const workType = watch('work_type');
     const showMeetingType = workType === 'Meeting' || workType === 'MEETING' || workType?.includes('MTG');
 
@@ -91,7 +90,6 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                 is_business_trip: false,
                 ...initialData,
             });
-            setSelectedCategoryName('');
         }
     }, [isOpen, initialData, reset]);
 
@@ -162,7 +160,6 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                                         field.onChange(categoryId);
                                         // Also set legacy work_type for compatibility
                                         setValue('work_type', category.name);
-                                        setSelectedCategoryName(category.name_ko || category.name);
                                     }}
                                     placeholder="업무 유형 선택..."
                                     className="w-full"

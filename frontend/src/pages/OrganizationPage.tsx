@@ -24,26 +24,16 @@ import {
     updateBusinessUnit,
     getDepartments,
     getSubTeams,
-    createDepartment,
     updateDepartment,
-    deleteDepartment,
-    createSubTeam,
     updateSubTeam,
-    deleteSubTeam,
     getUsers,
     getUserHistory,
-    createUserHistory,
     updateUser,
     getHiringPlans,
     createHiringPlan,
-    updateHiringPlan,
     deleteHiringPlan,
-    type BusinessUnit,
     type Department,
-    type SubTeam,
     type UserDetails,
-    type UserHistoryEntry,
-    type HiringPlan,
 } from '@/api/client';
 import type { JobPosition } from '@/types';
 
@@ -51,7 +41,6 @@ type TabType = 'teams' | 'resources' | 'positions' | 'hiring';
 
 export const OrganizationPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('teams');
-    const queryClient = useQueryClient();
 
     return (
         <div className="container mx-auto p-4 space-y-6">
