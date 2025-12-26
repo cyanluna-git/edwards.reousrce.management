@@ -21,7 +21,7 @@ import {
   DialogDescription,
   StatusBadge,
 } from '@/components/ui';
-import ProjectUpdateForm from '@/components/forms/ProjectUpdateForm';
+import { ProjectForm } from '@/components/forms/ProjectForm';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 import {
   Briefcase,
@@ -232,7 +232,7 @@ export const ProjectDetailPage: React.FC = () => {
                 <DialogHeader>
                   <DialogTitle>Edit Project</DialogTitle>
                 </DialogHeader>
-                <ProjectUpdateForm
+                <ProjectForm
                   project={project}
                   onSuccess={() => setIsUpdateModalOpen(false)}
                   onCancel={() => setIsUpdateModalOpen(false)}

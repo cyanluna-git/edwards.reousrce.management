@@ -24,7 +24,7 @@ import {
   TabsTrigger,
   StatusBadge,
 } from '@/components/ui';
-import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
+import { ProjectForm } from '@/components/forms/ProjectForm';
 
 // Status priority for sorting (lower = higher priority)
 // const STATUS_PRIORITY: Record<string, number> = {
@@ -81,7 +81,7 @@ export function ProjectsPage() {
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
               </DialogHeader>
-              <ProjectCreateForm onSuccess={() => setIsCreateModalOpen(false)} onCancel={() => setIsCreateModalOpen(false)} />
+              <ProjectForm onSuccess={() => setIsCreateModalOpen(false)} onCancel={() => setIsCreateModalOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>
