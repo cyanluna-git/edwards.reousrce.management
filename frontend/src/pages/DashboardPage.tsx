@@ -312,7 +312,7 @@ const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {member_contributions.slice(0, 10).map((member, idx) => (
+                                    {member_contributions.slice(0, 10).map((member) => (
                                         <tr key={member.user_id} className="border-b last:border-0 hover:bg-slate-50">
                                             <td className="py-2 px-2">
                                                 <span className="font-medium">{member.korean_name || member.name}</span>

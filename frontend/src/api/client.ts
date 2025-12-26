@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Token } from '@/types';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8002/api';
 const AUTH_TOKEN_KEY = 'authToken';
 
 export const apiClient = axios.create({

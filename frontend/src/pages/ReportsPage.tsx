@@ -11,7 +11,6 @@ import {
     PieChart,
     Pie,
     Cell,
-    Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { getCapacitySummary, getWorklogSummary, CapacitySummary, WorklogSummary } from '@/api/client';
@@ -239,7 +238,7 @@ export const ReportsPage: React.FC = () => {
                                                         cx="50%"
                                                         cy="50%"
                                                         outerRadius={80}
-                                                        label={(entry) => entry.type}
+                                                        label={(entry) => entry.name}
                                                     >
                                                         {worklogData?.by_type.map((_, index) => (
                                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
