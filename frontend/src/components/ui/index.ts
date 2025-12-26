@@ -35,3 +35,4 @@ export {
   SelectSeparator,
 } from './select'
 export * from './tabs';
+export { StatusBadge } from './status-badge';

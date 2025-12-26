@@ -5,6 +5,7 @@ import { useProject, useProjectWorklogStats } from '@/hooks/useProject';
 import { useDeleteProject } from '@/hooks/useProjects';
 import { WorklogHeatmap } from '@/components/WorklogHeatmap';
 import { useMilestones, useCreateMilestone, useUpdateMilestone, useDeleteMilestone } from '@/hooks/useMilestones';
+import { MILESTONE_STATUS_COLORS } from '@/lib/constants';
 import {
   Card,
   CardContent,
@@ -17,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription
+  DialogDescription,
+  StatusBadge,
 } from '@/components/ui';
 import ProjectUpdateForm from '@/components/forms/ProjectUpdateForm';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
@@ -32,33 +34,7 @@ import {
   FileText
 } from 'lucide-react';
 
-// Status color mapping matching ProjectsPage
-const STATUS_COLORS_BADGE: Record<string, { bg: string; text: string }> = {
-  'InProgress': { bg: 'bg-green-100', text: 'text-green-800' },
-  'Planned': { bg: 'bg-blue-100', text: 'text-blue-800' },
-  'Prospective': { bg: 'bg-purple-100', text: 'text-purple-800' },
-  'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  'Completed': { bg: 'bg-gray-100', text: 'text-gray-600' },
-  'Closed': { bg: 'bg-gray-200', text: 'text-gray-500' },
-  'Cancelled': { bg: 'bg-red-100', text: 'text-red-800' },
-};
-
-// Status badge helper
-const StatusBadge = ({ status }: { status: string }) => {
-  const colors = STATUS_COLORS_BADGE[status] || { bg: 'bg-slate-100', text: 'text-slate-800' };
-
-  // Use dark mode overrides if needed, fitting the "slate" theme or keeping exact colors
-  // For consistency with ProjectsPage which doesn't seem to have explicit dark mode overrides in that map,
-  // we will map them slightly for dark mode visibility if possible, or just use the same.
-  // Assuming the user wants EXACT match to what they see in list (which might be light mode primarily),
-  // but let's add reasonable dark mode defaults:
-
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
-      {status}
-    </span>
-  );
-};
+// StatusBadge is now imported from @/components/ui
 
 // Property Row Component (Notion style)
 const PropertyRow = ({
@@ -81,12 +57,7 @@ const PropertyRow = ({
   </div>
 );
 
-// Status colors for milestones
-const STATUS_COLORS: Record<string, string> = {
-  Pending: 'bg-yellow-100 border-yellow-500 text-yellow-700',
-  Completed: 'bg-green-100 border-green-500 text-green-700',
-  Delayed: 'bg-red-100 border-red-500 text-red-700',
-};
+// Milestone status colors (imported from lib/constants, but need dot colors locally)
 
 const STATUS_DOT_COLORS: Record<string, string> = {
   Pending: 'bg-yellow-500',
@@ -400,7 +371,7 @@ export const ProjectDetailPage: React.FC = () => {
                       <div className={`absolute left-2.5 w-4 h-4 rounded-full border-2 ${STATUS_DOT_COLORS[ms.status] || 'bg-gray-500'}`} />
 
                       {/* Milestone card */}
-                      <div className={`p-3 rounded-lg border-l-4 ${STATUS_COLORS[ms.status] || 'bg-gray-100 border-gray-500'}`}>
+                      <div className={`p-3 rounded-lg border-l-4 ${MILESTONE_STATUS_COLORS[ms.status] || 'bg-gray-100 border-gray-500'}`}>
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="font-medium">{ms.name}</span>

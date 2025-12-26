@@ -22,6 +22,7 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
+  StatusBadge,
 } from '@/components/ui';
 import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
 
@@ -36,25 +37,7 @@ import ProjectCreateForm from '@/components/forms/ProjectCreateForm';
 //   'Cancelled': 7,
 // };
 
-// Status color mapping
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  'InProgress': { bg: 'bg-green-100', text: 'text-green-800' },
-  'Planned': { bg: 'bg-blue-100', text: 'text-blue-800' },
-  'Prospective': { bg: 'bg-purple-100', text: 'text-purple-800' },
-  'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  'Completed': { bg: 'bg-gray-100', text: 'text-gray-600' },
-  'Closed': { bg: 'bg-gray-200', text: 'text-gray-500' },
-  'Cancelled': { bg: 'bg-red-100', text: 'text-red-800' },
-};
-
-function StatusBadge({ status }: { status: string }) {
-  const colors = STATUS_COLORS[status] || { bg: 'bg-gray-100', text: 'text-gray-800' };
-  return (
-    <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>
-      {status}
-    </span>
-  );
-}
+// StatusBadge is now imported from @/components/ui
 
 export function ProjectsPage() {
   // Always sort by activity for now as per user request
