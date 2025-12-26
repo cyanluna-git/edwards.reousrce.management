@@ -10,11 +10,10 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Edwards Project Operation Board"
     DEBUG: bool = True
+    SQL_ECHO: bool = False  # SQLAlchemy 쿼리 로깅 (True면 모든 SQL 출력)
 
     # Database
-    DATABASE_URL: str = (
-        "postgresql://postgres:password@localhost:5432/edwards"
-    )
+    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/edwards"
 
     # JWT
     SECRET_KEY: str = "your-super-secret-key-change-in-production"

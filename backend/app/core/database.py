@@ -22,7 +22,7 @@ def get_engine():
     if _engine is None:
         _engine = create_engine(
             settings.DATABASE_URL,
-            echo=settings.DEBUG,
+            echo=settings.SQL_ECHO,  # SQL_ECHO로 분리 (기본값: False)
             pool_pre_ping=True,
             pool_recycle=300,
         )

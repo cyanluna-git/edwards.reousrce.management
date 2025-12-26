@@ -19,16 +19,8 @@ class ResourcePlanService:
 
     def _build_response(self, plan: ResourcePlan) -> dict:
         """Convert ResourcePlan model to response dict with nested info"""
-        # Get project_role name if exists
-        project_role_name = None
-        if plan.project_role_id:
-            project_role = (
-                self.db.query(ProjectRole)
-                .filter(ProjectRole.id == plan.project_role_id)
-                .first()
-            )
-            if project_role:
-                project_role_name = project_role.name
+        # Use already-loaded relationship instead of individual query
+        project_role_name = plan.project_role.name if plan.project_role else None
 
         return {
             "id": plan.id,
@@ -67,6 +59,7 @@ class ResourcePlanService:
             joinedload(ResourcePlan.project),
             joinedload(ResourcePlan.position),
             joinedload(ResourcePlan.user),
+            joinedload(ResourcePlan.project_role),
         )
 
         if project_id:
@@ -101,6 +94,7 @@ class ResourcePlanService:
                 joinedload(ResourcePlan.project),
                 joinedload(ResourcePlan.position),
                 joinedload(ResourcePlan.user),
+                joinedload(ResourcePlan.project_role),
             )
             .filter(ResourcePlan.id == plan_id)
             .first()
