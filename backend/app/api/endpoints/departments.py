@@ -100,10 +100,12 @@ class SubTeamResponse(SubTeamBase):
 
 @router.get("/business-units", response_model=List[BusinessUnitResponse])
 async def list_business_units(
-    is_active: Optional[bool] = Query(None),
+    is_active: Optional[bool] = Query(
+        True, description="Filter by active status. Default: only active."
+    ),
     db: Session = Depends(get_db),
 ):
-    """List all business units"""
+    """List all business units (default: active only)"""
     query = db.query(BusinessUnit)
     if is_active is not None:
         query = query.filter(BusinessUnit.is_active == is_active)
@@ -167,14 +169,16 @@ async def delete_business_unit(
     if not bu:
         raise HTTPException(status_code=404, detail="Business unit not found")
 
-    # Check for dependent departments
+    # Check for dependent departments (only active ones)
     dept_count = (
-        db.query(Department).filter(Department.business_unit_id == bu_id).count()
+        db.query(Department)
+        .filter(Department.business_unit_id == bu_id, Department.is_active == True)
+        .count()
     )
     if dept_count > 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete: {dept_count} departments belong to this business unit",
+            detail=f"Cannot delete: {dept_count} active departments belong to this business unit",
         )
 
     bu.is_active = False
@@ -190,10 +194,12 @@ async def delete_business_unit(
 @router.get("", response_model=List[DepartmentResponse])
 async def list_departments(
     business_unit_id: Optional[str] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    is_active: Optional[bool] = Query(
+        True, description="Filter by active status. Default: only active."
+    ),
     db: Session = Depends(get_db),
 ):
-    """List all departments with optional filters"""
+    """List all departments with optional filters (default: active only)"""
     query = db.query(Department)
     if business_unit_id:
         query = query.filter(Department.business_unit_id == business_unit_id)
@@ -277,12 +283,28 @@ async def delete_department(
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    # Check for dependent users
-    user_count = db.query(User).filter(User.department_id == department_id).count()
+    # Check for dependent sub-teams
+    subteam_count = (
+        db.query(SubTeam)
+        .filter(SubTeam.department_id == department_id, SubTeam.is_active == True)
+        .count()
+    )
+    if subteam_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot delete: {subteam_count} active sub-teams belong to this department",
+        )
+
+    # Check for dependent users (only active users)
+    user_count = (
+        db.query(User)
+        .filter(User.department_id == department_id, User.is_active == True)
+        .count()
+    )
     if user_count > 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot delete: {user_count} users belong to this department",
+            detail=f"Cannot delete: {user_count} active users belong to this department",
         )
 
     dept.is_active = False
@@ -324,10 +346,12 @@ async def get_department_members(
 @router.get("/{department_id}/sub-teams", response_model=List[SubTeamResponse])
 async def get_department_sub_teams(
     department_id: str,
-    is_active: Optional[bool] = Query(None),
+    is_active: Optional[bool] = Query(
+        True, description="Filter by active status. Default: only active."
+    ),
     db: Session = Depends(get_db),
 ):
-    """Get sub-teams of a department"""
+    """Get sub-teams of a department (default: active only)"""
     query = db.query(SubTeam).filter(SubTeam.department_id == department_id)
     if is_active is not None:
         query = query.filter(SubTeam.is_active == is_active)

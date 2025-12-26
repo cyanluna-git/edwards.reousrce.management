@@ -25,6 +25,14 @@
 - [x] Job Positions 관리 UI (`/organization`)
 - [x] Reports 기능 - Capacity/WorkLog 차트 (recharts)
 
+### Phase 7.5: 조직 관리 강화 (2024-12-27)
+- [x] 조직 CRUD - L0/L1/L2 레벨 생성/수정/삭제
+- [x] 멤버 트리 표시 - 부서별 멤버 수 뱃지, 확장 시 멤버 목록
+- [x] 계층형 조직 선택기 (`OrganizationSelect`)
+- [x] 멤버 편집 모달 재사용 (TeamsTab ↔ ResourcesTab)
+- [x] 이중 이름 표시 (한글 + 영어)
+- [x] Soft Delete API 수정 (active 항목만 반환)
+
 ---
 
 ## 📋 다음 작업 (TODO)
@@ -49,7 +57,7 @@
 ### 🟡 우선순위 중간
 - [ ] TBD → 사용자 할당 모달
 - [ ] 리소스 충돌 감지 (월별 FTE > 1.0 경고)
-- [ ] Programs 관리 UI
+- [ ] **Program/BusinessArea 관리 테이블** - Projects 관련 마스터 데이터 CRUD
 - [ ] Team 관리 (사용자/부서)
 
 ### 🟢 향후 개선
