@@ -20,14 +20,13 @@ import {
 } from '@/components/ui';
 import {
     getDepartments,
-    getSubTeams,
     getUsers,
     getUserHistory,
     updateUser,
-    type Department,
     type UserDetails,
 } from '@/api/client';
 import type { JobPosition } from '@/types';
+import { OrganizationSelect } from '@/components/OrganizationSelect';
 
 export const ResourcesTab: React.FC = () => {
     const queryClient = useQueryClient();
@@ -122,7 +121,6 @@ export const ResourcesTab: React.FC = () => {
             {editingUser && (
                 <UserEditModal
                     user={editingUser}
-                    departments={departments}
                     positions={positions}
                     onClose={() => setEditingUser(null)}
                     onSuccess={() => {
@@ -135,26 +133,19 @@ export const ResourcesTab: React.FC = () => {
     );
 };
 
-// User Edit Modal Component
-const UserEditModal: React.FC<{
+// User Edit Modal Component (exported for reuse)
+export const UserEditModal: React.FC<{
     user: UserDetails;
-    departments: Department[];
     positions: JobPosition[];
     onClose: () => void;
     onSuccess: () => void;
-}> = ({ user, departments, positions, onClose, onSuccess }) => {
+}> = ({ user, positions, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
         department_id: user.department_id,
         sub_team_id: user.sub_team_id || '',
         position_id: user.position_id,
         role: user.role,
         is_active: user.is_active,
-    });
-
-    const { data: subTeams = [] } = useQuery({
-        queryKey: ['sub-teams', formData.department_id],
-        queryFn: () => getSubTeams(formData.department_id),
-        enabled: !!formData.department_id,
     });
 
     const updateMutation = useMutation({
@@ -185,29 +176,16 @@ const UserEditModal: React.FC<{
                         <input type="text" className="w-full border rounded px-3 py-2 bg-gray-50" value={user.email} disabled />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Department *</label>
-                        <select
-                            className="w-full border rounded px-3 py-2"
-                            value={formData.department_id}
-                            onChange={(e) => setFormData({ ...formData, department_id: e.target.value, sub_team_id: '' })}
-                        >
-                            {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Sub-Team</label>
-                        <select
-                            className="w-full border rounded px-3 py-2"
-                            value={formData.sub_team_id}
-                            onChange={(e) => setFormData({ ...formData, sub_team_id: e.target.value })}
-                        >
-                            <option value="">None</option>
-                            {subTeams.map((st) => (
-                                <option key={st.id} value={st.id}>{st.name}</option>
-                            ))}
-                        </select>
+                        <label className="block text-sm font-medium mb-1">조직 *</label>
+                        <OrganizationSelect
+                            departmentId={formData.department_id}
+                            subTeamId={formData.sub_team_id || null}
+                            onChange={(deptId, stId, _displayName) => {
+                                setFormData({ ...formData, department_id: deptId, sub_team_id: stId || '' });
+                            }}
+                            placeholder="조직 선택..."
+                            className="w-full"
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Job Position *</label>
