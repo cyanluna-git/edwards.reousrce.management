@@ -4,11 +4,11 @@ services:
     image: postgres:15-alpine
     container_name: edwards-postgres
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5434}:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: edwards
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-edwards}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -20,19 +20,28 @@ services:
       dockerfile: Dockerfile
     container_name: edwards-api
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8004}:8004"
     environment:
-      DATABASE_URL: "mssql+pyodbc://sa:Edwards2024@db,1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
-      SECRET_KEY: "edwards-secret-key-change-in-production"
-      DEBUG: "true"
+      DATABASE_URL: "${DATABASE_URL:-postgresql://postgres:password@db:5432/edwards}"
+      SECRET_KEY: "${SECRET_KEY:-edwards-secret-key-change-in-production}"
+      DEBUG: "${DEBUG:-true}"
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
     depends_on:
       db:
         condition: service_started
     volumes:
-      # Hot reload: mount entire backend (except venv)
+      # Hot reload: mount entire backend source code
       - ./backend/app:/app/app
       - ./backend/alembic:/app/alembic
       - ./backend/scripts:/app/scripts
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./backend/requirements.txt:/app/requirements.txt
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
   # React Frontend (Development with Hot Reload)
@@ -43,11 +52,13 @@ services:
       target: development
     container_name: edwards-web
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3004}:3004"
     environment:
-      VITE_API_URL: "http://localhost:8000/api"
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:8004/api}"
       # Enable Vite HMR polling for Docker
       CHOKIDAR_USEPOLLING: "true"
+      # Increase Vite logging for debugging
+      DEBUG: "vite:*"
     depends_on:
       - backend
     volumes:
@@ -59,8 +70,15 @@ services:
       - ./frontend/tsconfig.json:/app/tsconfig.json
       - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
       - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/eslint.config.js:/app/eslint.config.js
       # Exclude node_modules to use container's version
       - /app/node_modules
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: unless-stopped
 
 volumes:

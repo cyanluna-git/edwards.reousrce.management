@@ -44,7 +44,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY . .
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8004
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Set Python to run in unbuffered mode for real-time logging
+ENV PYTHONUNBUFFERED=1
+
+# Run the application with detailed logging
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload", "--log-level", "debug", "--access-log"]

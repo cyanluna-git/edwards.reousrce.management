@@ -2,9 +2,52 @@
 
 EUV Program IS 리소스 운영 관리 시스템 (PoC)
 
-## 🚀 Quick Start
+## 🚀 Quick Start (추천)
 
-### Option 1: Dev Container (추천)
+### 크로스플랫폼 실행 스크립트 사용
+
+**단일 Python 스크립트로 Windows/macOS/Linux 모두 지원**
+
+```bash
+# Backend 실행 (DB + API)
+python run.py backend
+
+# Frontend 실행 (별도 터미널)
+python run.py frontend
+
+# 모든 서비스 한번에 실행
+python run.py all
+
+# 서비스 상태 확인
+python run.py status
+
+# 모든 서비스 중지
+python run.py stop
+```
+
+**접속:**
+- Frontend: http://localhost:3004
+- Backend API: http://localhost:8004
+- API Docs: http://localhost:8004/docs
+- Database: localhost:5434
+
+### 플랫폼별 스크립트 (대안)
+
+```bash
+# macOS/Linux
+./run_backend.sh
+./run_frontend.sh
+
+# Windows PowerShell
+.\run_backend.ps1
+.\run_frontend.ps1
+```
+
+---
+
+## 📋 Option: 기타 실행 방법
+
+### Option 1: Dev Container
 
 **요구사항:** VS Code + Dev Containers 확장
 
@@ -52,10 +95,6 @@ cd frontend
 pnpm install
 pnpm dev
 ```
-
-**접속:**
-- Frontend: http://localhost:3000 (또는 5173)
-- Backend API: http://localhost:8000/api/docs
 
 **기본 로그인:**
 | Email | Password |
