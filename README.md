@@ -179,6 +179,43 @@ pnpm dev --port 3004
 
 ---
 
-## 📖 Documentation
+## � 데이터베이스 백업 & 마이그레이션
+
+다른 PC로 프로젝트와 데이터를 이전하는 방법:
+
+### 1️⃣ 현재 PC에서 백업
+
+```bash
+# 데이터베이스 백업 생성 (서비스가 실행 중이어야 함)
+python3 backup_db.py
+
+# backups/edwards_backup_YYYYMMDD_HHMMSS.sql 파일 생성됨
+```
+
+### 2️⃣ 새 PC로 이전
+
+1. **프로젝트 복사**
+   ```bash
+   # 백업 파일 포함하여 전체 프로젝트 폴더 복사
+   # backups/ 폴더를 포함하여 이동
+   ```
+
+2. **새 PC에서 실행**
+   ```bash
+   # 서비스 시작 (빈 데이터베이스로 시작)
+   ./run.py all
+   
+   # 백업 복원
+   python3 restore_db.py edwards_backup_YYYYMMDD_HHMMSS.sql
+   ```
+
+### 📌 주의사항
+- 백업은 **서비스가 실행 중일 때만** 가능
+- 복원은 기존 데이터를 **완전히 삭제**하고 덮어씀 (확인 메시지 있음)
+- 백업 파일은 `.gitignore`에 포함되어 Git에 업로드되지 않음
+
+---
+
+## �📖 Documentation
 - [TODO 및 개발 계획](./TODO.md)
 - [요구사항](./requirment.md)

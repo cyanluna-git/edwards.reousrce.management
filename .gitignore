@@ -48,6 +48,11 @@ build/
 # Testing
 .coverage
 htmlcov/
+
+# Database Backups
+backups/
+*.sql
+*.sql.gz
 .pytest_cache/
 
 # Alembic
