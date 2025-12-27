@@ -18,6 +18,8 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        TARGETARCH: ${DOCKER_BUILD_ARCH:-auto}
     container_name: edwards-api
     ports:
       - "${BACKEND_PORT:-8004}:8004"
@@ -62,18 +64,13 @@ services:
     depends_on:
       - backend
     volumes:
-      # Hot reload: mount src, public, and config files
+      # Hot reload: mount src and public directories for live updates
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
       - ./frontend/index.html:/app/index.html
       - ./frontend/vite.config.ts:/app/vite.config.ts
       - ./frontend/tsconfig.json:/app/tsconfig.json
       - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
-      - ./frontend/tailwind.config.js:/app/tailwind.config.js
-      - ./frontend/package.json:/app/package.json
-      - ./frontend/eslint.config.js:/app/eslint.config.js
-      # Exclude node_modules to use container's version
-      - /app/node_modules
     logging:
       driver: "json-file"
       options:

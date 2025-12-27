@@ -1,6 +1,10 @@
 # Build stage
 FROM python:3.12-slim AS builder
 
+# Accept architecture as build argument (defaults to auto-detect)
+# Supported values: amd64, arm64, auto
+ARG TARGETARCH=auto
+
 WORKDIR /app
 
 # Install system dependencies for pyodbc
@@ -9,7 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg2 \
     unixodbc-dev \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-    && echo "deb [arch=arm64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
+    && if [ "$TARGETARCH" = "auto" ]; then ARCH=$(dpkg --print-architecture); else ARCH=$TARGETARCH; fi \
+    && echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && apt-get clean \
@@ -22,6 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Runtime stage
 FROM python:3.12-slim
 
+# Accept architecture as build argument (defaults to auto-detect)
+ARG TARGETARCH=auto
+
 WORKDIR /app
 
 # Install ODBC driver in runtime
@@ -30,7 +38,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg2 \
     unixodbc \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-    && echo "deb [arch=arm64 signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
+    && if [ "$TARGETARCH" = "auto" ]; then ARCH=$(dpkg --print-architecture); else ARCH=$TARGETARCH; fi \
+    && echo "deb [arch=${ARCH} signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && apt-get clean \

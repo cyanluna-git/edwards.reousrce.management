@@ -51,14 +51,31 @@ def load_env_file():
             sys.exit(1)
         print()
     
-    # Load environment variables
+    # Load environment variables with encoding fallbacks to avoid Unicode errors
     print_colored("[INFO] Loading environment variables from .env file...", Colors.GREEN)
-    with open(env_path, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                os.environ[key.strip()] = value.strip()
+
+    def _read_env_lines(path):
+        encodings = ['utf-8', 'utf-8-sig', 'cp949', 'latin-1']
+        for enc in encodings:
+            try:
+                with open(path, 'r', encoding=enc) as f:
+                    return f.readlines()
+            except UnicodeDecodeError:
+                continue
+            except Exception:
+                # If other IO errors occur, re-raise
+                raise
+
+        # Last resort: read as binary and decode replacing invalid bytes
+        with open(path, 'rb') as f:
+            data = f.read()
+        return data.decode('utf-8', errors='replace').splitlines()
+
+    for line in _read_env_lines(env_path):
+        line = line.strip()
+        if line and not line.startswith('#') and '=' in line:
+            key, value = line.split('=', 1)
+            os.environ[key.strip()] = value.strip()
 
 
 def check_docker():
