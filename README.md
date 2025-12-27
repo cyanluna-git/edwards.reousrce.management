@@ -2,104 +2,128 @@
 
 EUV Program IS 리소스 운영 관리 시스템 (PoC)
 
-## 🚀 Quick Start (추천)
+## 🚀 Quick Start
 
-### 크로스플랫폼 실행 스크립트 사용
-
-**단일 Python 스크립트로 Windows/macOS/Linux 모두 지원**
+### 1️⃣ 환경 설정
 
 ```bash
-# Backend 실행 (DB + API)
-python run.py backend
+# 저장소 클론
+git clone <repository-url>
+cd edwards.engineering_operation_managenent
 
-# Frontend 실행 (별도 터미널)
-python run.py frontend
-
-# 모든 서비스 한번에 실행
-python run.py all
-
-# 서비스 상태 확인
-python run.py status
-
-# 모든 서비스 중지
-python run.py stop
+# 환경 변수 파일 생성 (자동으로 생성됨)
+# .env 파일이 없으면 첫 실행 시 .env.example에서 자동 복사
 ```
 
-**접속:**
-- Frontend: http://localhost:3004
-- Backend API: http://localhost:8004
-- API Docs: http://localhost:8004/docs
-- Database: localhost:5434
+### 2️⃣ 서비스 실행
 
-### 플랫폼별 스크립트 (대안)
+**방법 1: 직접 실행 (가장 간단)**
+```bash
+./run.py backend      # Backend + Database 시작
+./run.py frontend     # Frontend 시작 (별도 터미널)
+./run.py all          # 모든 서비스 한번에 시작
+```
+
+**방법 2: python3 명령어**
+```bash
+python3 run.py backend
+python3 run.py frontend
+python3 run.py all
+```
+
+### 3️⃣ 서비스 관리
 
 ```bash
-# macOS/Linux
-./run_backend.sh
-./run_frontend.sh
+./run.py status       # 서비스 상태 확인
+./run.py stop         # 모든 서비스 중지
+./run.py help         # 도움말 보기
+```
 
-# Windows PowerShell
-.\run_backend.ps1
-.\run_frontend.ps1
+### 4️⃣ 접속
+
+| 서비스 | URL |
+|--------|-----|
+| **Frontend** | http://localhost:3004 |
+| **Backend API** | http://localhost:8004 |
+| **API Docs** | http://localhost:8004/docs |
+| **Database** | localhost:5434 |
+
+**기본 로그인:**
+- Email: `admin@edwards.com`
+- Password: `password`
+
+---
+
+## ⚙️ 포트 설정
+
+모든 포트는 `.env` 파일에서 변경 가능:
+
+```env
+DB_PORT=5434          # PostgreSQL
+BACKEND_PORT=8004     # FastAPI
+FRONTEND_PORT=3004    # Vite/React
 ```
 
 ---
 
-## 📋 Option: 기타 실행 방법
+## 🔧 기타 실행 방법
 
-### Option 1: Dev Container
+<details>
+<summary>Docker Compose 직접 사용</summary>
+
+```bash
+# 서비스 시작
+docker-compose up -d
+
+# 로그 확인
+docker-compose logs -f
+
+# 특정 서비스만 시작
+docker-compose up -d backend
+docker-compose up -d frontend
+
+# 서비스 중지
+docker-compose down
+```
+</details>
+
+<details>
+<summary>Dev Container (VS Code)</summary>
 
 **요구사항:** VS Code + Dev Containers 확장
 
 1. VS Code에서 프로젝트 폴더 열기
-2. `Cmd+Shift+P` → "Dev Containers: Reopen in Container" 선택
-3. 컨테이너 빌드 완료 후 자동으로 종속성 설치됨
+2. `Cmd+Shift+P` → "Dev Containers: Reopen in Container"
+3. 컨테이너 빌드 후 터미널에서:
+   ```bash
+   # Backend
+   cd backend && uvicorn app.main:app --reload --host 0.0.0.0
+   
+   # Frontend (새 터미널)
+   cd frontend && pnpm dev --host
+   ```
+</details>
 
-**개발 서버 실행:**
-```bash
-# Terminal 1: Backend
-cd backend && uvicorn app.main:app --reload --host 0.0.0.0
-
-# Terminal 2: Frontend
-cd frontend && pnpm dev --host
-```
-
-### Option 2: Docker Compose
-
-```bash
-# 환경 변수 복사
-cp .env.example .env
-
-# 컨테이너 빌드 및 실행
-docker compose up -d
-
-# 로그 확인
-docker compose logs -f
-```
-
-### Option 3: 로컬 개발 (Manual)
+<details>
+<summary>로컬 개발 (Docker 없이)</summary>
 
 ```bash
-# Database (PostgreSQL)
-docker compose up db -d
+# PostgreSQL 시작 (Docker 사용)
+docker-compose up -d db
 
 # Backend
 cd backend
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-RESET_DB=true ./run_local.sh
+uvicorn app.main:app --reload --port 8004
 
 # Frontend (새 터미널)
 cd frontend
 pnpm install
-pnpm dev
+pnpm dev --port 3004
 ```
-
-**기본 로그인:**
-| Email | Password |
-|-------|----------|
-| admin@edwards.com | password |
+</details>
 
 ---
 

@@ -42,13 +42,7 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        # Azure Static Web Apps - 배포 후 실제 URL로 변경하세요
-        "https://*.azurestaticapps.net",
-        "https://edwards-web.azurestaticapps.net",
-    ],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

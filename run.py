@@ -1,4 +1,4 @@
-a#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Edwards Engineering Operation Management - Service Runner
 Cross-platform script to run backend and frontend services with Docker
