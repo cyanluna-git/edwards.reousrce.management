@@ -46,7 +46,8 @@ class BusinessUnitResponse(BusinessUnitBase):
 class DepartmentBase(BaseModel):
     name: str
     code: str
-    business_unit_id: str
+    business_unit_id: Optional[str] = None
+
     is_active: bool = True
 
 
@@ -214,14 +215,15 @@ async def create_department(
     db: Session = Depends(get_db),
 ):
     """Create a new department"""
-    # Verify business unit exists
-    bu = (
-        db.query(BusinessUnit)
-        .filter(BusinessUnit.id == dept_in.business_unit_id)
-        .first()
-    )
-    if not bu:
-        raise HTTPException(status_code=400, detail="Business unit not found")
+    # Verify business unit exists (only if provided)
+    if dept_in.business_unit_id:
+        bu = (
+            db.query(BusinessUnit)
+            .filter(BusinessUnit.id == dept_in.business_unit_id)
+            .first()
+        )
+        if not bu:
+            raise HTTPException(status_code=400, detail="Business unit not found")
 
     dept = Department(
         id=f"DEPT_{dept_in.code.upper()}",

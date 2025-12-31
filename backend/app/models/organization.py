@@ -44,7 +44,7 @@ class Department(Base):
 
     id = Column(String(50), primary_key=True)
     business_unit_id = Column(
-        String(50), ForeignKey("business_units.id"), nullable=False
+        String(50), ForeignKey("business_units.id"), nullable=True
     )
     name = Column(String(100), nullable=False)  # NVARCHAR
     code = Column(String(50), unique=True, nullable=False)

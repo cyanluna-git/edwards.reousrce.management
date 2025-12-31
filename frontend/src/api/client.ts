@@ -105,6 +105,50 @@ export const getProductLines = async (): Promise<ProductLine[]> => {
   return response.data;
 };
 
+export const createProductLine = async (data: Omit<ProductLine, 'id'>): Promise<ProductLine> => {
+  // @ts-ignore - Create type matches omit id
+  const response = await apiClient.post('/projects/product-lines', data);
+  return response.data;
+};
+
+export const updateProductLine = async (id: string, data: Partial<ProductLine>): Promise<ProductLine> => {
+  const response = await apiClient.put(`/projects/product-lines/${id}`, data);
+  return response.data;
+};
+
+export const deleteProductLine = async (id: string): Promise<void> => {
+  await apiClient.delete(`/projects/product-lines/${id}`);
+};
+
+// ============ Projects API ============
+import type { Project, ProjectCreate, ProjectUpdate } from '@/types';
+
+export const getProjects = async (params?: any): Promise<Project[]> => {
+  const response = await apiClient.get('/projects', { params });
+  return response.data;
+};
+
+export const createProject = async (data: ProjectCreate): Promise<Project> => {
+  const response = await apiClient.post('/projects', data);
+  return response.data;
+};
+
+export const updateProject = async (id: string, data: ProjectUpdate): Promise<Project> => {
+  const response = await apiClient.put(`/projects/${id}`, data);
+  return response.data;
+};
+
+export const deleteProject = async (id: string): Promise<void> => {
+  await apiClient.delete(`/projects/${id}`);
+};
+
+export const getProject = async (id: string): Promise<Project> => {
+  const response = await apiClient.get(`/projects/${id}`);
+  return response.data;
+};
+
+
+
 // ============ Resource Plans API ============
 
 import type { ResourcePlan, ResourcePlanCreate, ResourcePlanUpdate, ResourcePlanAssign, JobPosition } from '@/types';

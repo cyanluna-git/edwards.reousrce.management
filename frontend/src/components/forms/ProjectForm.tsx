@@ -51,18 +51,20 @@ interface ProjectFormProps {
     project?: Project;
     onSuccess?: () => void;
     onCancel?: () => void;
+    initialValues?: Partial<ProjectFormData>;
 }
 
 // ============================================================
 // Component
 // ============================================================
 
-export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel }) => {
+export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel, initialValues }) => {
     const isEditMode = !!project;
 
     const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ProjectFormData>({
-        defaultValues: isEditMode ? undefined : { status: 'Prospective' },
+        defaultValues: isEditMode ? undefined : { status: 'Prospective', ...initialValues },
     });
+
 
     const createMutation = useCreateProject();
     const updateMutation = useUpdateProject();

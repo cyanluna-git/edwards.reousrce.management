@@ -19,10 +19,12 @@ from app.models.project import (
 from app.models.resource import WorkLog
 from app.models.organization import BusinessUnit as BusinessUnitModel
 from app.schemas.project import (
-    ProjectCreate,
-    ProjectUpdate,
     MilestoneCreate,
     MilestoneUpdate,
+    ProductLineCreate,
+    ProductLineUpdate,
+    ProjectCreate,
+    ProjectUpdate,
 )
 
 
@@ -246,6 +248,53 @@ class ProjectService:
             .all()
         )
 
+    # ============ Product Line Methods ============
+
+    def create_product_line(
+        self, product_line_in: ProductLineCreate
+    ) -> ProductLineModel:
+        """Create a new product line."""
+        db_pl = ProductLineModel(id=str(uuid.uuid4()), **product_line_in.model_dump())
+        self.db.add(db_pl)
+        self.db.commit()
+        self.db.refresh(db_pl)
+        return db_pl
+
+    def update_product_line(
+        self, product_line_id: str, product_line_in: ProductLineUpdate
+    ) -> Optional[ProductLineModel]:
+        """Update an existing product line."""
+        db_pl = (
+            self.db.query(ProductLineModel)
+            .filter(ProductLineModel.id == product_line_id)
+            .first()
+        )
+        if not db_pl:
+            return None
+
+        update_data = product_line_in.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_pl, key, value)
+
+        self.db.add(db_pl)
+        self.db.commit()
+        self.db.refresh(db_pl)
+        return db_pl
+
+    def delete_product_line(self, product_line_id: str) -> bool:
+        """Delete a product line."""
+        db_pl = (
+            self.db.query(ProductLineModel)
+            .filter(ProductLineModel.id == product_line_id)
+            .first()
+        )
+        if not db_pl:
+            return False
+
+        self.db.delete(db_pl)
+        self.db.commit()
+        return True
+
     # ============ Worklog Statistics Methods ============
 
     def get_worklog_stats(self, project_id: str) -> List[dict]:
@@ -336,16 +385,16 @@ class ProjectService:
                         }
                     )
 
-            if bu_children:
-                product_projects.append(
-                    {
-                        "id": bu.id,
-                        "code": bu.code,
-                        "name": bu.name,
-                        "type": "business_unit",
-                        "children": bu_children,
-                    }
-                )
+            # Always append BU, even if empty, so it can be managed in the ProjectHierarchyEditor
+            product_projects.append(
+                {
+                    "id": bu.id,
+                    "code": bu.code,
+                    "name": bu.name,
+                    "type": "business_unit",
+                    "children": bu_children,
+                }
+            )
 
         # Build Functional Projects tree (filtered by department if provided)
         functional_query = self.db.query(Project).filter(

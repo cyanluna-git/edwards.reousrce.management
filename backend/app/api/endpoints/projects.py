@@ -17,8 +17,11 @@ from app.schemas.project import (
     Program,
     ProjectType,
     ProductLine,
+    ProductLineCreate,
+    ProductLineUpdate,
     WorklogStats,
 )
+
 from app.services.project_service import ProjectService
 
 router = APIRouter()
@@ -79,6 +82,57 @@ async def get_product_line_hierarchy(db: Session = Depends(get_db)):
     """
     service = ProjectService(db)
     return service.get_product_line_hierarchy()
+
+
+@router.post(
+    "/product-lines", response_model=ProductLine, status_code=status.HTTP_201_CREATED
+)
+async def create_product_line(
+    product_line_in: ProductLineCreate, db: Session = Depends(get_db)
+):
+    """
+    Create a new product line
+    """
+    service = ProjectService(db)
+    try:
+        new_pl = service.create_product_line(product_line_in)
+        return new_pl
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.put("/product-lines/{product_line_id}", response_model=ProductLine)
+async def update_product_line(
+    product_line_id: str,
+    product_line_in: ProductLineUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Update a product line
+    """
+    service = ProjectService(db)
+    updated_pl = service.update_product_line(product_line_id, product_line_in)
+    if not updated_pl:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product line not found"
+        )
+    return updated_pl
+
+
+@router.delete(
+    "/product-lines/{product_line_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_product_line(product_line_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a product line
+    """
+    service = ProjectService(db)
+    success = service.delete_product_line(product_line_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Product line not found"
+        )
+    return None
 
 
 # ============ Project CRUD Endpoints ============

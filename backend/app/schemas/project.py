@@ -52,6 +52,22 @@ class ProductLine(BaseModel):
         from_attributes = True
 
 
+class ProductLineCreate(BaseModel):
+    name: str
+    code: str
+    business_unit_id: Optional[str] = None
+    line_category: Optional[str] = "PRODUCT"
+    description: Optional[str] = None
+
+
+class ProductLineUpdate(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    business_unit_id: Optional[str] = None
+    line_category: Optional[str] = None
+    description: Optional[str] = None
+
+
 # Base schema for Project
 class ProjectBase(BaseModel):
     program_id: str
