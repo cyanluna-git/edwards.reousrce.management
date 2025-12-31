@@ -1109,62 +1109,91 @@ def init_data(db: Session):
     print("Project Types created.")
 
     # ============================================================
-    # 7.5 Product Lines (제품군)
+    # 7.5 Product Lines (제품군) - Updated with business_unit_id
     # ============================================================
     product_lines_data = [
+        # Integrated System (BU_IS)
         {
             "id": "PL_GEN3",
             "name": "Gen3",
             "code": "GEN3",
             "description": "Generation 3 EUV Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_GEN3P",
             "name": "Gen3+",
             "code": "GEN3+",
             "description": "Generation 3+ EUV Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_GEN4",
             "name": "Gen4",
             "code": "GEN4",
             "description": "Generation 4 EUV Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_RUBY",
             "name": "Ruby",
             "code": "RUBY",
             "description": "Ruby IS Platform",
-        },
-        {
-            "id": "PL_PROTRON",
-            "name": "Protron",
-            "code": "PROTRON",
-            "description": "Protron Abatement Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_HAVASU",
             "name": "Havasu",
             "code": "HAVASU",
             "description": "Havasu IS Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_TUMALO",
             "name": "Tumalo",
             "code": "TUMALO",
             "description": "Tumalo EUV Platform",
+            "business_unit_id": "BU_IS",
+            "line_category": "PRODUCT",
+        },
+        {
+            "id": "PL_EUV_LEGACY",
+            "name": "EUV Legacy (Gen2/Gen3)",
+            "code": "EUV_LEGACY",
+            "description": "Legacy EUV Support spanning Gen2 and Gen3",
+            "business_unit_id": "BU_IS",
+            "line_category": "LEGACY",
+        },
+        # Abatement (BU_ABT)
+        {
+            "id": "PL_PROTRON",
+            "name": "Protron",
+            "code": "PROTRON",
+            "description": "Protron Abatement Platform",
+            "business_unit_id": "BU_ABT",
+            "line_category": "PRODUCT",
         },
         {
             "id": "PL_ALTO",
             "name": "Alto",
             "code": "ALTO",
             "description": "Alto Abatement Platform",
+            "business_unit_id": "BU_ABT",
+            "line_category": "PRODUCT",
         },
+        # ACM (BU_ACM)
         {
             "id": "PL_ATLAS",
             "name": "Atlas",
             "code": "ATLAS",
             "description": "Atlas Cryopump Platform",
+            "business_unit_id": "BU_ACM",
+            "line_category": "PRODUCT",
         },
     ]
     for pl_data in product_lines_data:

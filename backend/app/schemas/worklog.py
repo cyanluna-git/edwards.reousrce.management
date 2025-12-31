@@ -14,8 +14,10 @@ class WorkLogBase(BaseModel):
     """Base schema for WorkLog"""
 
     date: date
-    project_id: str
+    project_id: Optional[str] = None  # Made optional for non-project work
+    product_line_id: Optional[str] = None  # NEW: Direct product line support work
     work_type: str
+    work_type_category_id: Optional[int] = None
     hours: float = Field(..., gt=0, le=24)
     description: Optional[str] = None
     meeting_type: Optional[str] = None
@@ -34,7 +36,9 @@ class WorkLogUpdate(BaseModel):
 
     date: Optional[date] = None
     project_id: Optional[str] = None
+    product_line_id: Optional[str] = None  # NEW
     work_type: Optional[str] = None
+    work_type_category_id: Optional[int] = None
     hours: Optional[float] = Field(None, gt=0, le=24)
     description: Optional[str] = None
     meeting_type: Optional[str] = None
@@ -64,8 +68,11 @@ class WorkLog(WorkLogBase):
     project_name: Optional[str] = None
     project: Optional["Project"] = None
 
+    # Product line info (NEW)
+    product_line_name: Optional[str] = None
+    product_line_code: Optional[str] = None
+
     # Work Type Category
-    work_type_category_id: Optional[int] = None
     work_type_category: Optional["WorkTypeCategoryFlat"] = None
 
     class Config:

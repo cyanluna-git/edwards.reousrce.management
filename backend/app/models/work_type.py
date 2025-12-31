@@ -30,6 +30,11 @@ class WorkTypeCategory(Base):
     # e.g., "SW_ENGINEER,SYSTEM_ENGINEER" or null for universal
     applicable_roles = Column(String(500), nullable=True)
 
+    # NEW: 프로젝트/제품군 선택 필수 여부
+    # True = 프로젝트 또는 제품군 선택 필수
+    # False = 프로젝트 선택 없이도 WorkLog 입력 가능 (일반 행정 등)
+    project_required = Column(Boolean, default=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

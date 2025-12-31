@@ -7,3 +7,5 @@ export { WorkLogTablePage } from './WorkLogTablePage';
 export { ResourcePlansPage } from './ResourcePlansPage';
 export { OrganizationPage } from './OrganizationPage';
 export { ReportsPage } from './ReportsPage';
+export { ProjectAdminPage } from './ProjectAdminPage';
+

@@ -1,9 +1,9 @@
 /**
  * WorkLog Entry Modal Component
  * Modal for creating/editing worklog entries
- * Now uses hierarchical work type categories
+ * Now uses hierarchical work type categories and project/product line selection
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
@@ -16,7 +16,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WorkTypeCategorySelect } from '@/components/WorkTypeCategorySelect';
-import type { WorkLogCreate, WorkLogUpdate, Project } from '@/types';
+import { ProjectHierarchySelect } from '@/components/ProjectHierarchySelect';
+import type { WorkLogCreate, WorkLogUpdate, Project, WorkTypeCategory } from '@/types';
 
 const MEETING_TYPES = [
     { value: 'DECISION_MAKING', label: 'Decision Making' },
@@ -27,7 +28,8 @@ const MEETING_TYPES = [
 ];
 
 interface WorkLogFormData {
-    project_id: string;
+    project_id?: string | null;
+    product_line_id?: string | null;
     work_type: string;
     work_type_category_id?: number;
     hours: number;
@@ -55,14 +57,16 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
     onSubmit,
     date,
     userId,
-    projects,
+    projects: _projects,  // Kept for backward compatibility but using hierarchy now
     initialData,
     isEditing = false,
     isLoading = false,
 }) => {
+
     const { register, handleSubmit, watch, reset, control, setValue, formState: { errors } } = useForm<WorkLogFormData>({
         defaultValues: {
-            project_id: '',
+            project_id: null,
+            product_line_id: null,
             work_type: '',
             work_type_category_id: undefined,
             hours: 1,
@@ -74,13 +78,17 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         },
     });
 
+    const [projectRequired, setProjectRequired] = useState(true);
+
+
     const workType = watch('work_type');
     const showMeetingType = workType === 'Meeting' || workType === 'MEETING' || workType?.includes('MTG');
 
     useEffect(() => {
         if (isOpen) {
             reset({
-                project_id: '',
+                project_id: null,
+                product_line_id: null,
                 work_type: '',
                 work_type_category_id: undefined,
                 hours: 1,
@@ -90,24 +98,67 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                 is_business_trip: false,
                 ...initialData,
             });
+            setProjectRequired(true);
         }
     }, [isOpen, initialData, reset]);
 
+
     const handleFormSubmit = (data: WorkLogFormData) => {
+        // Clean up null values
+        const cleanData = {
+            ...data,
+            project_id: data.project_id || undefined,
+            product_line_id: data.product_line_id || undefined,
+        };
+
         if (isEditing) {
-            onSubmit(data as WorkLogUpdate);
+            onSubmit(cleanData as WorkLogUpdate);
         } else {
             onSubmit({
-                ...data,
+                ...cleanData,
                 date,
                 user_id: userId,
             } as WorkLogCreate);
         }
     };
 
+    const handleProjectChange = (projectId: string | null) => {
+        setValue('project_id', projectId);
+        if (projectId) {
+            setValue('product_line_id', null);
+        }
+    };
+
+    const handleProductLineChange = (productLineId: string | null) => {
+        setValue('product_line_id', productLineId);
+        if (productLineId) {
+            setValue('project_id', null);
+        }
+    };
+
+    const handleWorkTypeCategoryChange = (categoryId: number, category: WorkTypeCategory) => {
+        setValue('work_type_category_id', categoryId);
+        setValue('work_type', category.name);
+
+        // Update project required based on category
+        // Note: project_required comes from backend, default to true if not set
+        const required = category.project_required !== false;
+        setProjectRequired(required);
+    };
+
+
+    const watchProjectId = watch('project_id');
+    const watchProductLineId = watch('product_line_id');
+
+    // Validate project/product line selection
+    const isProjectSelectionValid = () => {
+        if (!projectRequired) return true;
+        return !!watchProjectId || !!watchProductLineId;
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[500px] bg-background border shadow-lg">
+            <DialogContent className="sm:max-w-[550px] bg-background border shadow-lg">
                 <DialogHeader>
                     <DialogTitle>
                         {isEditing ? 'Edit WorkLog' : 'Add WorkLog'} - {date}
@@ -115,38 +166,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="project_id">Project *</Label>
-                        <select
-                            id="project_id"
-                            className="w-full p-2 border rounded-md bg-background"
-                            {...register('project_id', { required: 'Project is required' })}
-                        >
-                            <option value="">Select a project...</option>
-                            <optgroup label="Projects">
-                                {projects
-                                    .filter(p => !p.category || p.category === 'PROJECT')
-                                    .map((project) => (
-                                        <option key={project.id} value={project.id}>
-                                            {project.code} - {project.name}
-                                        </option>
-                                    ))}
-                            </optgroup>
-                            <optgroup label="Functional Activities">
-                                {projects
-                                    .filter(p => p.category === 'FUNCTIONAL')
-                                    .map((project) => (
-                                        <option key={project.id} value={project.id}>
-                                            {project.code} - {project.name}
-                                        </option>
-                                    ))}
-                            </optgroup>
-                        </select>
-                        {errors.project_id && (
-                            <p className="text-red-500 text-sm">{errors.project_id.message}</p>
-                        )}
-                    </div>
-
+                    {/* Step 1: Work Type Selection (Always First) */}
                     <div className="space-y-2">
                         <Label>Work Type *</Label>
                         <Controller
@@ -158,8 +178,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                                     value={field.value}
                                     onChange={(categoryId, category) => {
                                         field.onChange(categoryId);
-                                        // Also set legacy work_type for compatibility
-                                        setValue('work_type', category.name);
+                                        handleWorkTypeCategoryChange(categoryId, category);
                                     }}
                                     placeholder="업무 유형 선택..."
                                     className="w-full"
@@ -168,6 +187,41 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                         />
                         {errors.work_type_category_id && (
                             <p className="text-red-500 text-sm">{errors.work_type_category_id.message}</p>
+                        )}
+                    </div>
+
+                    {/* Step 2: Project / Product Line Selection */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label>
+                                프로젝트 / 제품군 {projectRequired ? '*' : '(선택사항)'}
+                            </Label>
+                            {!projectRequired && (
+                                <span className="text-xs text-muted-foreground">
+                                    이 업무 유형은 프로젝트 선택이 선택사항입니다
+                                </span>
+                            )}
+                        </div>
+                        <Controller
+                            name="project_id"
+                            control={control}
+                            rules={{
+                                validate: () => isProjectSelectionValid() || '프로젝트 또는 제품군을 선택해주세요'
+                            }}
+                            render={({ field }) => (
+                                <ProjectHierarchySelect
+                                    projectId={field.value}
+                                    productLineId={watchProductLineId}
+                                    onProjectChange={handleProjectChange}
+                                    onProductLineChange={handleProductLineChange}
+                                    projectRequired={projectRequired}
+                                    placeholder={projectRequired ? '프로젝트/제품군 선택 (필수)...' : '프로젝트/제품군 선택 (선택사항)...'}
+                                    className="w-full"
+                                />
+                            )}
+                        />
+                        {errors.project_id && projectRequired && (
+                            <p className="text-red-500 text-sm">{errors.project_id.message}</p>
                         )}
                     </div>
 

@@ -54,6 +54,33 @@ async def list_product_lines(db: Session = Depends(get_db)):
     return service.get_product_lines()
 
 
+@router.get("/hierarchy")
+async def get_project_hierarchy(
+    user_department_id: Optional[str] = Query(
+        None, description="Filter functional projects by department"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Get project hierarchy for WorkLog entry.
+    Returns:
+    - product_projects: Business Unit -> Product Line -> Projects tree
+    - functional_projects: Department -> Projects tree (filtered by user's department)
+    """
+    service = ProjectService(db)
+    return service.get_project_hierarchy(user_department_id=user_department_id)
+
+
+@router.get("/product-lines/hierarchy")
+async def get_product_line_hierarchy(db: Session = Depends(get_db)):
+    """
+    Get product line hierarchy for direct product support selection.
+    Returns: Business Unit -> Product Lines tree
+    """
+    service = ProjectService(db)
+    return service.get_product_line_hierarchy()
+
+
 # ============ Project CRUD Endpoints ============
 
 

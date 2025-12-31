@@ -34,6 +34,7 @@ class BusinessUnit(Base):
     # Relationships
     departments = relationship("Department", back_populates="business_unit")
     programs = relationship("Program", back_populates="business_unit")
+    product_lines = relationship("ProductLine", back_populates="business_unit")  # NEW
 
 
 class Department(Base):
@@ -55,6 +56,9 @@ class Department(Base):
     business_unit = relationship("BusinessUnit", back_populates="departments")
     sub_teams = relationship("SubTeam", back_populates="department")
     users = relationship("User", back_populates="department")
+    owned_projects = relationship(
+        "Project", back_populates="owner_department"
+    )  # NEW: Functional Projects
 
 
 class SubTeam(Base):

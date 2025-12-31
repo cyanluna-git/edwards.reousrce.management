@@ -44,6 +44,8 @@ class ProductLine(BaseModel):
     id: str
     name: str
     code: str
+    business_unit_id: Optional[str] = None  # NEW
+    line_category: Optional[str] = "PRODUCT"  # NEW: PRODUCT, PLATFORM, LEGACY
     description: Optional[str] = None
 
     class Config:
@@ -59,9 +61,10 @@ class ProjectBase(BaseModel):
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
     )
-    category: Optional[str] = "PROJECT"  # PROJECT, FUNCTIONAL
+    category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
     product_line_id: Optional[str] = None
+    owner_department_id: Optional[str] = None  # NEW: Required for FUNCTIONAL projects
     pm_id: Optional[str] = None
     start_month: Optional[str] = None  # YYYY-MM format
     end_month: Optional[str] = None  # YYYY-MM format
@@ -85,6 +88,7 @@ class ProjectUpdate(BaseModel):
     category: Optional[str] = None
     scale: Optional[str] = None
     product_line_id: Optional[str] = None
+    owner_department_id: Optional[str] = None  # NEW
     pm_id: Optional[str] = None
     start_month: Optional[str] = None
     end_month: Optional[str] = None

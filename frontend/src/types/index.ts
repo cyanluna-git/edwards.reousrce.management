@@ -85,8 +85,11 @@ export interface ProductLine {
     id: string
     name: string
     code: string
+    business_unit_id?: string  // NEW
+    line_category?: 'PRODUCT' | 'PLATFORM' | 'LEGACY'  // NEW
     description?: string
 }
+
 
 export type ProjectStatus = 'Prospective' | 'Planned' | 'InProgress' | 'OnHold' | 'Cancelled' | 'Completed'
 export type ProjectScale = 'CIP' | 'A&D' | 'Simple' | 'Complex' | 'Platform'
@@ -98,8 +101,9 @@ export interface ProjectBase {
     name: string
     status: ProjectStatus
     scale?: ProjectScale
-    category?: 'PROJECT' | 'FUNCTIONAL'
+    category?: 'PRODUCT' | 'FUNCTIONAL'
     product_line_id?: string
+    owner_department_id?: string  // NEW: Functional project owner
     pm_id?: string
     start_month?: string  // YYYY-MM format
     end_month?: string  // YYYY-MM format
@@ -107,6 +111,7 @@ export interface ProjectBase {
     product?: string
     description?: string
 }
+
 
 export interface ProjectCreate extends ProjectBase { }
 
@@ -224,13 +229,16 @@ export interface WorkTypeCategory {
     parent?: WorkTypeCategory
     children?: WorkTypeCategory[]
     applicable_roles?: string
+    project_required?: boolean  // NEW: Whether project/product line selection is required
 }
+
 
 export interface WorkLog {
     id: number
     date: string
     user_id: string
-    project_id: string
+    project_id?: string  // Made optional
+    product_line_id?: string  // NEW: Direct product line support
     work_type: string
     hours: number
     description?: string
@@ -241,17 +249,23 @@ export interface WorkLog {
     updated_at?: string
     project_code?: string
     project_name?: string
+    product_line_name?: string  // NEW
+    product_line_code?: string  // NEW
     user?: User
     project?: Project
+    product_line?: ProductLine  // NEW
     work_type_category_id?: number
     work_type_category?: WorkTypeCategory
 }
 
+
 export interface WorkLogCreate {
     date: string
     user_id: string
-    project_id: string
+    project_id?: string  // Made optional
+    product_line_id?: string  // NEW
     work_type: string
+    work_type_category_id?: number
     hours: number
     description?: string
     meeting_type?: string
@@ -259,16 +273,20 @@ export interface WorkLogCreate {
     is_business_trip?: boolean
 }
 
+
 export interface WorkLogUpdate {
     date?: string
     project_id?: string
+    product_line_id?: string  // NEW
     work_type?: string
+    work_type_category_id?: number
     hours?: number
     description?: string
     meeting_type?: string
     is_sudden_work?: boolean
     is_business_trip?: boolean
 }
+
 
 export interface ProjectSummary {
     project_id: string

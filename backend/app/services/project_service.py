@@ -270,3 +270,170 @@ class ProjectService:
             }
             for row in results
         ]
+
+    # ============ Hierarchy Methods for WorkLog Entry ============
+
+    def get_project_hierarchy(self, user_department_id: Optional[str] = None) -> dict:
+        """
+        Get project hierarchy for WorkLog entry.
+        Returns a structure with:
+        - product_projects: Business Unit -> Product Line -> Projects
+        - functional_projects: Department -> Projects (filtered by user's department)
+        """
+        from app.models.organization import Department as DepartmentModel
+
+        # Build Product Projects tree
+        business_units = (
+            self.db.query(BusinessUnitModel)
+            .filter(BusinessUnitModel.is_active == True)
+            .order_by(BusinessUnitModel.name)
+            .all()
+        )
+
+        product_projects = []
+        for bu in business_units:
+            # Get product lines for this BU
+            product_lines = (
+                self.db.query(ProductLineModel)
+                .filter(
+                    ProductLineModel.business_unit_id == bu.id,
+                    ProductLineModel.is_active == True,
+                )
+                .order_by(ProductLineModel.name)
+                .all()
+            )
+
+            bu_children = []
+            for pl in product_lines:
+                # Get projects for this product line
+                projects = (
+                    self.db.query(Project)
+                    .filter(
+                        Project.product_line_id == pl.id, Project.category == "PRODUCT"
+                    )
+                    .order_by(Project.code)
+                    .all()
+                )
+
+                if projects:
+                    pl_children = [
+                        {
+                            "id": p.id,
+                            "code": p.code,
+                            "name": p.name,
+                            "status": p.status,
+                            "type": "project",
+                        }
+                        for p in projects
+                    ]
+                    bu_children.append(
+                        {
+                            "id": pl.id,
+                            "code": pl.code,
+                            "name": pl.name,
+                            "type": "product_line",
+                            "children": pl_children,
+                        }
+                    )
+
+            if bu_children:
+                product_projects.append(
+                    {
+                        "id": bu.id,
+                        "code": bu.code,
+                        "name": bu.name,
+                        "type": "business_unit",
+                        "children": bu_children,
+                    }
+                )
+
+        # Build Functional Projects tree (filtered by department if provided)
+        functional_query = self.db.query(Project).filter(
+            Project.category == "FUNCTIONAL"
+        )
+
+        if user_department_id:
+            functional_query = functional_query.filter(
+                Project.owner_department_id == user_department_id
+            )
+
+        functional_projects_db = functional_query.order_by(Project.code).all()
+
+        # Group by department
+        dept_map: dict[str, Any] = {}
+        for p in functional_projects_db:
+            if p.owner_department_id:
+                if p.owner_department_id not in dept_map:
+                    dept = (
+                        self.db.query(DepartmentModel)
+                        .filter(DepartmentModel.id == p.owner_department_id)
+                        .first()
+                    )
+                    dept_map[p.owner_department_id] = {
+                        "id": dept.id if dept else p.owner_department_id,
+                        "name": dept.name if dept else "Unknown",
+                        "type": "department",
+                        "children": [],
+                    }
+                dept_map[p.owner_department_id]["children"].append(
+                    {
+                        "id": p.id,
+                        "code": p.code,
+                        "name": p.name,
+                        "status": p.status,
+                        "type": "project",
+                    }
+                )
+
+        functional_projects = list(dept_map.values())
+
+        return {
+            "product_projects": product_projects,
+            "functional_projects": functional_projects,
+        }
+
+    def get_product_line_hierarchy(self) -> List[dict]:
+        """
+        Get product line hierarchy for direct product support selection.
+        Returns: Business Unit -> Product Lines tree
+        """
+        business_units = (
+            self.db.query(BusinessUnitModel)
+            .filter(BusinessUnitModel.is_active == True)
+            .order_by(BusinessUnitModel.name)
+            .all()
+        )
+
+        hierarchy = []
+        for bu in business_units:
+            product_lines = (
+                self.db.query(ProductLineModel)
+                .filter(
+                    ProductLineModel.business_unit_id == bu.id,
+                    ProductLineModel.is_active == True,
+                )
+                .order_by(ProductLineModel.name)
+                .all()
+            )
+
+            if product_lines:
+                hierarchy.append(
+                    {
+                        "id": bu.id,
+                        "code": bu.code,
+                        "name": bu.name,
+                        "type": "business_unit",
+                        "children": [
+                            {
+                                "id": pl.id,
+                                "code": pl.code,
+                                "name": pl.name,
+                                "line_category": pl.line_category,
+                                "type": "product_line",
+                            }
+                            for pl in product_lines
+                        ],
+                    }
+                )
+
+        return hierarchy

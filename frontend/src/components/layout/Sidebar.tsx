@@ -65,7 +65,27 @@ export function Sidebar() {
                         </Link>
                     )
                 })}
+
+                {/* Admin Links */}
+                {['ADMIN', 'PM', 'FM'].includes(user?.role || '') && (
+                    <>
+                        <div className="my-2 border-t border-slate-700 mx-2" />
+                        <Link
+                            to="/admin/projects"
+                            className={cn(
+                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                                location.pathname === '/admin/projects'
+                                    ? 'bg-blue-600 text-white'
+                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            )}
+                        >
+                            <Settings className="h-5 w-5" />
+                            Project Admin
+                        </Link>
+                    </>
+                )}
             </nav>
+
 
             {/* User info & Logout */}
             <div className="border-t border-slate-700 p-4 space-y-3">
