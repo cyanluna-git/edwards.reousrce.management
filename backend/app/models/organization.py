@@ -19,6 +19,22 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
+class Division(Base):
+    """본부/사업부 (Level 0)"""
+
+    __tablename__ = "divisions"
+
+    id = Column(String(50), primary_key=True)  # e.g., "DIV_ENG"
+    name = Column(String(100), nullable=False)
+    code = Column(String(20), unique=True, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    departments = relationship("Department", back_populates="division")
+
+
 class BusinessUnit(Base):
     """사업부/사업영역"""
 
@@ -46,6 +62,9 @@ class Department(Base):
     business_unit_id = Column(
         String(50), ForeignKey("business_units.id"), nullable=True
     )
+    division_id = Column(
+        String(50), ForeignKey("divisions.id"), nullable=True
+    )  # NEW: Parent Division
     name = Column(String(100), nullable=False)  # NVARCHAR
     code = Column(String(50), unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
@@ -54,6 +73,7 @@ class Department(Base):
 
     # Relationships
     business_unit = relationship("BusinessUnit", back_populates="departments")
+    division = relationship("Division", back_populates="departments")  # NEW
     sub_teams = relationship("SubTeam", back_populates="department")
     users = relationship("User", back_populates="department")
     owned_projects = relationship(

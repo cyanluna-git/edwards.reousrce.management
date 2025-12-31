@@ -47,7 +47,7 @@ class DepartmentBase(BaseModel):
     name: str
     code: str
     business_unit_id: Optional[str] = None
-
+    division_id: Optional[str] = None  # NEW
     is_active: bool = True
 
 
@@ -59,6 +59,7 @@ class DepartmentUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
     business_unit_id: Optional[str] = None
+    division_id: Optional[str] = None  # NEW
     is_active: Optional[bool] = None
 
 
@@ -225,11 +226,20 @@ async def create_department(
         if not bu:
             raise HTTPException(status_code=400, detail="Business unit not found")
 
+    # Verify division exists (only if provided)
+    if dept_in.division_id:
+        from app.models.organization import Division
+
+        div = db.query(Division).filter(Division.id == dept_in.division_id).first()
+        if not div:
+            raise HTTPException(status_code=400, detail="Division not found")
+
     dept = Department(
         id=f"DEPT_{dept_in.code.upper()}",
         name=dept_in.name,
         code=dept_in.code,
         business_unit_id=dept_in.business_unit_id,
+        division_id=dept_in.division_id,
         is_active=dept_in.is_active,
     )
     db.add(dept)
@@ -261,14 +271,18 @@ async def update_department(
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    if dept_in.name is not None:
-        dept.name = dept_in.name
-    if dept_in.code is not None:
-        dept.code = dept_in.code
-    if dept_in.business_unit_id is not None:
-        dept.business_unit_id = dept_in.business_unit_id
-    if dept_in.is_active is not None:
-        dept.is_active = dept_in.is_active
+    update_data = dept_in.model_dump(exclude_unset=True)
+
+    if "name" in update_data:
+        dept.name = update_data["name"]
+    if "code" in update_data:
+        dept.code = update_data["code"]
+    if "business_unit_id" in update_data:
+        dept.business_unit_id = update_data["business_unit_id"]
+    if "division_id" in update_data:
+        dept.division_id = update_data["division_id"]
+    if "is_active" in update_data:
+        dept.is_active = update_data["is_active"]
 
     db.commit()
     db.refresh(dept)

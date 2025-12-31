@@ -22,7 +22,9 @@ from app.api.endpoints import (
     job_positions,
     project_roles,
     hiring_plans,
+    hiring_plans,
     work_types,
+    divisions,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -109,6 +111,7 @@ app.include_router(
     hiring_plans.router, prefix="/api/hiring-plans", tags=["Hiring Plans"]
 )
 app.include_router(work_types.router, prefix="/api/work-types", tags=["Work Types"])
+app.include_router(divisions.router, prefix="/api/divisions", tags=["Divisions"])
 
 
 @app.get("/", tags=["Health"])

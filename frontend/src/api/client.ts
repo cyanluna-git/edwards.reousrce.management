@@ -486,6 +486,14 @@ export const getWorklogSummaryByProject = async (): Promise<WorklogProjectSummar
 
 // ============ Organization API ============
 
+// Organization Entities
+export interface Division {
+  id: string;
+  name: string;
+  code: string;
+  is_active: boolean;
+}
+
 export interface BusinessUnit {
   id: string;
   name: string;
@@ -497,7 +505,8 @@ export interface Department {
   id: string;
   name: string;
   code: string;
-  business_unit_id: string;
+  business_unit_id: string | null; // Nullable
+  division_id: string | null; // NEW
   is_active: boolean;
 }
 
@@ -533,6 +542,26 @@ export interface UserHistoryEntry {
   remarks: string | null;
 }
 
+// Divisions
+export const getDivisions = async (): Promise<Division[]> => {
+  const response = await apiClient.get('/divisions');
+  return response.data;
+};
+
+export const createDivision = async (data: Omit<Division, 'id'>): Promise<Division> => {
+  const response = await apiClient.post('/divisions', data);
+  return response.data;
+};
+
+export const updateDivision = async (id: string, data: Partial<Division>): Promise<Division> => {
+  const response = await apiClient.put(`/divisions/${id}`, data);
+  return response.data;
+};
+
+export const deleteDivision = async (id: string): Promise<void> => {
+  await apiClient.delete(`/divisions/${id}`);
+};
+
 // Business Units
 export const getBusinessUnits = async (): Promise<BusinessUnit[]> => {
   const response = await apiClient.get('/departments/business-units');
@@ -554,9 +583,12 @@ export const deleteBusinessUnit = async (id: string): Promise<void> => {
 };
 
 // Departments
-export const getDepartments = async (businessUnitId?: string): Promise<Department[]> => {
-  const params = businessUnitId ? `?business_unit_id=${businessUnitId}` : '';
-  const response = await apiClient.get(`/departments${params}`);
+export const getDepartments = async (businessUnitId?: string, isActive?: boolean): Promise<Department[]> => {
+  const params = new URLSearchParams();
+  if (businessUnitId) params.append('business_unit_id', businessUnitId);
+  if (isActive !== undefined) params.append('is_active', String(isActive));
+
+  const response = await apiClient.get(`/departments?${params.toString()}`);
   return response.data;
 };
 

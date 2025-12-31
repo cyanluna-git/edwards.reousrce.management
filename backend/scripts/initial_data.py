@@ -1,7 +1,13 @@
 from sqlalchemy.orm import Session
 from app.core.database import Base, get_engine
 from app.models.user import User
-from app.models.organization import BusinessUnit, Department, SubTeam, JobPosition
+from app.models.organization import (
+    BusinessUnit,
+    Department,
+    SubTeam,
+    JobPosition,
+    Division,
+)
 from app.models.project import Project, ProjectType, Program, ProductLine
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
@@ -26,37 +32,62 @@ def init_data(db: Session):
     print("Business Units created: IS, Abatement, ACM, Shared")
 
     # ============================================================
+    # 1.5 Divisions (New Level 0)
+    # ============================================================
+    div_eng = Division(
+        id="DIV_ENG", name="Engineering Division", code="ENG", is_active=True
+    )
+    div_prod = Division(
+        id="DIV_PROD", name="Product Division", code="PROD", is_active=True
+    )
+    db.add_all([div_eng, div_prod])
+    db.commit()
+    print("Divisions created: Engineering, Product")
+
+    # ============================================================
     # 2. Departments (CSV의 Team 기반)
     # ============================================================
     dept_acm_tech = Department(
-        id="DEPT_ACM_TECH", name="ACM Tech", code="ACM_TECH", business_unit_id="BU_ACM"
+        id="DEPT_ACM_TECH",
+        name="ACM Tech",
+        code="ACM_TECH",
+        business_unit_id="BU_ACM",
+        division_id="DIV_PROD",
     )
     dept_central = Department(
         id="DEPT_CENTRAL",
         name="Central Engineering",
         code="CENTRAL",
         business_unit_id="BU_SHARED",
+        division_id="DIV_ENG",
     )
     dept_control = Department(
         id="DEPT_CONTROL",
         name="Control Engineering",
         code="CONTROL",
         business_unit_id="BU_SHARED",
+        division_id="DIV_ENG",
     )
     dept_eto = Department(
-        id="DEPT_ETO", name="ETO", code="ETO", business_unit_id="BU_SHARED"
+        id="DEPT_ETO",
+        name="ETO",
+        code="ETO",
+        business_unit_id="BU_SHARED",
+        division_id="DIV_ENG",
     )
     dept_npi_abt = Department(
         id="DEPT_NPI_ABT",
         name="NPI, Abatement",
         code="NPI_ABT",
         business_unit_id="BU_ABT",
+        division_id="DIV_PROD",
     )
     dept_npi_is = Department(
         id="DEPT_NPI_IS",
         name="NPI, IntegratedSystem",
         code="NPI_IS",
         business_unit_id="BU_IS",
+        division_id="DIV_PROD",
     )
     db.add_all(
         [dept_acm_tech, dept_central, dept_control, dept_eto, dept_npi_abt, dept_npi_is]

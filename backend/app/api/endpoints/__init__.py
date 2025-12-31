@@ -10,4 +10,5 @@ from app.api.endpoints import (
     worklogs,
     resource_plans,
     reports,
+    divisions,
 )
