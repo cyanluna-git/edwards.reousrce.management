@@ -1,14 +1,17 @@
 /**
  * WorkLogs Page
  * Main page for managing work time entries
+ * Now with tabs: Entry (calendar view) and Table (list view)
  */
 import { useState } from 'react';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { WeeklyCalendarGrid } from '@/components/worklogs/WeeklyCalendarGrid';
 import { WorkLogEntryModal } from '@/components/worklogs/WorkLogEntryModal';
 import { LeaveEntryModal } from '@/components/worklogs/LeaveEntryModal';
+import { WorkLogTableView } from '@/components/worklogs/WorkLogTableView';
 import {
     useWorklogs,
     useCreateWorklog,
@@ -22,6 +25,7 @@ import type { WorkLog, WorkLogCreate, WorkLogUpdate } from '@/types';
 
 export function WorkLogsPage() {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState('entry');
     const [weekStart, setWeekStart] = useState(() =>
         startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday
     );
@@ -135,61 +139,79 @@ export function WorkLogsPage() {
                     <Button variant="outline" size="sm" onClick={() => setIsLeaveModalOpen(true)}>
                         🏖️ 휴가 등록
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleCopyWeek}>
-                        📋 Copy Last Week
-                    </Button>
+                    {activeTab === 'entry' && (
+                        <Button variant="outline" size="sm" onClick={handleCopyWeek}>
+                            📋 Copy Last Week
+                        </Button>
+                    )}
                 </div>
             </div>
 
-            {/* Week Navigation */}
-            <Card>
-                <CardHeader className="py-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setWeekStart(subWeeks(weekStart, 4))}>
-                                ⏪
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
-                                ◀
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={goToToday}>
-                                Today
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={goToNextWeek}>
-                                ▶
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => setWeekStart(addWeeks(weekStart, 4))}>
-                                ⏩
-                            </Button>
-                        </div>
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList>
+                    <TabsTrigger value="entry">📅 Entry</TabsTrigger>
+                    <TabsTrigger value="table">📊 Table</TabsTrigger>
+                </TabsList>
 
-                        <CardTitle className="text-lg">
-                            {format(weekStart, 'yyyy-MM-dd')} ~ {format(addWeeks(weekStart, 1), 'yyyy-MM-dd')}
-                        </CardTitle>
+                {/* Entry Tab - Calendar View */}
+                <TabsContent value="entry" className="space-y-4 mt-4">
+                    {/* Week Navigation */}
+                    <Card>
+                        <CardHeader className="py-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setWeekStart(subWeeks(weekStart, 4))}>
+                                        ⏪
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={goToPreviousWeek}>
+                                        ◀
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={goToToday}>
+                                        Today
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={goToNextWeek}>
+                                        ▶
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setWeekStart(addWeeks(weekStart, 4))}>
+                                        ⏩
+                                    </Button>
+                                </div>
 
-                        <div className="text-right">
-                            <span className="text-sm text-muted-foreground">Week Total: </span>
-                            <span className={`font-bold ${weekTotal > 40 ? 'text-yellow-600' : 'text-green-600'}`}>
-                                {weekTotal}h
-                            </span>
-                            <span className="text-sm text-muted-foreground"> / 40h</span>
-                        </div>
-                    </div>
-                </CardHeader>
-            </Card>
+                                <CardTitle className="text-lg">
+                                    {format(weekStart, 'yyyy-MM-dd')} ~ {format(addWeeks(weekStart, 1), 'yyyy-MM-dd')}
+                                </CardTitle>
 
-            {/* Calendar Grid */}
-            {isLoading ? (
-                <div className="text-center py-8">Loading worklogs...</div>
-            ) : (
-                <WeeklyCalendarGrid
-                    weekStart={weekStart}
-                    worklogs={worklogs}
-                    onCellClick={handleCellClick}
-                    onWorklogEdit={handleWorklogEdit}
-                    onWorklogDelete={handleWorklogDelete}
-                />
-            )}
+                                <div className="text-right">
+                                    <span className="text-sm text-muted-foreground">Week Total: </span>
+                                    <span className={`font-bold ${weekTotal > 40 ? 'text-yellow-600' : 'text-green-600'}`}>
+                                        {weekTotal}h
+                                    </span>
+                                    <span className="text-sm text-muted-foreground"> / 40h</span>
+                                </div>
+                            </div>
+                        </CardHeader>
+                    </Card>
+
+                    {/* Calendar Grid */}
+                    {isLoading ? (
+                        <div className="text-center py-8">Loading worklogs...</div>
+                    ) : (
+                        <WeeklyCalendarGrid
+                            weekStart={weekStart}
+                            worklogs={worklogs}
+                            onCellClick={handleCellClick}
+                            onWorklogEdit={handleWorklogEdit}
+                            onWorklogDelete={handleWorklogDelete}
+                        />
+                    )}
+                </TabsContent>
+
+                {/* Table Tab */}
+                <TabsContent value="table" className="mt-4">
+                    <WorkLogTableView />
+                </TabsContent>
+            </Tabs>
 
             {/* Entry Modal */}
             <WorkLogEntryModal
@@ -230,3 +252,4 @@ export function WorkLogsPage() {
 }
 
 export default WorkLogsPage;
+

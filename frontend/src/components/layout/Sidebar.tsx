@@ -10,18 +10,22 @@ import {
     BarChart3,
     Settings,
     Building2,
-    Table,
     LogOut,
+    Shield,
 } from 'lucide-react'
 
-const navigation = [
+// Main navigation items (accessible to all users)
+const mainNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'WorkLogs', href: '/worklogs', icon: Clock },
-    { name: 'WorkLog Table', href: '/worklogs-table', icon: Table },
     { name: 'Resource Plans', href: '/resource-plans', icon: Calendar },
     { name: 'Team', href: '/team', icon: Users },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
+]
+
+// Admin settings (requires special permissions)
+const adminNavigation = [
+    { name: 'Projects', href: '/projects', icon: FolderKanban },
     { name: 'Organization', href: '/organization', icon: Building2 },
     { name: 'Settings', href: '/settings', icon: Settings },
 ]
@@ -35,6 +39,25 @@ export function Sidebar() {
         window.location.href = '/login'
     }
 
+    const renderNavItem = (item: { name: string; href: string; icon: any }) => {
+        const isActive = location.pathname === item.href
+        return (
+            <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                )}
+            >
+                <item.icon className="h-5 w-5" />
+                {item.name}
+            </Link>
+        )
+    }
+
     return (
         <div className="flex h-full w-64 flex-col bg-slate-900">
             {/* Logo */}
@@ -45,28 +68,22 @@ export function Sidebar() {
                 <span className="text-lg font-semibold text-white">Edwards POB</span>
             </div>
 
-            {/* Navigation */}
+            {/* Main Navigation */}
             <nav className="flex-1 space-y-1 px-3 py-4">
-                {navigation.map((item) => {
-                    const isActive = location.pathname === item.href
-                    return (
-                        <Link
-                            key={item.name}
-                            to={item.href}
-                            className={cn(
-                                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                                isActive
-                                    ? 'bg-blue-600 text-white'
-                                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                            )}
-                        >
-                            <item.icon className="h-5 w-5" />
-                            {item.name}
-                        </Link>
-                    )
-                })}
+                {mainNavigation.map(renderNavItem)}
 
-
+                {/* Admin Settings Section */}
+                <div className="pt-4">
+                    <div className="mb-2 flex items-center gap-2 border-t border-slate-700 pt-4 px-3">
+                        <Shield className="h-4 w-4 text-slate-500" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                            Admin Settings
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        {adminNavigation.map(renderNavItem)}
+                    </div>
+                </div>
             </nav>
 
 
