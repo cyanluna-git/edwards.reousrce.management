@@ -114,12 +114,14 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-            {/* Project Code */}
-            <div>
-                <Label htmlFor="code">Project Code</Label>
-                <Input id="code" {...register('code', { required: 'Project Code is required' })} />
-                {errors.code && <p className="text-red-500 text-sm">{errors.code.message}</p>}
-            </div>
+            {/* Project Code - Only show in create mode, optional since backend can auto-generate */}
+            {!isEditMode && (
+                <div>
+                    <Label htmlFor="code">Project Code (optional, auto-generated if empty)</Label>
+                    <Input id="code" {...register('code')} placeholder="Leave empty to auto-generate" />
+                    {errors.code && <p className="text-red-500 text-sm">{errors.code.message}</p>}
+                </div>
+            )}
 
             {/* Project Name */}
             <div>

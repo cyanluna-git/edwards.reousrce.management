@@ -110,7 +110,28 @@ class ProjectService:
 
     def create_project(self, project_in: ProjectCreate) -> Project:
         """Create a new project."""
-        db_project = Project(id=str(uuid.uuid4()), **project_in.model_dump())
+        project_data = project_in.model_dump()
+
+        # Auto-generate code if not provided
+        if not project_data.get("code"):
+            # Get the max existing PRJ-XXX code and increment
+            max_code_result = (
+                self.db.query(Project.code)
+                .filter(Project.code.like("PRJ-%"))
+                .order_by(Project.code.desc())
+                .first()
+            )
+            if max_code_result and max_code_result[0]:
+                try:
+                    # Extract number from PRJ-XXX format
+                    last_num = int(max_code_result[0].replace("PRJ-", ""))
+                    project_data["code"] = f"PRJ-{last_num + 1}"
+                except ValueError:
+                    project_data["code"] = f"PRJ-{uuid.uuid4().hex[:8].upper()}"
+            else:
+                project_data["code"] = "PRJ-1"
+
+        db_project = Project(id=str(uuid.uuid4()), **project_data)
         self.db.add(db_project)
         self.db.commit()
         self.db.refresh(db_project)

@@ -72,7 +72,7 @@ class ProductLineUpdate(BaseModel):
 class ProjectBase(BaseModel):
     program_id: str
     project_type_id: str
-    code: str
+    code: Optional[str] = None  # Optional - auto-generated if not provided
     name: str
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed

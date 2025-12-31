@@ -38,6 +38,7 @@ export function useCreateProject() {
     mutationFn: createProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy'] });
     },
   });
 }
@@ -49,6 +50,7 @@ export function useUpdateProject() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', data.id] }); // Invalidate single project query as well
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy'] }); // Refresh hierarchy view
     },
   });
 }
@@ -59,6 +61,8 @@ export function useDeleteProject() {
     mutationFn: deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projectHierarchy'] }); // Refresh hierarchy view
     },
   });
 }
+
