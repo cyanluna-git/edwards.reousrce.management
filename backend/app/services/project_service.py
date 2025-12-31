@@ -254,7 +254,11 @@ class ProjectService:
         self, product_line_in: ProductLineCreate
     ) -> ProductLineModel:
         """Create a new product line."""
-        db_pl = ProductLineModel(id=str(uuid.uuid4()), **product_line_in.model_dump())
+        pl_data = product_line_in.model_dump()
+        # Auto-generate code if not provided or empty
+        if not pl_data.get("code") or pl_data["code"].strip() == "":
+            pl_data["code"] = f"PL_{str(uuid.uuid4())[:8].upper()}"
+        db_pl = ProductLineModel(id=str(uuid.uuid4()), **pl_data)
         self.db.add(db_pl)
         self.db.commit()
         self.db.refresh(db_pl)
@@ -364,26 +368,28 @@ class ProjectService:
                     .all()
                 )
 
-                if projects:
-                    pl_children = [
-                        {
-                            "id": p.id,
-                            "code": p.code,
-                            "name": p.name,
-                            "status": p.status,
-                            "type": "project",
-                        }
-                        for p in projects
-                    ]
-                    bu_children.append(
-                        {
-                            "id": pl.id,
-                            "code": pl.code,
-                            "name": pl.name,
-                            "type": "product_line",
-                            "children": pl_children,
-                        }
-                    )
+                # Always include Product Line, even if no projects (so it can be managed in UI)
+                pl_children = [
+                    {
+                        "id": p.id,
+                        "code": p.code,
+                        "name": p.name,
+                        "status": p.status,
+                        "type": "project",
+                    }
+                    for p in projects
+                ]
+                bu_children.append(
+                    {
+                        "id": pl.id,
+                        "code": pl.code,
+                        "name": pl.name,
+                        "line_category": pl.line_category,
+                        "description": pl.description,
+                        "type": "product_line",
+                        "children": pl_children,
+                    }
+                )
 
             # Always append BU, even if empty, so it can be managed in the ProjectHierarchyEditor
             product_projects.append(

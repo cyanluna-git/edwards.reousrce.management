@@ -89,6 +89,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
     // Delete Confirmation
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: HierarchyLevel; id: string; name: string } | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     // Toggle Expansion
 
@@ -121,7 +122,11 @@ export const ProjectHierarchyEditor: React.FC = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['project-hierarchy'] });
             setDeleteConfirm(null);
+            setDeleteError(null);
         },
+        onError: (error: any) => {
+            setDeleteError(error.response?.data?.detail || 'Failed to delete Business Unit');
+        }
     });
 
     // --- Product Line Mutations ---
@@ -191,12 +196,14 @@ export const ProjectHierarchyEditor: React.FC = () => {
     };
 
     const handleSaveProductLine = () => {
+        // Generate code from name if not provided (similar to Business Unit logic)
+        const code = plFormData.code || plFormData.name.toUpperCase().replace(/\s+/g, '_').slice(0, 10);
         if (plFormData.id) {
             updatePlMutation.mutate({
                 id: plFormData.id,
                 data: {
                     name: plFormData.name,
-                    code: plFormData.code,
+                    code: code,
                     line_category: plFormData.line_category,
                     description: plFormData.description
                 }
@@ -204,7 +211,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
         } else {
             createPlMutation.mutate({
                 name: plFormData.name,
-                code: plFormData.code,
+                code: code,
                 business_unit_id: plFormData.business_unit_id,
                 line_category: plFormData.line_category,
                 description: plFormData.description
@@ -562,15 +569,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="pl-code" className="text-right">Code</Label>
-                            <Input
-                                id="pl-code"
-                                value={plFormData.code}
-                                onChange={(e) => setPlFormData({ ...plFormData, code: e.target.value })}
-                                className="col-span-3"
-                            />
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="pl-category" className="text-right">Category</Label>
                             <Select
                                 value={plFormData.line_category}
@@ -598,7 +596,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setPlModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveProductLine} disabled={!plFormData.name || !plFormData.code}>Save</Button>
+                        <Button onClick={handleSaveProductLine} disabled={!plFormData.name}>Save</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -624,17 +622,22 @@ export const ProjectHierarchyEditor: React.FC = () => {
             </Dialog>
 
             {/* Delete Confirmation Modal */}
-            <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+            <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) { setDeleteConfirm(null); setDeleteError(null); } }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Confirm Delete</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete {deleteConfirm?.type === 'product_line' ? 'Product Line' : 'Project'} "{deleteConfirm?.name}"?
+                            Are you sure you want to delete {deleteConfirm?.type === 'business_unit' ? 'Business Unit' : deleteConfirm?.type === 'product_line' ? 'Product Line' : 'Project'} "{deleteConfirm?.name}"?
                             {deleteConfirm?.type === 'product_line' && ' This looks like it might have child projects. Ensure it is empty first or they may become orphaned.'}
                         </DialogDescription>
                     </DialogHeader>
+                    {deleteError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                            ⚠️ {deleteError}
+                        </div>
+                    )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>Cancel</Button>
                         <Button variant="destructive" onClick={handleDelete}>Delete</Button>
                     </DialogFooter>
                 </DialogContent>

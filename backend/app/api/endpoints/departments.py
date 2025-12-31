@@ -124,7 +124,13 @@ async def create_business_unit(
     db: Session = Depends(get_db),
 ):
     """Create a new business unit"""
-    import uuid
+    # Check for duplicate code
+    existing = db.query(BusinessUnit).filter(BusinessUnit.code == bu_in.code).first()
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Business Unit with code '{bu_in.code}' already exists",
+        )
 
     bu = BusinessUnit(
         id=f"BU_{bu_in.code.upper()}",

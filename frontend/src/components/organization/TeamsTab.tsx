@@ -62,6 +62,7 @@ export const TeamsTab: React.FC = () => {
     const [modalMode, setModalMode] = useState<ModalMode>('create');
     const [editingItem, setEditingItem] = useState<OrgItem | null>(null);
     const [formData, setFormData] = useState({ name: '', code: '', parentId: '', targetLevel: '' as OrgLevel | '' });
+    const [modalError, setModalError] = useState<string | null>(null);
 
     // Delete confirmation
     const [deleteConfirm, setDeleteConfirm] = useState<OrgItem | null>(null);
@@ -97,6 +98,9 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to create Division');
+        }
     });
 
     const updateL0 = useMutation({
@@ -105,6 +109,9 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to update Division');
+        }
     });
 
     const deleteL0 = useMutation({
@@ -126,13 +133,16 @@ export const TeamsTab: React.FC = () => {
                 name: data.name,
                 code: data.code,
                 division_id: data.parentId,
-                business_unit_id: null, // Explicitly null
+                business_unit_id: null,
                 is_active: true
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to create Department');
+        }
     });
 
     const updateL1 = useMutation({
@@ -142,6 +152,9 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to update Department');
+        }
     });
 
     const deleteL1 = useMutation({
@@ -164,6 +177,9 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to create SubTeam');
+        }
     });
 
     const updateL2 = useMutation({
@@ -172,6 +188,9 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
+        onError: (error: any) => {
+            setModalError(error.response?.data?.detail || 'Failed to update SubTeam');
+        }
     });
 
     const deleteL2 = useMutation({
@@ -205,6 +224,7 @@ export const TeamsTab: React.FC = () => {
         setModalMode('create');
         setEditingItem({ type, id: '', name: '', code: '', parentId });
         setFormData({ name: '', code: '', parentId: parentId || '', targetLevel: type });
+        setModalError(null);
         setModalOpen(true);
     };
 
@@ -212,6 +232,7 @@ export const TeamsTab: React.FC = () => {
         setModalMode('edit');
         setEditingItem(item);
         setFormData({ name: item.name, code: item.code, parentId: item.parentId || '', targetLevel: item.type });
+        setModalError(null);
         setModalOpen(true);
     };
 
@@ -219,12 +240,16 @@ export const TeamsTab: React.FC = () => {
         setModalOpen(false);
         setEditingItem(null);
         setFormData({ name: '', code: '', parentId: '', targetLevel: '' });
+        setModalError(null);
     };
 
     const handleSave = () => {
+        setModalError(null);
         if (!formData.name.trim()) return;
 
-        const code = formData.code || (editingItem ? editingItem.code : formData.name.toUpperCase().slice(0, 5));
+        // In create mode, always generate code from name if not provided
+        // In edit mode, keep existing code
+        const code = formData.code.trim() || formData.name.toUpperCase().replace(/\s+/g, '_').slice(0, 10);
 
         if (modalMode === 'create') {
             if (formData.targetLevel === 'level0') {
@@ -330,6 +355,13 @@ export const TeamsTab: React.FC = () => {
                         </DialogTitle>
                         <DialogDescription>조직 정보를 입력하세요.</DialogDescription>
                     </DialogHeader>
+
+                    {modalError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                            ⚠️ {modalError}
+                        </div>
+                    )}
+
                     <div className="space-y-4 py-4">
                         {/* Level Selection (readonly) */}
                         <div>
@@ -364,7 +396,7 @@ export const TeamsTab: React.FC = () => {
                                     <option value="">(선택 안함 / 소속 없음)</option>
                                     {level0Items.map(div => (
                                         <option key={div.id} value={div.id}>
-                                            {div.name} ({div.code})
+                                            {div.name}
                                         </option>
                                     ))}
                                 </select>
@@ -446,7 +478,6 @@ const DivisionRow: React.FC<{
                     <span className="text-xl transform transition-transform duration-200" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
                     <div>
                         <div className="font-bold text-lg">{item.name}</div>
-                        <div className="text-xs text-muted-foreground">{item.code}</div>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -514,7 +545,6 @@ const DepartmentRow: React.FC<{
                 <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={onToggle}>
                     <span className="text-sm text-gray-500">{isExpanded ? '📂' : '📁'}</span>
                     <span className="font-semibold text-sm">{item.name}</span>
-                    <span className="text-xs text-muted-foreground mr-1">({item.code})</span>
                     <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
                         {deptMembers.length}
                     </span>
@@ -537,7 +567,6 @@ const DepartmentRow: React.FC<{
                                     <div className="flex items-center gap-2">
                                         <span>👥</span>
                                         <span>{st.name}</span>
-                                        <span className="text-muted-foreground">({st.code})</span>
                                         <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
                                             {stMembers.length}
                                         </span>
