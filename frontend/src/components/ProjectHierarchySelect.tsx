@@ -327,15 +327,7 @@ export function ProjectHierarchySelect({
                                 </div>
                             )}
 
-                            {/* Product Line Support Section */}
-                            {filteredProductLines.length > 0 && (
-                                <div className="border-b">
-                                    <div className="px-3 py-2 text-xs font-semibold text-slate-500 bg-green-50">
-                                        제품군 일반 지원 (프로젝트 없음)
-                                    </div>
-                                    {filteredProductLines.map(node => renderProductLineNode(node))}
-                                </div>
-                            )}
+                            {/* Product Line Support Section - REMOVED: No longer needed */}
 
                             {/* No Selection Option */}
                             {!projectRequired && (

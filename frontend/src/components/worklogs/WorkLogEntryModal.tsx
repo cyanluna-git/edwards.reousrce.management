@@ -194,35 +194,27 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label>
-                                프로젝트 / 제품군 {projectRequired ? '*' : '(선택사항)'}
+                                프로젝트
                             </Label>
-                            {!projectRequired && (
-                                <span className="text-xs text-muted-foreground">
-                                    이 업무 유형은 프로젝트 선택이 선택사항입니다
-                                </span>
-                            )}
                         </div>
                         <Controller
                             name="project_id"
                             control={control}
-                            rules={{
-                                validate: () => isProjectSelectionValid() || '프로젝트 또는 제품군을 선택해주세요'
-                            }}
                             render={({ field }) => (
                                 <ProjectHierarchySelect
                                     projectId={field.value}
                                     productLineId={watchProductLineId}
                                     onProjectChange={handleProjectChange}
                                     onProductLineChange={handleProductLineChange}
-                                    projectRequired={projectRequired}
-                                    placeholder={projectRequired ? '프로젝트/제품군 선택 (필수)...' : '프로젝트/제품군 선택 (선택사항)...'}
+                                    projectRequired={false}
+                                    placeholder="프로젝트 선택..."
                                     className="w-full"
                                 />
                             )}
                         />
-                        {errors.project_id && projectRequired && (
-                            <p className="text-red-500 text-sm">{errors.project_id.message}</p>
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                            💡 전사/총무/교육 등 비프로젝트 업무는 선택하지 않아도 됩니다
+                        </p>
                     </div>
 
                     {showMeetingType && (
