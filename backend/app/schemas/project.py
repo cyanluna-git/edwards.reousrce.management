@@ -70,8 +70,12 @@ class ProductLineUpdate(BaseModel):
 
 # Base schema for Project
 class ProjectBase(BaseModel):
-    program_id: str
-    project_type_id: str
+    program_id: Optional[str] = (
+        None  # Optional - using Product Line (Family) for grouping instead
+    )
+    project_type_id: Optional[str] = (
+        None  # Optional - Scale field covers this functionality
+    )
     code: Optional[str] = None  # Optional - auto-generated if not provided
     name: str
     status: str = (
@@ -79,7 +83,7 @@ class ProjectBase(BaseModel):
     )
     category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
-    product_line_id: Optional[str] = None
+    product_line_id: Optional[str] = None  # Family grouping
     owner_department_id: Optional[str] = None  # NEW: Required for FUNCTIONAL projects
     pm_id: Optional[str] = None
     start_month: Optional[str] = None  # YYYY-MM format

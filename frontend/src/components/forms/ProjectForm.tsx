@@ -17,19 +17,20 @@ import {
 } from '@/components/ui/select';
 import { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectScale } from '@/types';
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects';
-import { getPrograms, getProjectTypes, getProductLines, getUsers } from '@/api/client';
+// Note: getPrograms and getProjectTypes are hidden from UI
+import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers } from '@/api/client';
 
 // ============================================================
 // Constants
 // ============================================================
 
-export const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
-    { value: 'Prospective', label: 'Prospective (잠재적)' },
-    { value: 'Planned', label: 'Planned (계획됨)' },
-    { value: 'InProgress', label: 'In Progress (진행중)' },
-    { value: 'OnHold', label: 'On Hold (보류)' },
-    { value: 'Cancelled', label: 'Cancelled (취소)' },
-    { value: 'Completed', label: 'Completed (완료)' },
+export const STATUS_OPTIONS: { value: ProjectStatus; label: string; color: string }[] = [
+    { value: 'Prospective', label: 'Prospective', color: 'bg-gray-400' },
+    { value: 'Planned', label: 'Planned', color: 'bg-blue-400' },
+    { value: 'InProgress', label: 'In Progress', color: 'bg-green-500' },
+    { value: 'OnHold', label: 'On Hold', color: 'bg-yellow-500' },
+    { value: 'Cancelled', label: 'Cancelled', color: 'bg-red-500' },
+    { value: 'Completed', label: 'Completed', color: 'bg-purple-500' },
 ];
 
 export const SCALE_OPTIONS: { value: ProjectScale; label: string }[] = [
@@ -61,8 +62,30 @@ interface ProjectFormProps {
 export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, onCancel, initialValues }) => {
     const isEditMode = !!project;
 
+    // Build default values based on mode
+    const getDefaultValues = (): Partial<ProjectFormData> => {
+        if (isEditMode && project) {
+            return {
+                program_id: project.program_id || undefined,
+                project_type_id: project.project_type_id || undefined,
+                code: project.code || '',
+                name: project.name || '',
+                status: project.status || 'Prospective',
+                scale: project.scale || undefined,
+                product_line_id: project.product_line_id || undefined,
+                pm_id: project.pm_id || undefined,
+                start_month: project.start_month || '',
+                end_month: project.end_month || '',
+                customer: project.customer || '',
+                product: project.product || '',
+                description: project.description || '',
+            };
+        }
+        return { status: 'Prospective', ...initialValues };
+    };
+
     const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ProjectFormData>({
-        defaultValues: isEditMode ? undefined : { status: 'Prospective', ...initialValues },
+        defaultValues: getDefaultValues(),
     });
 
 
@@ -71,34 +94,21 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     const { mutate, isPending, isError, error } = isEditMode ? updateMutation : createMutation;
 
     // Fetch meta data
-    const { data: programs } = useQuery({ queryKey: ['programs'], queryFn: getPrograms });
-    const { data: projectTypes } = useQuery({ queryKey: ['projectTypes'], queryFn: getProjectTypes });
+    // Note: programs and projectTypes are hidden from UI, commented out to avoid lint warnings
+    // const { data: programs } = useQuery({ queryKey: ['programs'], queryFn: getPrograms });
+    // const { data: projectTypes } = useQuery({ queryKey: ['projectTypes'], queryFn: getProjectTypes });
     const { data: productLines } = useQuery({ queryKey: ['productLines'], queryFn: getProductLines });
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers() });
 
     // Filter users with PM position
     const pmUsers = users?.filter(u => u.position_id === 'JP_PM') || [];
 
-    // Pre-fill form with existing project data in edit mode
+    // Re-initialize form when project changes (for modal re-open scenarios)
     useEffect(() => {
         if (project) {
-            reset({
-                program_id: project.program_id,
-                project_type_id: project.project_type_id,
-                code: project.code,
-                name: project.name,
-                status: project.status,
-                scale: project.scale,
-                product_line_id: project.product_line_id,
-                pm_id: project.pm_id,
-                start_month: project.start_month || '',
-                end_month: project.end_month || '',
-                customer: project.customer,
-                product: project.product,
-                description: project.description,
-            });
+            reset(getDefaultValues());
         }
-    }, [project, reset]);
+    }, [project?.id]); // Only reset when project ID changes
 
     const onSubmit = (data: ProjectFormData) => {
         if (isEditMode && project) {
@@ -117,26 +127,26 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             {/* Project Code - Only show in create mode, optional since backend can auto-generate */}
             {!isEditMode && (
                 <div>
-                    <Label htmlFor="code">Project Code (optional, auto-generated if empty)</Label>
-                    <Input id="code" {...register('code')} placeholder="Leave empty to auto-generate" />
+                    <Label htmlFor="code">Project Code (optional)</Label>
+                    <Input id="code" {...register('code')} placeholder="Auto-generated if empty" />
                     {errors.code && <p className="text-red-500 text-sm">{errors.code.message}</p>}
                 </div>
             )}
 
-            {/* Project Name */}
+            {/* Project Name - Full width */}
             <div>
                 <Label htmlFor="name">Project Name</Label>
                 <Input id="name" {...register('name', { required: 'Project Name is required' })} />
                 {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
             </div>
 
-            {/* Program */}
-            <div>
+
+            {/* Program - Hidden: now using Product Line (Family) for grouping */}
+            {/* <div>
                 <Label htmlFor="program_id">Program</Label>
                 <Controller
                     name="program_id"
                     control={control}
-                    rules={{ required: 'Program is required' }}
                     render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                             <SelectTrigger>
@@ -152,16 +162,15 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         </Select>
                     )}
                 />
-                {errors.program_id && <p className="text-red-500 text-sm">{errors.program_id.message}</p>}
-            </div>
+            </div> */}
 
-            {/* Project Type */}
-            <div>
+
+            {/* Project Type - Hidden: Scale field covers this functionality */}
+            {/* <div>
                 <Label htmlFor="project_type_id">Project Type</Label>
                 <Controller
                     name="project_type_id"
                     control={control}
-                    rules={{ required: 'Project Type is required' }}
                     render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value || ''}>
                             <SelectTrigger>
@@ -177,146 +186,178 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         </Select>
                     )}
                 />
-                {errors.project_type_id && <p className="text-red-500 text-sm">{errors.project_type_id.message}</p>}
+            </div> */}
+
+            {/* Row 1: Status & Scale */}
+            <div className="grid grid-cols-2 gap-4">
+                {/* Status */}
+                <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Controller
+                        name="status"
+                        control={control}
+                        rules={{ required: 'Status is required' }}
+                        render={({ field }) => {
+                            const selectedStatus = STATUS_OPTIONS.find(opt => opt.value === field.value);
+                            return (
+                                <Select onValueChange={field.onChange} value={field.value || (isEditMode ? '' : 'Prospective')}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Status">
+                                            {selectedStatus && (
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`w-3 h-3 rounded-full ${selectedStatus.color}`} />
+                                                    {selectedStatus.label}
+                                                </span>
+                                            )}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {STATUS_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`w-3 h-3 rounded-full ${opt.color}`} />
+                                                    {opt.label}
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            );
+                        }}
+                    />
+                    {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+                </div>
+
+                {/* Scale */}
+                <div>
+                    <Label htmlFor="scale">Scale</Label>
+                    <Controller
+                        name="scale"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Scale" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SCALE_OPTIONS.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                </div>
             </div>
 
-            {/* Status */}
-            <div>
-                <Label htmlFor="status">Status</Label>
-                <Controller
-                    name="status"
-                    control={control}
-                    rules={{ required: 'Status is required' }}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || (isEditMode ? '' : 'Prospective')}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {STATUS_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
+            {/* Row 2: Family & Project Manager */}
+            <div className="grid grid-cols-2 gap-4">
+                {/* Family (formerly Product Line) */}
+                <div>
+                    <Label htmlFor="product_line_id">Family</Label>
+                    <Controller
+                        name="product_line_id"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Family" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {productLines?.map((pl) => (
+                                        <SelectItem key={pl.id} value={pl.id}>
+                                            {pl.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                </div>
+
+                {/* Project Manager */}
+                <div>
+                    <Label htmlFor="pm_id">Project Manager</Label>
+                    <Controller
+                        name="pm_id"
+                        control={control}
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select PM" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {pmUsers.map((u) => (
+                                        <SelectItem key={u.id} value={u.id}>
+                                            {u.name} ({u.korean_name || u.email})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                </div>
             </div>
 
-            {/* Scale */}
-            <div>
-                <Label htmlFor="scale">Scale</Label>
-                <Controller
-                    name="scale"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Scale" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {SCALE_OPTIONS.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                        {opt.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
+            {/* Row 3: Customer & Product */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="customer">Customer</Label>
+                    <Input id="customer" {...register('customer')} />
+                </div>
+                <div>
+                    <Label htmlFor="product">Product</Label>
+                    <Input id="product" {...register('product')} />
+                </div>
             </div>
 
-            {/* Product Line */}
-            <div>
-                <Label htmlFor="product_line_id">Product Line</Label>
-                <Controller
-                    name="product_line_id"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Product Line" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {productLines?.map((pl) => (
-                                    <SelectItem key={pl.id} value={pl.id}>
-                                        {pl.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
+            {/* Row 4: Start & End Month - Side by side with native date picker */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="start_month">Start Month</Label>
+                    <input
+                        id="start_month"
+                        type="month"
+                        {...register('start_month')}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                        placeholder="YYYY-MM"
+                    />
+                </div>
+                <div>
+                    <Label htmlFor="end_month">End Month</Label>
+                    <input
+                        id="end_month"
+                        type="month"
+                        {...register('end_month')}
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                        placeholder="YYYY-MM"
+                    />
+                </div>
             </div>
 
-            {/* Project Manager */}
-            <div>
-                <Label htmlFor="pm_id">Project Manager</Label>
-                <Controller
-                    name="pm_id"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select PM" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {pmUsers.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>
-                                        {u.name} ({u.korean_name || u.email})
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-            </div>
-
-            {/* Customer */}
-            <div>
-                <Label htmlFor="customer">Customer</Label>
-                <Input id="customer" {...register('customer')} />
-            </div>
-
-            {/* Product */}
-            <div>
-                <Label htmlFor="product">Product</Label>
-                <Input id="product" {...register('product')} />
-            </div>
-
-            {/* Start Month */}
-            <div>
-                <Label htmlFor="start_month">Start Month (YYYY-MM)</Label>
-                <Input
-                    id="start_month"
-                    type="month"
-                    {...register('start_month')}
-                />
-            </div>
-
-            {/* End Month */}
-            <div>
-                <Label htmlFor="end_month">End Month (YYYY-MM)</Label>
-                <Input
-                    id="end_month"
-                    type="month"
-                    {...register('end_month')}
-                />
-            </div>
-
-            {/* Description */}
+            {/* Description - Full width textarea */}
             <div>
                 <Label htmlFor="description">Description</Label>
-                <Input id="description" {...register('description')} />
+                <textarea
+                    id="description"
+                    {...register('description')}
+                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                    placeholder="Enter project description..."
+                    rows={4}
+                />
             </div>
 
             {isError && <p className="text-red-500 text-sm">Error: {error?.message}</p>}
 
             <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-white">
                 {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
-                <Button type="submit" disabled={isPending}>
+                <Button
+                    type="submit"
+                    disabled={isPending}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                     {isPending
                         ? (isEditMode ? 'Updating...' : 'Creating...')
                         : (isEditMode ? 'Update Project' : 'Create Project')

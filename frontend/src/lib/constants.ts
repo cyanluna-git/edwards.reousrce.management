@@ -10,15 +10,16 @@
 /**
  * Status colors for project and resource plan badges
  * Used in: ProjectsPage, ResourcePlansPage, ProjectDetailPage
+ * Colors aligned with ProjectForm STATUS_OPTIONS
  */
-export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-    'InProgress': { bg: 'bg-green-100', text: 'text-green-800' },
-    'Planned': { bg: 'bg-blue-100', text: 'text-blue-800' },
-    'Prospective': { bg: 'bg-purple-100', text: 'text-purple-800' },
-    'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-    'Completed': { bg: 'bg-gray-100', text: 'text-gray-600' },
-    'Closed': { bg: 'bg-gray-200', text: 'text-gray-500' },
-    'Cancelled': { bg: 'bg-red-100', text: 'text-red-800' },
+export const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+    'Prospective': { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
+    'Planned': { bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-400' },
+    'InProgress': { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
+    'OnHold': { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+    'Cancelled': { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
+    'Completed': { bg: 'bg-purple-100', text: 'text-purple-700', dot: 'bg-purple-500' },
+    'Closed': { bg: 'bg-gray-200', text: 'text-gray-500', dot: 'bg-gray-400' },
 };
 
 /**
