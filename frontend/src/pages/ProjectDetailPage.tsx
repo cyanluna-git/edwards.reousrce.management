@@ -304,12 +304,12 @@ export const ProjectDetailPage: React.FC = () => {
               </PropertyRow>
             )}
 
-            <div className="col-span-full pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
-                <FileText className="w-4 h-4 mr-2" />
+            <div className="col-span-full pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex items-center text-sm font-semibold mb-3" style={{ color: '#000000' }}>
+                <FileText className="w-4 h-4 mr-2" style={{ color: '#64748b' }} />
                 <span>Description</span>
               </div>
-              <div className="pl-6 text-sm text-slate-900 dark:text-slate-50 whitespace-pre-wrap leading-relaxed">
+              <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#000000' }}>
                 {project.description || <span className="text-slate-400 italic">No description provided.</span>}
               </div>
             </div>

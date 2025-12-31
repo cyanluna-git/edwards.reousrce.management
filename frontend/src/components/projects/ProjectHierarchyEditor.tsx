@@ -45,6 +45,26 @@ import { useNavigate } from 'react-router-dom';
 
 type HierarchyLevel = 'business_unit' | 'product_line' | 'project';
 
+// Status priority order: InProgress first, then Prospective, then others
+const STATUS_PRIORITY: Record<string, number> = {
+    'InProgress': 1,
+    'Prospective': 2,
+    'Planned': 3,
+    'OnHold': 4,
+    'Completed': 5,
+    'Cancelled': 6,
+};
+
+// Sort projects by status priority
+const sortProjectsByStatus = (projects: any[]): any[] => {
+    if (!projects) return [];
+    return [...projects].sort((a, b) => {
+        const priorityA = STATUS_PRIORITY[a.status] || 99;
+        const priorityB = STATUS_PRIORITY[b.status] || 99;
+        return priorityA - priorityB;
+    });
+};
+
 export const ProjectHierarchyEditor: React.FC = () => {
 
     const queryClient = useQueryClient();
@@ -363,7 +383,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                 className="flex items-center gap-2 cursor-pointer flex-1"
                                                                 onClick={() => toggleExpand(pl.id)}
                                                             >
-                                                                <span>{expandedIds.has(pl.id) ? 'vq' : '▶'}</span>
+                                                                <span>{expandedIds.has(pl.id) ? '▼' : '▶'}</span>
                                                                 <span className="font-medium">{pl.name}</span>
                                                                 <span className="text-xs text-muted-foreground">({pl.code})</span>
                                                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
@@ -395,10 +415,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                             </div>
                                                         </div>
 
-                                                        {/* Projects */}
+                                                        {/* Projects - sorted by status priority */}
                                                         {expandedIds.has(pl.id) && (
                                                             <div className="ml-4 mt-1 space-y-1">
-                                                                {pl.children?.map((proj: any) => (
+                                                                {sortProjectsByStatus(pl.children).map((proj: any) => (
                                                                     <div key={proj.id} className="flex items-center justify-between p-1.5 text-sm hover:bg-slate-50 border border-slate-100 rounded">
                                                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
                                                                             <span>🔹</span>
@@ -478,10 +498,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                             </div>
                                         </div>
 
-                                        {/* Projects */}
+                                        {/* Projects - sorted by status priority */}
                                         {expandedIds.has(dept.id) && (
                                             <div className="pl-6 py-2 bg-white space-y-1">
-                                                {dept.children?.map((proj: any) => (
+                                                {sortProjectsByStatus(dept.children).map((proj: any) => (
                                                     <div key={proj.id} className="flex items-center justify-between p-1.5 text-sm hover:bg-slate-50 border border-slate-100 rounded">
                                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
                                                             <span>🔹</span>

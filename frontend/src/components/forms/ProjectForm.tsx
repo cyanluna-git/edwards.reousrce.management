@@ -2,7 +2,7 @@
  * ProjectForm - Unified Project Create/Update Form
  * Handles both creating new projects and updating existing ones
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -102,6 +102,21 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
 
     // Filter users with PM position
     const pmUsers = users?.filter(u => u.position_id === 'JP_PM') || [];
+
+    // Filter product lines (Family) by the same BU as the current project
+    // In edit mode, only show families from the same Business Unit
+    const filteredProductLines = useMemo(() => {
+        if (!productLines) return [];
+
+        // If editing and project has a product_line with business_unit_id, filter by BU
+        if (isEditMode && project?.product_line?.business_unit_id) {
+            const projectBuId = project.product_line.business_unit_id;
+            return productLines.filter(pl => pl.business_unit_id === projectBuId);
+        }
+
+        // In create mode or if no product_line, show all
+        return productLines;
+    }, [productLines, isEditMode, project?.product_line?.business_unit_id]);
 
     // Re-initialize form when project changes (for modal re-open scenarios)
     useEffect(() => {
@@ -266,7 +281,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                                     <SelectValue placeholder="Select Family" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {productLines?.map((pl) => (
+                                    {filteredProductLines.map((pl) => (
                                         <SelectItem key={pl.id} value={pl.id}>
                                             {pl.name}
                                         </SelectItem>
