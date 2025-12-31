@@ -53,6 +53,12 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
 
+    // Fetch Business Units for Product Line modal
+    const { data: businessUnits = [] } = useQuery({
+        queryKey: ['businessUnits'],
+        queryFn: getBusinessUnits,
+    });
+
     // State
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState('product');
@@ -181,15 +187,13 @@ export const ProjectHierarchyEditor: React.FC = () => {
         setPlModalOpen(true);
     };
 
-    const handleEditProductLine = (pl: any) => {
+    const handleEditProductLine = (pl: any, parentBuId: string) => {
         setPlFormData({
             id: pl.id,
             name: pl.name,
             code: pl.code,
-            business_unit_id: '', // Will be ignored in update if not relevant? Actually we should probably keep it. But backend update might not need it?
-            // Actually our hierarchy doesn't easy give us the parent BU ID inside the node unless we traverse.
-            // But we can just not update BU ID.
-            line_category: pl.line_category || 'PRODUCT', // Assuming node has this
+            business_unit_id: parentBuId,
+            line_category: pl.line_category || 'PRODUCT',
             description: pl.description || '',
         });
         setPlModalOpen(true);
@@ -204,6 +208,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 data: {
                     name: plFormData.name,
                     code: code,
+                    business_unit_id: plFormData.business_unit_id, // Allow changing parent BU
                     line_category: plFormData.line_category,
                     description: plFormData.description
                 }
@@ -375,7 +380,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                 </Button>
                                                                 <Button
                                                                     variant="ghost" size="sm" className="h-7 w-7 text-blue-600"
-                                                                    onClick={(e) => { e.stopPropagation(); handleEditProductLine(pl); }}
+                                                                    onClick={(e) => { e.stopPropagation(); handleEditProductLine(pl, bu.id); }}
                                                                     title="Edit Product Line"
                                                                 >
                                                                     ✏️
@@ -567,6 +572,22 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                 onChange={(e) => setPlFormData({ ...plFormData, name: e.target.value })}
                                 className="col-span-3"
                             />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="pl-bu" className="text-right">Business Unit</Label>
+                            <Select
+                                value={plFormData.business_unit_id}
+                                onValueChange={(v) => setPlFormData({ ...plFormData, business_unit_id: v })}
+                            >
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select Business Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {businessUnits.map((bu) => (
+                                        <SelectItem key={bu.id} value={bu.id}>{bu.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="pl-category" className="text-right">Category</Label>
