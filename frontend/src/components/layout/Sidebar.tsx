@@ -1,3 +1,4 @@
+import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,15 +13,21 @@ import {
     Building2,
     LogOut,
     Shield,
+    Eye,
+    PenSquare,
 } from 'lucide-react'
 
-// Main navigation items (accessible to all users)
-const mainNavigation = [
+// Monitoring - View/Analysis
+const monitoringNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'WorkLogs', href: '/worklogs', icon: Clock },
-    { name: 'Resource Plans', href: '/resource-plans', icon: Calendar },
     { name: 'Team', href: '/team', icon: Users },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
+]
+
+// Entry - Data Input
+const entryNavigation = [
+    { name: 'WorkLogs', href: '/worklogs', icon: Clock },
+    { name: 'Resource Plans', href: '/resource-plans', icon: Calendar },
 ]
 
 // Admin settings (requires special permissions)
@@ -58,6 +65,26 @@ export function Sidebar() {
         )
     }
 
+    const renderSection = (
+        title: string,
+        icon: React.ElementType,
+        items: typeof monitoringNavigation,
+        showDivider = false
+    ) => (
+        <div className={showDivider ? 'pt-3' : ''}>
+            {showDivider && <div className="border-t border-slate-700 mb-3" />}
+            <div className="mb-2 flex items-center gap-2 px-3">
+                {React.createElement(icon, { className: 'h-4 w-4 text-slate-500' })}
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    {title}
+                </span>
+            </div>
+            <div className="space-y-1">
+                {items.map(renderNavItem)}
+            </div>
+        </div>
+    )
+
     return (
         <div className="flex h-full w-64 flex-col bg-slate-900">
             {/* Logo */}
@@ -68,22 +95,16 @@ export function Sidebar() {
                 <span className="text-lg font-semibold text-white">Edwards POB</span>
             </div>
 
-            {/* Main Navigation */}
+            {/* Navigation */}
             <nav className="flex-1 space-y-1 px-3 py-4">
-                {mainNavigation.map(renderNavItem)}
+                {/* Monitoring Section */}
+                {renderSection('Monitoring', Eye, monitoringNavigation)}
+
+                {/* Entry Section */}
+                {renderSection('Entry', PenSquare, entryNavigation, true)}
 
                 {/* Admin Settings Section */}
-                <div className="pt-4">
-                    <div className="mb-2 flex items-center gap-2 border-t border-slate-700 pt-4 px-3">
-                        <Shield className="h-4 w-4 text-slate-500" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                            Admin Settings
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        {adminNavigation.map(renderNavItem)}
-                    </div>
-                </div>
+                {renderSection('Admin Settings', Shield, adminNavigation, true)}
             </nav>
 
 
