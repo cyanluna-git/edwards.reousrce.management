@@ -12,6 +12,7 @@ import {
 import { getWorklogSummaryByProject, getProjectRoles, getJobPositionsList, type ProjectRole, WorklogProjectSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 import { useUsers } from '@/hooks/useUsers';
+import { useProjectHierarchy, type HierarchyNode } from '@/hooks/useProjectHierarchy';
 import {
     Card,
     Button,
@@ -95,7 +96,11 @@ export const ResourcePlansPage: React.FC = () => {
 
     // Data fetching
     const { data: projects = [] } = useProjects();
-    // Removed unused useProject and useMilestones calls
+
+    // Use the same hierarchy API as Projects page for consistent structure
+    const { data: hierarchy } = useProjectHierarchy();
+    const productProjects = hierarchy?.product_projects || [];
+
     const { data: positions = [] } = useQuery<ProjectRole[]>({
         queryKey: ['project-roles'],
         queryFn: () => getProjectRoles(),
@@ -118,25 +123,37 @@ export const ResourcePlansPage: React.FC = () => {
         queryFn: getWorklogSummaryByProject,
     });
 
-    // Filter projects based on showCompleted state
-    const filteredProjects = useMemo(() => {
-        if (showCompleted) return projects;
-        return projects.filter(p => !['Completed', 'Cancelled'].includes(p.status || ''));
-    }, [projects, showCompleted]);
+    // Filter hierarchy based on showCompleted state
+    const filteredHierarchy = useMemo(() => {
+        if (showCompleted) return productProjects;
 
-    // Group projects by BusinessUnit
-    const projectsByUnit = useMemo(() => {
-        const grouped: Record<string, { unitName: string; projects: typeof projects }> = {};
-        filteredProjects.forEach(project => {
-            const unitName = project.program?.business_unit?.name || 'Unassigned';
-            const unitId = project.program?.business_unit?.id || 'unassigned';
-            if (!grouped[unitId]) {
-                grouped[unitId] = { unitName, projects: [] };
-            }
-            grouped[unitId].projects.push(project);
-        });
-        return grouped;
-    }, [filteredProjects]);
+        // Filter out Completed/Cancelled projects from hierarchy
+        const filterProjects = (nodes: HierarchyNode[]): HierarchyNode[] => {
+            return nodes.map(node => {
+                if (node.type === 'project') {
+                    if (['Completed', 'Cancelled'].includes(node.status || '')) {
+                        return null;
+                    }
+                    return node;
+                }
+                const filteredChildren = node.children
+                    ? filterProjects(node.children).filter(Boolean) as HierarchyNode[]
+                    : [];
+                if (filteredChildren.length === 0 && node.type !== 'business_unit') {
+                    return null;
+                }
+                return { ...node, children: filteredChildren };
+            }).filter(Boolean) as HierarchyNode[];
+        };
+
+        return filterProjects(productProjects);
+    }, [productProjects, showCompleted]);
+
+    // Count projects in hierarchy
+    const countProjects = (node: HierarchyNode): number => {
+        if (node.type === 'project') return 1;
+        return (node.children || []).reduce((sum, child) => sum + countProjects(child), 0);
+    };
 
     // Removed plansByProject logic (moved to ProjectResourceTable)
 
@@ -411,65 +428,94 @@ export const ResourcePlansPage: React.FC = () => {
             {/* Tab Content */}
             {activeTab === 'detail' && (
                 <>
-                    {/* Tree View - Grouped by Business Unit */}
-                    {/* Tree View - Grouped by Business Unit */}
-                    {Object.keys(projectsByUnit).length === 0 ? (
+                    {/* Tree View - Using same hierarchy as Projects page */}
+                    {filteredHierarchy.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             등록된 프로젝트가 없습니다.
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            {Object.entries(projectsByUnit).map(([unitId, { unitName, projects: unitProjects }]) => (
-                                <Card key={unitId}>
+                            {filteredHierarchy.map((bu: HierarchyNode) => (
+                                <Card key={bu.id}>
                                     {/* Business Unit Header */}
                                     <div
                                         className="flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-slate-50 border-b"
-                                        onClick={() => toggleUnit(unitId)}
+                                        onClick={() => toggleUnit(bu.id)}
                                     >
-                                        <span className="text-lg">{expandedUnits.has(unitId) ? '▼' : '▶'}</span>
-                                        <span className="font-semibold text-base">{unitName}</span>
+                                        <span className="text-lg">{expandedUnits.has(bu.id) ? '▼' : '▶'}</span>
+                                        <span className="font-semibold text-base">{bu.name}</span>
+                                        <span className="text-xs text-muted-foreground">({bu.code})</span>
                                         <span className="text-sm text-muted-foreground ml-2">
-                                            ({unitProjects.length} 프로젝트)
+                                            ({countProjects(bu)} 프로젝트)
                                         </span>
                                     </div>
 
-                                    {/* Projects under this Business Unit */}
-                                    {expandedUnits.has(unitId) && (
+                                    {/* Product Lines under this Business Unit */}
+                                    {expandedUnits.has(bu.id) && bu.children && (
                                         <div className="pl-4">
-                                            {unitProjects.map(project => (
-                                                <div key={project.id} className="border-b last:border-b-0">
-                                                    {/* Project Header */}
+                                            {bu.children.map((pl: HierarchyNode) => (
+                                                <div key={pl.id} className="border-b last:border-b-0">
+                                                    {/* Product Line Header */}
                                                     <div
-                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-50"
-                                                        onClick={() => toggleProject(project.id)}
+                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-green-50 bg-slate-50"
+                                                        onClick={() => toggleUnit(`pl-${pl.id}`)}
                                                     >
-                                                        <span>{expandedProjects.has(project.id) ? '▼' : '▶'}</span>
-                                                        <span className="font-medium text-sm">
-                                                            {project.code} - {project.name}
+                                                        <span>{expandedUnits.has(`pl-${pl.id}`) ? '▼' : '▶'}</span>
+                                                        <span className="font-medium text-sm">{pl.name}</span>
+                                                        {pl.code && (
+                                                            <span className="text-xs text-muted-foreground">({pl.code})</span>
+                                                        )}
+                                                        {pl.line_category && (
+                                                            <span className={`text-xs px-1.5 py-0.5 rounded ${pl.line_category === 'LEGACY' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                {pl.line_category}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-xs text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded">
+                                                            {countProjects(pl)} 프로젝트
                                                         </span>
-                                                        <StatusBadge status={project.status || 'Unknown'} />
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="ml-auto h-6 text-xs"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleAddRow(project.id);
-                                                            }}
-                                                        >
-                                                            + 팀원 추가
-                                                        </Button>
                                                     </div>
 
-                                                    {/* Resource Table for this Project (Lazy Loaded) */}
-                                                    {expandedProjects.has(project.id) && (
-                                                        <ProjectResourceTable
-                                                            projectId={project.id}
-                                                            months={months}
-                                                            onAddMember={() => handleAddRow(project.id)}
-                                                            onEditRow={(row) => handleEditRow(row, project.id)}
-                                                            onDeleteRow={(row) => handleDeleteRow(row)}
-                                                        />
+                                                    {/* Projects under this Product Line */}
+                                                    {expandedUnits.has(`pl-${pl.id}`) && pl.children && (
+                                                        <div className="pl-6">
+                                                            {pl.children.map((project: HierarchyNode) => (
+                                                                <div key={project.id} className="border-b last:border-b-0">
+                                                                    {/* Project Header */}
+                                                                    <div
+                                                                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-blue-50"
+                                                                        onClick={() => toggleProject(project.id)}
+                                                                    >
+                                                                        <span>{expandedProjects.has(project.id) ? '▼' : '▶'}</span>
+                                                                        <span className="font-medium text-sm">
+                                                                            {project.code} - {project.name}
+                                                                        </span>
+                                                                        <StatusBadge status={project.status || 'Unknown'} />
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="ml-auto h-6 text-xs"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleAddRow(project.id);
+                                                                            }}
+                                                                        >
+                                                                            + 팀원 추가
+                                                                        </Button>
+                                                                    </div>
+
+                                                                    {/* Resource Table for this Project (Lazy Loaded) */}
+                                                                    {expandedProjects.has(project.id) && (
+                                                                        <ProjectResourceTable
+                                                                            projectId={project.id}
+                                                                            months={months}
+                                                                            onAddMember={() => handleAddRow(project.id)}
+                                                                            onEditRow={(row) => handleEditRow(row, project.id)}
+                                                                            onDeleteRow={(row) => handleDeleteRow(row)}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     )}
                                                 </div>
                                             ))}
