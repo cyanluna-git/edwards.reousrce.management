@@ -364,7 +364,11 @@ export const UserEditModal: React.FC<{
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>취소</Button>
-                    <Button onClick={handleSubmit} disabled={updateMutation.isPending}>
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={updateMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
                         {updateMutation.isPending ? '저장 중...' : '저장'}
                     </Button>
                 </DialogFooter>

@@ -603,6 +603,7 @@ export const ResourcePlansPage: React.FC = () => {
                                 <Button
                                     onClick={handleSave}
                                     disabled={!editingRow && !newJobPositionId}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >
                                     저장
                                 </Button>

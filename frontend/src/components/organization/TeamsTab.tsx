@@ -586,6 +586,12 @@ const DepartmentRow: React.FC<{
                                                         {(member.name || member.korean_name || 'U').charAt(0).toUpperCase()}
                                                     </span>
                                                     <span>{member.korean_name || member.name}</span>
+                                                    {member.korean_name && member.name && (
+                                                        <span className="text-slate-400">({member.name})</span>
+                                                    )}
+                                                    {positions.find(p => p.id === member.position_id)?.name && (
+                                                        <span className="text-slate-400">· {positions.find(p => p.id === member.position_id)?.name}</span>
+                                                    )}
                                                 </div>
                                                 <button
                                                     className="text-blue-600 hover:bg-blue-50 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
@@ -610,6 +616,12 @@ const DepartmentRow: React.FC<{
                                                 {(member.name || member.korean_name || 'U').charAt(0).toUpperCase()}
                                             </span>
                                             <span>{member.korean_name || member.name}</span>
+                                            {member.korean_name && member.name && (
+                                                <span className="text-slate-400">({member.name})</span>
+                                            )}
+                                            {positions.find(p => p.id === member.position_id)?.name && (
+                                                <span className="text-slate-400">· {positions.find(p => p.id === member.position_id)?.name}</span>
+                                            )}
                                         </div>
                                         <button
                                             className="text-blue-600 hover:bg-blue-50 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
