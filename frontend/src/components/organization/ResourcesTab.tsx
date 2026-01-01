@@ -51,15 +51,28 @@ export const ResourcesTab: React.FC = () => {
     const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || deptId;
     const getPositionName = (posId: string) => positions.find(p => p.id === posId)?.name || posId;
 
-    // Filter users by search term (Korean name, English name, email)
+    // Filter and sort users by name (Korean name, English name, email)
     const filteredUsers = useMemo(() => {
-        if (!searchTerm.trim()) return users;
-        const term = searchTerm.toLowerCase();
-        return users.filter(user =>
-            user.name?.toLowerCase().includes(term) ||
-            user.korean_name?.toLowerCase().includes(term) ||
-            user.email?.toLowerCase().includes(term)
-        );
+        let result = [...users];
+
+        // Filter by search term
+        if (searchTerm.trim()) {
+            const term = searchTerm.toLowerCase();
+            result = result.filter(user =>
+                user.name?.toLowerCase().includes(term) ||
+                user.korean_name?.toLowerCase().includes(term) ||
+                user.email?.toLowerCase().includes(term)
+            );
+        }
+
+        // Sort by name (alphabetically)
+        result.sort((a, b) => {
+            const nameA = (a.name || '').toLowerCase();
+            const nameB = (b.name || '').toLowerCase();
+            return nameA.localeCompare(nameB);
+        });
+
+        return result;
     }, [users, searchTerm]);
 
     return (
