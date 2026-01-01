@@ -2,9 +2,10 @@
  * ResourcesTab - User/Member Management
  * Lists users with department filter, edit capabilities, and history view
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useJobPositionsList } from '@/hooks/useJobPositionsCrud';
+import { Search, X } from 'lucide-react';
 import {
     Card,
     CardContent,
@@ -31,6 +32,7 @@ import { OrganizationSelect } from '@/components/OrganizationSelect';
 export const ResourcesTab: React.FC = () => {
     const queryClient = useQueryClient();
     const [selectedDeptId, setSelectedDeptId] = useState<string>('');
+    const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
     const [editingUser, setEditingUser] = useState<UserDetails | null>(null);
 
@@ -49,24 +51,60 @@ export const ResourcesTab: React.FC = () => {
     const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || deptId;
     const getPositionName = (posId: string) => positions.find(p => p.id === posId)?.name || posId;
 
+    // Filter users by search term (Korean name, English name, email)
+    const filteredUsers = useMemo(() => {
+        if (!searchTerm.trim()) return users;
+        const term = searchTerm.toLowerCase();
+        return users.filter(user =>
+            user.name?.toLowerCase().includes(term) ||
+            user.korean_name?.toLowerCase().includes(term) ||
+            user.email?.toLowerCase().includes(term)
+        );
+    }, [users, searchTerm]);
+
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Resources ({users.length}명)</CardTitle>
-                <select
-                    className="border rounded px-3 py-1.5 text-sm"
-                    value={selectedDeptId}
-                    onChange={(e) => setSelectedDeptId(e.target.value)}
-                >
-                    <option value="">All Departments</option>
-                    {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                </select>
+            <CardHeader className="flex flex-col gap-4">
+                <div className="flex flex-row items-center justify-between">
+                    <CardTitle>Resources ({filteredUsers.length}명)</CardTitle>
+                    <select
+                        className="border rounded px-3 py-1.5 text-sm"
+                        value={selectedDeptId}
+                        onChange={(e) => setSelectedDeptId(e.target.value)}
+                    >
+                        <option value="">All Departments</option>
+                        {departments.map((dept) => (
+                            <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        ))}
+                    </select>
+                </div>
+                {/* Search Input */}
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="이름 검색 (한글/영어/이메일)..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-9 py-2 text-sm border rounded-md"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </div>
             </CardHeader>
             <CardContent>
                 {isLoading ? (
                     <div className="text-center py-4">Loading...</div>
+                ) : filteredUsers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                        {searchTerm ? `"${searchTerm}" 검색 결과가 없습니다.` : '등록된 사용자가 없습니다.'}
+                    </div>
                 ) : (
                     <table className="w-full text-sm">
                         <thead>
@@ -81,7 +119,7 @@ export const ResourcesTab: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {users.map((user) => (
+                            {filteredUsers.map((user) => (
                                 <tr key={user.id} className="border-b hover:bg-slate-50">
                                     <td className="py-2 px-3">
                                         <div className="font-medium">{user.name}</div>
@@ -141,6 +179,8 @@ export const UserEditModal: React.FC<{
     onSuccess: () => void;
 }> = ({ user, positions, onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
+        name: user.name,
+        korean_name: user.korean_name || '',
         department_id: user.department_id,
         sub_team_id: user.sub_team_id || '',
         position_id: user.position_id,
@@ -155,6 +195,8 @@ export const UserEditModal: React.FC<{
 
     const handleSubmit = () => {
         updateMutation.mutate({
+            name: formData.name,
+            korean_name: formData.korean_name || null,
             department_id: formData.department_id,
             sub_team_id: formData.sub_team_id || null,
             position_id: formData.position_id,
@@ -171,6 +213,29 @@ export const UserEditModal: React.FC<{
                     <DialogDescription>사용자 정보를 수정합니다.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
+                    {/* Name Fields */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">영어 이름 *</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded px-3 py-2"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="English Name"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">한글 이름</label>
+                            <input
+                                type="text"
+                                className="w-full border rounded px-3 py-2"
+                                value={formData.korean_name}
+                                onChange={(e) => setFormData({ ...formData, korean_name: e.target.value })}
+                                placeholder="Korean Name"
+                            />
+                        </div>
+                    </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
                         <input type="text" className="w-full border rounded px-3 py-2 bg-gray-50" value={user.email} disabled />

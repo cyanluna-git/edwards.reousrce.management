@@ -657,7 +657,7 @@ export const deleteUserHistory = async (userId: string, historyId: number): Prom
 
 export interface UserUpdate {
   name?: string;
-  korean_name?: string;
+  korean_name?: string | null;
   department_id?: string;
   sub_team_id?: string | null;
   position_id?: string;
