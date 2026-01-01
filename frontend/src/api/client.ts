@@ -484,6 +484,21 @@ export const getWorklogSummaryByProject = async (): Promise<WorklogProjectSummar
   return response.data;
 };
 
+// Worklog Summary by Role (for Plan vs Actual comparison by position)
+export interface WorklogRoleSummary {
+  position_id: string;
+  position_name: string;
+  year: number;
+  month: number;
+  total_hours: number;
+  total_fte: number;
+}
+
+export const getWorklogSummaryByRole = async (): Promise<WorklogRoleSummary[]> => {
+  const response = await apiClient.get('/reports/worklog-summary/by-role');
+  return response.data;
+};
+
 // ============ Organization API ============
 
 // Organization Entities

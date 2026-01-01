@@ -203,3 +203,50 @@ class ReportService:
             }
             for r in results
         ]
+
+    def get_worklog_summary_by_role(self) -> list:
+        """
+        Get monthly worklog summary grouped by user's position (role).
+        Returns FTE (hours / 160) for comparison with resource plans by role.
+        Uses user's position_id to determine role.
+        """
+        from app.models.user import User
+
+        # Query worklogs grouped by user's position, year, month
+        results = (
+            self.db.query(
+                User.position_id,
+                JobPosition.name.label("position_name"),
+                extract("year", WorkLog.date).label("year"),
+                extract("month", WorkLog.date).label("month"),
+                func.sum(WorkLog.hours).label("total_hours"),
+            )
+            .join(User, WorkLog.user_id == User.id)
+            .join(JobPosition, User.position_id == JobPosition.id)
+            .filter(User.position_id.isnot(None))
+            .group_by(
+                User.position_id,
+                JobPosition.name,
+                extract("year", WorkLog.date),
+                extract("month", WorkLog.date),
+            )
+            .order_by(
+                extract("year", WorkLog.date).desc(),
+                extract("month", WorkLog.date).desc(),
+            )
+            .all()
+        )
+
+        return [
+            {
+                "position_id": r.position_id,
+                "position_name": r.position_name,
+                "year": int(r.year),
+                "month": int(r.month),
+                "total_hours": float(r.total_hours) if r.total_hours else 0,
+                "total_fte": (
+                    round(float(r.total_hours) / 160, 2) if r.total_hours else 0
+                ),
+            }
+            for r in results
+        ]

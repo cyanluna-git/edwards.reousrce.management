@@ -9,7 +9,7 @@ import {
     useDeleteResourcePlan,
     useSummaryByProject,
 } from '@/hooks/useResourcePlans';
-import { getWorklogSummaryByProject, getProjectRoles, getJobPositionsList, type ProjectRole, WorklogProjectSummary } from '@/api/client';
+import { getWorklogSummaryByProject, getWorklogSummaryByRole, getProjectRoles, getJobPositionsList, type ProjectRole, WorklogProjectSummary, WorklogRoleSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 import { useUsers } from '@/hooks/useUsers';
 import { useProjectHierarchy, type HierarchyNode } from '@/hooks/useProjectHierarchy';
@@ -122,6 +122,12 @@ export const ResourcePlansPage: React.FC = () => {
     const { data: worklogSummary = [] } = useQuery<WorklogProjectSummary[]>({
         queryKey: ['worklog-summary-by-project'],
         queryFn: getWorklogSummaryByProject,
+    });
+
+    // Worklog actual data by role for role summary tab
+    const { data: worklogRoleSummary = [] } = useQuery<WorklogRoleSummary[]>({
+        queryKey: ['worklog-summary-by-role'],
+        queryFn: getWorklogSummaryByRole,
     });
 
     // Filter hierarchy based on showCompleted state
@@ -631,6 +637,9 @@ export const ResourcePlansPage: React.FC = () => {
                 <RoleSummaryTab
                     months={months}
                     allResourcePlans={allResourcePlans}
+                    currentYear={currentYear}
+                    currentMonth={currentMonth}
+                    worklogRoleSummary={worklogRoleSummary}
                 />
             )}
         </div >

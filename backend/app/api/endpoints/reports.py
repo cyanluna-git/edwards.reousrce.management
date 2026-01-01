@@ -55,6 +55,19 @@ async def get_worklog_summary_by_project(
     return service.get_worklog_summary_by_project()
 
 
+@router.get("/worklog-summary/by-role")
+async def get_worklog_summary_by_role(
+    db: Session = Depends(get_db),
+):
+    """
+    Get monthly worklog summary grouped by user's position (role).
+    Returns hours and FTE for each position/month combination.
+    Used for comparing actual vs planned resources by role.
+    """
+    service = ReportService(db)
+    return service.get_worklog_summary_by_role()
+
+
 @router.get("/capacity")
 async def get_capacity_report(
     department_id: Optional[int] = Query(None),
