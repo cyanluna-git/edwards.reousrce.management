@@ -99,20 +99,9 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                     return (
                                         <React.Fragment key={area}>
                                             <tr className="bg-purple-50 border-t-2 border-purple-200">
-                                                <td className="py-2 px-2 sticky left-0 bg-purple-50 font-semibold text-purple-800">
+                                                <td colSpan={months.length + 1} className="py-2 px-2 sticky left-0 bg-purple-50 font-semibold text-purple-800">
                                                     📁 {area} ({areaPositions.length}개 포지션)
                                                 </td>
-                                                {months.map(m => {
-                                                    const key = `${m.year}-${m.month}`;
-                                                    const monthTotal = areaPositions.reduce(
-                                                        (sum, p) => sum + (p.data[key] || 0), 0
-                                                    );
-                                                    return (
-                                                        <td key={key} className="text-center py-2 px-1 border-l font-medium text-purple-700">
-                                                            {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
-                                                        </td>
-                                                    );
-                                                })}
                                             </tr>
                                             {areaPositions.map(pos => (
                                                 <tr key={`${area}-${pos.id}`} className="border-b hover:bg-slate-50">
@@ -133,20 +122,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                         </React.Fragment>
                                     );
                                 })}
-                            <tr className="bg-green-50 font-bold border-t-2 border-green-300">
-                                <td className="py-2 px-2 sticky left-0 bg-green-50">🔢 전체 합계</td>
-                                {months.map(m => {
-                                    const key = `${m.year}-${m.month}`;
-                                    const total = allResourcePlans
-                                        .filter(p => p.year === m.year && p.month === m.month)
-                                        .reduce((sum, p) => sum + p.planned_hours, 0);
-                                    return (
-                                        <td key={key} className="text-center py-2 px-1 border-l">
-                                            {total > 0 ? Number(total.toFixed(1)) : '-'}
-                                        </td>
-                                    );
-                                })}
-                            </tr>
                         </tbody>
                     </table>
                 )}
