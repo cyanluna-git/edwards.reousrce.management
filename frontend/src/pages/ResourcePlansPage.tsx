@@ -26,6 +26,7 @@ import {
 import { ProjectResourceTable, type ResourceRow } from '@/components/resource-plans/ProjectResourceTable';
 import { ProjectSummaryTab } from '@/components/resource-plans/ProjectSummaryTab';
 import { RoleSummaryTab } from '@/components/resource-plans/RoleSummaryTab';
+import { UserHierarchySelect } from '@/components/UserHierarchySelect';
 
 // StatusBadge is now imported from @/components/ui
 
@@ -557,18 +558,12 @@ export const ResourcePlansPage: React.FC = () => {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">담당자 (선택사항)</label>
-                                    <select
-                                        className="w-full px-3 py-2 border rounded-md"
-                                        value={newUserId || ''}
-                                        onChange={(e) => setNewUserId(e.target.value || undefined)}
-                                    >
-                                        <option value="">TBD (미할당)</option>
-                                        {users.map(u => (
-                                            <option key={u.id} value={u.id}>
-                                                {u.korean_name || u.name} ({u.email})
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <UserHierarchySelect
+                                        users={users}
+                                        value={newUserId}
+                                        onChange={(userId) => setNewUserId(userId)}
+                                        placeholder="TBD (미할당)"
+                                    />
                                     <p className="text-xs text-muted-foreground">
                                         담당자를 선택하지 않으면 TBD(미할당) 포지션으로 생성됩니다.
                                     </p>
