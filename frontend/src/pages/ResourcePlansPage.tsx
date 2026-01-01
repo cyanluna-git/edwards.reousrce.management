@@ -631,7 +631,6 @@ export const ResourcePlansPage: React.FC = () => {
                 <RoleSummaryTab
                     months={months}
                     allResourcePlans={allResourcePlans}
-                    projects={projects}
                 />
             )}
         </div >

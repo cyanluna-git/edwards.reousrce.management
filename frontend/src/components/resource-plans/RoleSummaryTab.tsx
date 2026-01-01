@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
-import type { ResourcePlan, Project } from '@/types';
+import type { ResourcePlan } from '@/types';
 
 interface MonthInfo {
     year: number;
@@ -11,7 +11,6 @@ interface MonthInfo {
 interface RoleSummaryTabProps {
     months: MonthInfo[];
     allResourcePlans: ResourcePlan[];
-    projects: Project[];
 }
 
 /**
@@ -21,10 +20,8 @@ interface RoleSummaryTabProps {
 export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     months,
     allResourcePlans,
-    projects,
 }) => {
-    // Group resource plans by: business_unit -> position -> month
-    // Use business_unit_name directly from API response
+    // Group resource plans by: business_unit -> role -> month
     type PositionData = {
         id: string;
         name: string;
@@ -36,10 +33,8 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     const grouped: Record<string, BusinessAreaData> = {};
 
     allResourcePlans.forEach(plan => {
-        // Use business_unit_name from API, fall back to project lookup if not available
-        const bu = plan.business_unit_name ||
-            projects.find(p => p.id === plan.project_id)?.program?.business_unit?.name ||
-            'Unassigned';
+        // Use business_unit_name directly from API response
+        const bu = plan.business_unit_name || 'Unassigned';
         const roleId = plan.project_role_id
             ? String(plan.project_role_id)
             : (plan.position_id ? String(plan.position_id) : 'unknown');
