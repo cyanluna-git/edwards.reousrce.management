@@ -72,6 +72,7 @@ class ResourcePlan(ResourcePlanBase):
     position_name: Optional[str] = None
     project_role_name: Optional[str] = None  # NEW: ProjectRole name
     user_name: Optional[str] = None
+    business_unit_name: Optional[str] = None  # NEW: BU from project's program
     is_tbd: bool = False  # Computed: True if user_id is None
 
     class Config:

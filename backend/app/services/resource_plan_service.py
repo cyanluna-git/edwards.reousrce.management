@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 
 from app.models.resource import ResourcePlan
-from app.models.project import Project
+from app.models.project import Project, Program
 from app.models.organization import JobPosition, ProjectRole
 from app.models.user import User
 from app.schemas.resource_plan import ResourcePlanCreate, ResourcePlanUpdate
@@ -21,6 +21,11 @@ class ResourcePlanService:
         """Convert ResourcePlan model to response dict with nested info"""
         # Use already-loaded relationship instead of individual query
         project_role_name = plan.project_role.name if plan.project_role else None
+
+        # Get business_unit_name from project -> program -> business_unit chain
+        business_unit_name = None
+        if plan.project and plan.project.program and plan.project.program.business_unit:
+            business_unit_name = plan.project.program.business_unit.name
 
         return {
             "id": plan.id,
@@ -39,6 +44,7 @@ class ResourcePlanService:
             "position_name": plan.position.name if plan.position else None,
             "project_role_name": project_role_name,
             "user_name": plan.user.name if plan.user else None,
+            "business_unit_name": business_unit_name,
             "is_tbd": plan.user_id is None,
         }
 
@@ -56,7 +62,9 @@ class ResourcePlanService:
     ) -> List[dict]:
         """Get multiple resource plans with filters"""
         query = self.db.query(ResourcePlan).options(
-            joinedload(ResourcePlan.project),
+            joinedload(ResourcePlan.project)
+            .joinedload(Project.program)
+            .joinedload(Program.business_unit),
             joinedload(ResourcePlan.position),
             joinedload(ResourcePlan.user),
             joinedload(ResourcePlan.project_role),
@@ -91,7 +99,9 @@ class ResourcePlanService:
         plan = (
             self.db.query(ResourcePlan)
             .options(
-                joinedload(ResourcePlan.project),
+                joinedload(ResourcePlan.project)
+                .joinedload(Project.program)
+                .joinedload(Program.business_unit),
                 joinedload(ResourcePlan.position),
                 joinedload(ResourcePlan.user),
                 joinedload(ResourcePlan.project_role),

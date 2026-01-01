@@ -193,6 +193,7 @@ export interface ResourcePlan {
     position_name?: string
     project_role_name?: string  // NEW: ProjectRole name
     user_name?: string
+    business_unit_name?: string  // NEW: BU from project's program
     is_tbd: boolean
 }
 
