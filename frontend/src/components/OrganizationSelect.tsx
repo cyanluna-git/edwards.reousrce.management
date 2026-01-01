@@ -225,7 +225,6 @@ const L0Item: React.FC<{
                 ) : (
                     <ChevronRight className="h-4 w-4 text-slate-500" />
                 )}
-                <span className="text-purple-600 font-mono text-xs">{item.code}</span>
                 <span>{item.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{item.children.length} teams</span>
             </button>
@@ -292,7 +291,6 @@ const L1Item: React.FC<{
                     onClick={() => onSelectDept(item.id, item.name)}
                     className={`flex-1 flex items-center gap-2 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${isSelected ? 'bg-blue-100 text-blue-700' : ''}`}
                 >
-                    <span className="text-blue-600 font-mono text-xs">{item.code}</span>
                     <span>{item.name}</span>
                 </button>
             </div>
@@ -309,7 +307,7 @@ const L1Item: React.FC<{
                                 onClick={() => onSelectSubTeam(item.id, st.id, `${item.name} > ${st.name}`)}
                                 className={`w-full flex items-center gap-2 pl-12 pr-3 py-1.5 text-xs hover:bg-blue-50 text-left ${isStSelected ? 'bg-blue-100 text-blue-700' : 'text-slate-600'}`}
                             >
-                                <span className="text-slate-400 font-mono text-[10px]">└ {st.code}</span>
+                                <span className="text-slate-400 text-[10px]">└</span>
                                 <span>{st.name}</span>
                             </button>
                         );
