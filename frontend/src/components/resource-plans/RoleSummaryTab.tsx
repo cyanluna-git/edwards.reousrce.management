@@ -87,7 +87,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                         {m.label}
                                     </th>
                                 ))}
-                                <th className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">합계</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -96,7 +95,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                 .map(area => {
                                     const areaPositions = Object.values(grouped[area])
                                         .sort((a, b) => b.totalFte - a.totalFte);
-                                    const areaTotal = areaPositions.reduce((sum, p) => sum + p.totalFte, 0);
 
                                     return (
                                         <React.Fragment key={area}>
@@ -115,9 +113,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                                         </td>
                                                     );
                                                 })}
-                                                <td className="text-center py-2 px-1 border-l font-bold text-purple-800">
-                                                    {Number(areaTotal.toFixed(1))}
-                                                </td>
                                             </tr>
                                             {areaPositions.map(pos => (
                                                 <tr key={`${area}-${pos.id}`} className="border-b hover:bg-slate-50">
@@ -133,9 +128,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                                             </td>
                                                         );
                                                     })}
-                                                    <td className="text-center py-1.5 px-1 border-l font-medium">
-                                                        {Number(pos.totalFte.toFixed(1))}
-                                                    </td>
                                                 </tr>
                                             ))}
                                         </React.Fragment>
@@ -154,9 +146,6 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                         </td>
                                     );
                                 })}
-                                <td className="text-center py-2 px-1 border-l">
-                                    {Number(allResourcePlans.reduce((sum, p) => sum + p.planned_hours, 0).toFixed(1))}
-                                </td>
                             </tr>
                         </tbody>
                     </table>
