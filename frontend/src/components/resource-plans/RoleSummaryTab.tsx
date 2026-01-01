@@ -23,10 +23,14 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     allResourcePlans,
     projects,
 }) => {
-    // Build project -> business unit mapping
+    // Build project -> business unit mapping (use project name if no BU)
     const projectBuMap: Record<string, string> = {};
     projects.forEach(p => {
-        projectBuMap[p.id] = p.program?.business_unit?.name || 'Others';
+        const buName = p.program?.business_unit?.name;
+        if (!buName) {
+            console.log('[RoleSummaryTab] Project without BU:', p.id, p.name, 'program:', p.program);
+        }
+        projectBuMap[p.id] = buName || 'Unassigned';
     });
 
     // Group resource plans by: business_unit -> position -> month
@@ -41,18 +45,22 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     const grouped: Record<string, BusinessAreaData> = {};
 
     allResourcePlans.forEach(plan => {
-        const bu = projectBuMap[plan.project_id] || 'Others';
+        const bu = projectBuMap[plan.project_id];
+        if (!bu) {
+            console.log('[RoleSummaryTab] ResourcePlan with missing project:', plan.project_id, 'plan:', plan);
+        }
+        const finalBu = bu || 'Unassigned';
         const roleId = plan.project_role_id
             ? String(plan.project_role_id)
             : (plan.position_id ? String(plan.position_id) : 'unknown');
         const roleName = plan.project_role_name || plan.position_name || roleId;
         const monthKey = `${plan.year}-${plan.month}`;
 
-        if (!grouped[bu]) {
-            grouped[bu] = {};
+        if (!grouped[finalBu]) {
+            grouped[finalBu] = {};
         }
-        if (!grouped[bu][roleId]) {
-            grouped[bu][roleId] = {
+        if (!grouped[finalBu][roleId]) {
+            grouped[finalBu][roleId] = {
                 id: roleId,
                 name: roleName,
                 data: {},
@@ -60,12 +68,19 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
             };
         }
 
-        grouped[bu][roleId].data[monthKey] =
-            (grouped[bu][roleId].data[monthKey] || 0) + plan.planned_hours;
-        grouped[bu][roleId].totalFte += plan.planned_hours;
+        grouped[finalBu][roleId].data[monthKey] =
+            (grouped[finalBu][roleId].data[monthKey] || 0) + plan.planned_hours;
+        grouped[finalBu][roleId].totalFte += plan.planned_hours;
     });
 
-    const businessAreaOrder = ['Integrated System', 'Abatement', 'ACM', 'Others'];
+    // Dynamically get all BUs from projects and sort alphabetically
+    // Unassigned goes to the bottom
+    const allBUs = Object.keys(grouped);
+    const sortedBUs = allBUs.sort((a, b) => {
+        if (a === 'Unassigned') return 1;
+        if (b === 'Unassigned') return -1;
+        return a.localeCompare(b);
+    });
 
     return (
         <Card>
@@ -91,7 +106,7 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {businessAreaOrder
+                            {sortedBUs
                                 .filter(area => grouped[area] && Object.keys(grouped[area]).length > 0)
                                 .map(area => {
                                     const areaPositions = Object.values(grouped[area])
