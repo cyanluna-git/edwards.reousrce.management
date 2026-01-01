@@ -28,6 +28,10 @@ import {
 } from '@/api/client';
 import type { JobPosition } from '@/types';
 import { OrganizationSelect } from '@/components/OrganizationSelect';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+
+type SortColumn = 'name' | 'email' | 'department' | 'position' | 'role' | 'status';
+type SortDirection = 'asc' | 'desc';
 
 export const ResourcesTab: React.FC = () => {
     const queryClient = useQueryClient();
@@ -35,6 +39,8 @@ export const ResourcesTab: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
     const [editingUser, setEditingUser] = useState<UserDetails | null>(null);
+    const [sortColumn, setSortColumn] = useState<SortColumn>('name');
+    const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
     const { data: departments = [] } = useQuery({
         queryKey: ['departments'],
@@ -51,7 +57,17 @@ export const ResourcesTab: React.FC = () => {
     const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || deptId;
     const getPositionName = (posId: string) => positions.find(p => p.id === posId)?.name || posId;
 
-    // Filter and sort users by name (Korean name, English name, email)
+    // Handle column header click for sorting
+    const handleSort = (column: SortColumn) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Filter and sort users
     const filteredUsers = useMemo(() => {
         let result = [...users];
 
@@ -65,15 +81,61 @@ export const ResourcesTab: React.FC = () => {
             );
         }
 
-        // Sort by name (alphabetically)
+        // Sort by selected column
         result.sort((a, b) => {
-            const nameA = (a.name || '').toLowerCase();
-            const nameB = (b.name || '').toLowerCase();
-            return nameA.localeCompare(nameB);
+            let valueA = '';
+            let valueB = '';
+
+            switch (sortColumn) {
+                case 'name':
+                    valueA = (a.name || '').toLowerCase();
+                    valueB = (b.name || '').toLowerCase();
+                    break;
+                case 'email':
+                    valueA = (a.email || '').toLowerCase();
+                    valueB = (b.email || '').toLowerCase();
+                    break;
+                case 'department':
+                    valueA = getDeptName(a.department_id).toLowerCase();
+                    valueB = getDeptName(b.department_id).toLowerCase();
+                    break;
+                case 'position':
+                    valueA = getPositionName(a.position_id).toLowerCase();
+                    valueB = getPositionName(b.position_id).toLowerCase();
+                    break;
+                case 'role':
+                    valueA = (a.role || '').toLowerCase();
+                    valueB = (b.role || '').toLowerCase();
+                    break;
+                case 'status':
+                    valueA = a.is_active ? 'a' : 'z';
+                    valueB = b.is_active ? 'a' : 'z';
+                    break;
+            }
+
+            const comparison = valueA.localeCompare(valueB);
+            return sortDirection === 'asc' ? comparison : -comparison;
         });
 
         return result;
-    }, [users, searchTerm]);
+    }, [users, searchTerm, sortColumn, sortDirection, departments, positions]);
+
+    // Sortable header component
+    const SortableHeader: React.FC<{ column: SortColumn; children: React.ReactNode; className?: string }> = ({ column, children, className = '' }) => (
+        <th
+            className={`py-2 px-3 cursor-pointer hover:bg-slate-100 select-none ${className}`}
+            onClick={() => handleSort(column)}
+        >
+            <div className="flex items-center gap-1">
+                {children}
+                {sortColumn === column ? (
+                    sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                ) : (
+                    <ArrowUpDown className="h-3 w-3 text-slate-300" />
+                )}
+            </div>
+        </th>
+    );
 
     return (
         <Card>
@@ -122,12 +184,12 @@ export const ResourcesTab: React.FC = () => {
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-slate-50">
-                                <th className="text-left py-2 px-3">Name</th>
-                                <th className="text-left py-2 px-3">Email</th>
-                                <th className="text-left py-2 px-3">Department</th>
-                                <th className="text-left py-2 px-3">Position</th>
-                                <th className="text-left py-2 px-3">Role</th>
-                                <th className="text-center py-2 px-3">Status</th>
+                                <SortableHeader column="name" className="text-left">Name</SortableHeader>
+                                <SortableHeader column="email" className="text-left">Email</SortableHeader>
+                                <SortableHeader column="department" className="text-left">Department</SortableHeader>
+                                <SortableHeader column="position" className="text-left">Position</SortableHeader>
+                                <SortableHeader column="role" className="text-left">Role</SortableHeader>
+                                <SortableHeader column="status" className="text-center">Status</SortableHeader>
                                 <th className="text-right py-2 px-3">Actions</th>
                             </tr>
                         </thead>
