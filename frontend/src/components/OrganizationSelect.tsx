@@ -1,11 +1,11 @@
 /**
  * OrganizationSelect - Hierarchical Organization Selector
- * Similar to WorkTypeCategorySelect, displays organization tree (Level 0 > Level 1 > Level 2)
+ * Displays organization tree: Division > Department > SubTeam
  */
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { getBusinessUnits, getDepartments, getSubTeams, type SubTeam } from '@/api/client';
+import { getDivisions, getDepartments, getSubTeams, type SubTeam, type Division } from '@/api/client';
 
 interface OrganizationSelectProps {
     departmentId?: string;
@@ -23,7 +23,7 @@ interface OrgTree {
         id: string;
         name: string;
         code: string;
-        businessUnitId: string;
+        divisionId: string;
         children: SubTeam[];
     }[];
 }
@@ -40,10 +40,10 @@ export function OrganizationSelect({
     const [expandedL1, setExpandedL1] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Fetch data
-    const { data: businessUnits = [] } = useQuery({
-        queryKey: ['business-units'],
-        queryFn: getBusinessUnits,
+    // Fetch data - Use Divisions instead of Business Units
+    const { data: divisions = [] } = useQuery<Division[]>({
+        queryKey: ['divisions'],
+        queryFn: getDivisions,
     });
 
     const { data: departments = [] } = useQuery({
@@ -51,36 +51,54 @@ export function OrganizationSelect({
         queryFn: () => getDepartments(),
     });
 
-    // Build organization tree
+    // Build organization tree: Division > Department > SubTeam
     const orgTree = useMemo((): OrgTree[] => {
-        return businessUnits.map(bu => ({
-            id: bu.id,
-            name: bu.name,
-            code: bu.code,
+        return divisions.map(div => ({
+            id: div.id,
+            name: div.name,
+            code: div.code,
             children: departments
-                .filter(d => d.business_unit_id === bu.id)
+                .filter(d => d.division_id === div.id)
                 .map(dept => ({
                     id: dept.id,
                     name: dept.name,
                     code: dept.code,
-                    businessUnitId: bu.id,
+                    divisionId: div.id,
                     children: [] as SubTeam[], // Will be loaded on expand
                 })),
         }));
-    }, [businessUnits, departments]);
+    }, [divisions, departments]);
 
-    // Get display name for selected value
+    // Fetch sub-teams for display name resolution
+    const { data: allSubTeams = [] } = useQuery({
+        queryKey: ['sub-teams', departmentId],
+        queryFn: () => getSubTeams(departmentId!),
+        enabled: !!departmentId && !!subTeamId, // Only fetch when both are set
+    });
+
+    // Get display name for selected value - show full hierarchy path
     const selectedDisplay = useMemo(() => {
         if (!departmentId) return null;
+
         const dept = departments.find(d => d.id === departmentId);
         if (!dept) return null;
 
+        // Find Division name
+        const div = divisions.find(d => d.id === dept.division_id);
+        const divName = div?.name || '';
+
+        // Build full path: Division > Department > SubTeam
+        let path = divName ? `${divName} > ${dept.name}` : dept.name;
+
         if (subTeamId) {
-            // This would need to look up the subteam name
-            return `${dept.name} > ...`;
+            const st = allSubTeams.find(s => s.id === subTeamId);
+            if (st) {
+                path += ` > ${st.name}`;
+            }
         }
-        return dept.name;
-    }, [departmentId, subTeamId, departments]);
+
+        return path;
+    }, [departmentId, subTeamId, departments, divisions, allSubTeams]);
 
     // Filter based on search
     const filteredTree = useMemo(() => {
