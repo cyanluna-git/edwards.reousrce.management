@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import type { ProjectSummary, WorklogProjectSummary } from '@/api/client';
 import type { Project } from '@/types';
+import { useProjectHierarchy, type HierarchyNode } from '@/hooks/useProjectHierarchy';
 
 interface MonthInfo {
     year: number;
@@ -20,17 +21,20 @@ interface ProjectSummaryTabProps {
 
 /**
  * Project Summary Tab Component
- * Displays aggregated resource plan data grouped by business unit
+ * Displays aggregated resource plan data grouped by BU > Product Line > Project
  * Shows plan vs actual comparison with color coding
  */
 export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
     months,
     projectSummary,
-    projects,
     worklogSummary,
     currentYear,
     currentMonth,
 }) => {
+    // Use the same hierarchy as Projects page
+    const { data: hierarchy } = useProjectHierarchy();
+    const productProjects = hierarchy?.product_projects || [];
+
     // Build worklog map: project_id -> { year-month -> fte }
     const worklogMap: Record<string, Record<string, number>> = {};
     worklogSummary.forEach(w => {
@@ -40,52 +44,16 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
         worklogMap[w.project_id][`${w.year}-${w.month}`] = w.total_fte;
     });
 
-    // Group by project with business unit info
-    type ProjectData = {
-        id: string;
-        code: string;
-        name: string;
-        businessUnit: string;
-        planData: Record<string, number>;
-        actualData: Record<string, number>;
-        totalFte: number;
-    };
-    const projectMap: Record<string, ProjectData> = {};
-
+    // Build plan map: project_id -> { year-month -> hours }
+    const planMap: Record<string, Record<string, number>> = {};
+    const planTotalMap: Record<string, number> = {};
     projectSummary.forEach(s => {
-        if (!projectMap[s.project_id]) {
-            const proj = projects.find(p => p.id === s.project_id);
-            const buName = proj?.program?.business_unit?.name || 'Others';
-
-            projectMap[s.project_id] = {
-                id: s.project_id,
-                code: s.project_code,
-                name: s.project_name,
-                businessUnit: buName,
-                planData: {},
-                actualData: worklogMap[s.project_id] || {},
-                totalFte: 0
-            };
+        if (!planMap[s.project_id]) {
+            planMap[s.project_id] = {};
+            planTotalMap[s.project_id] = 0;
         }
-        projectMap[s.project_id].planData[`${s.year}-${s.month}`] = s.total_hours;
-        projectMap[s.project_id].totalFte += s.total_hours;
-    });
-
-    // Group by business unit
-    const businessAreaOrder = ['Integrated System', 'Abatement', 'ACM', 'Others'];
-    const grouped: Record<string, ProjectData[]> = {};
-
-    Object.values(projectMap).forEach(proj => {
-        const bu = proj.businessUnit;
-        if (!grouped[bu]) {
-            grouped[bu] = [];
-        }
-        grouped[bu].push(proj);
-    });
-
-    // Sort each group by totalFte descending
-    Object.keys(grouped).forEach(bu => {
-        grouped[bu].sort((a, b) => b.totalFte - a.totalFte);
+        planMap[s.project_id][`${s.year}-${s.month}`] = s.total_hours;
+        planTotalMap[s.project_id] += s.total_hours;
     });
 
     // Helper: determine time period (past/current/future)
@@ -134,6 +102,124 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
         }
     };
 
+    // Helper: calculate totals for a node
+    const calculateNodeTotal = (node: HierarchyNode, monthKey?: string): number => {
+        if (node.type === 'project') {
+            if (monthKey) {
+                return planMap[node.id]?.[monthKey] || 0;
+            }
+            return planTotalMap[node.id] || 0;
+        }
+        return (node.children || []).reduce((sum, child) => sum + calculateNodeTotal(child, monthKey), 0);
+    };
+
+    // Helper: count projects in a node
+    const countProjects = (node: HierarchyNode): number => {
+        if (node.type === 'project') return 1;
+        return (node.children || []).reduce((sum, child) => sum + countProjects(child), 0);
+    };
+
+    // Render project row
+    const renderProjectRow = (project: HierarchyNode, indent: number) => {
+        const projectPlan = planMap[project.id] || {};
+        const projectActual = worklogMap[project.id] || {};
+        const totalFte = planTotalMap[project.id] || 0;
+
+        return (
+            <tr key={project.id} className="border-b hover:bg-slate-50">
+                <td className="py-1.5 px-2 sticky left-0 bg-white text-sm" style={{ paddingLeft: `${indent * 16 + 8}px` }}>
+                    <span className="text-slate-400 mr-1">◆</span>
+                    {project.code} - {project.name}
+                </td>
+                {months.map(m => {
+                    const key = `${m.year}-${m.month}`;
+                    const plan = projectPlan[key] || 0;
+                    const actual = projectActual[key] || 0;
+                    const period = getTimePeriod(m.year, m.month);
+                    return (
+                        <td key={key} className="text-center py-1.5 px-1 border-l text-xs">
+                            {renderCell(plan, actual, period)}
+                        </td>
+                    );
+                })}
+                <td className="text-center py-1.5 px-1 border-l font-medium">
+                    {totalFte > 0 ? Number(totalFte.toFixed(1)) : '-'}
+                </td>
+            </tr>
+        );
+    };
+
+    // Render product line row (header + projects)
+    const renderProductLineSection = (pl: HierarchyNode, indent: number) => {
+        const plProjects = pl.children || [];
+        const plTotal = calculateNodeTotal(pl);
+        const projectCount = countProjects(pl);
+
+        return (
+            <React.Fragment key={pl.id}>
+                {/* Product Line Header */}
+                <tr className="bg-green-50 border-t border-green-200">
+                    <td className="py-1.5 px-2 sticky left-0 bg-green-50 font-medium text-green-800" style={{ paddingLeft: `${indent * 16 + 8}px` }}>
+                        ▸ {pl.name} {pl.code && <span className="text-xs text-green-600">({pl.code})</span>}
+                        <span className="text-xs text-green-600 ml-2">{projectCount}개</span>
+                    </td>
+                    {months.map(m => {
+                        const key = `${m.year}-${m.month}`;
+                        const monthTotal = calculateNodeTotal(pl, key);
+                        return (
+                            <td key={key} className="text-center py-1.5 px-1 border-l text-xs font-medium text-green-700">
+                                {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
+                            </td>
+                        );
+                    })}
+                    <td className="text-center py-1.5 px-1 border-l font-medium text-green-800">
+                        {plTotal > 0 ? Number(plTotal.toFixed(1)) : '-'}
+                    </td>
+                </tr>
+                {/* Projects under this Product Line */}
+                {plProjects.map(project => renderProjectRow(project, indent + 1))}
+            </React.Fragment>
+        );
+    };
+
+    // Render Business Unit section
+    const renderBusinessUnitSection = (bu: HierarchyNode) => {
+        const buTotal = calculateNodeTotal(bu);
+        const projectCount = countProjects(bu);
+        const productLines = bu.children || [];
+
+        return (
+            <React.Fragment key={bu.id}>
+                {/* Business Unit Header */}
+                <tr className="bg-blue-50 border-t-2 border-blue-200">
+                    <td className="py-2 px-2 sticky left-0 bg-blue-50 font-semibold text-blue-800">
+                        📁 {bu.name} <span className="text-xs text-blue-600">({bu.code})</span>
+                        <span className="text-sm text-blue-600 ml-2">({projectCount}개 프로젝트)</span>
+                    </td>
+                    {months.map(m => {
+                        const key = `${m.year}-${m.month}`;
+                        const monthTotal = calculateNodeTotal(bu, key);
+                        return (
+                            <td key={key} className="text-center py-2 px-1 border-l font-medium text-blue-700">
+                                {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
+                            </td>
+                        );
+                    })}
+                    <td className="text-center py-2 px-1 border-l font-bold text-blue-800">
+                        {buTotal > 0 ? Number(buTotal.toFixed(1)) : '-'}
+                    </td>
+                </tr>
+                {/* Product Lines under this Business Unit */}
+                {productLines.map(pl => renderProductLineSection(pl, 1))}
+            </React.Fragment>
+        );
+    };
+
+    // Calculate grand total
+    const grandTotal = useMemo(() => {
+        return projectSummary.reduce((sum, s) => sum + s.total_hours, 0);
+    }, [projectSummary]);
+
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
@@ -150,7 +236,7 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                 </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
-                {projectSummary.length === 0 ? (
+                {productProjects.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                         등록된 리소스 계획이 없습니다.
                     </div>
@@ -158,7 +244,7 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                     <table className="w-full text-sm border-collapse">
                         <thead>
                             <tr className="bg-slate-100">
-                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[300px]">프로젝트</th>
+                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[350px]">프로젝트</th>
                                 {months.map(m => (
                                     <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                         {m.label}
@@ -168,59 +254,10 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            {businessAreaOrder
-                                .filter(area => grouped[area]?.length > 0)
-                                .map(area => {
-                                    const areaProjects = grouped[area];
-                                    const areaTotal = areaProjects.reduce((sum, p) => sum + p.totalFte, 0);
-
-                                    return (
-                                        <React.Fragment key={area}>
-                                            <tr className="bg-blue-50 border-t-2 border-blue-200">
-                                                <td className="py-2 px-2 sticky left-0 bg-blue-50 font-semibold text-blue-800">
-                                                    📁 {area} ({areaProjects.length}개 프로젝트)
-                                                </td>
-                                                {months.map(m => {
-                                                    const key = `${m.year}-${m.month}`;
-                                                    const monthTotal = areaProjects.reduce(
-                                                        (sum, p) => sum + (p.planData[key] || 0), 0
-                                                    );
-                                                    return (
-                                                        <td key={key} className="text-center py-2 px-1 border-l font-medium text-blue-700">
-                                                            {monthTotal > 0 ? Number(monthTotal.toFixed(1)) : '-'}
-                                                        </td>
-                                                    );
-                                                })}
-                                                <td className="text-center py-2 px-1 border-l font-bold text-blue-800">
-                                                    {Number(areaTotal.toFixed(1))}
-                                                </td>
-                                            </tr>
-                                            {areaProjects.map(proj => (
-                                                <tr key={proj.id} className="border-b hover:bg-slate-50">
-                                                    <td className="py-1.5 px-4 sticky left-0 bg-white text-sm">
-                                                        {proj.code} - {proj.name}
-                                                    </td>
-                                                    {months.map(m => {
-                                                        const key = `${m.year}-${m.month}`;
-                                                        const plan = proj.planData[key] || 0;
-                                                        const actual = proj.actualData[key] || 0;
-                                                        const period = getTimePeriod(m.year, m.month);
-                                                        return (
-                                                            <td key={key} className="text-center py-1.5 px-1 border-l text-xs">
-                                                                {renderCell(plan, actual, period)}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                    <td className="text-center py-1.5 px-1 border-l font-medium">
-                                                        {Number(proj.totalFte.toFixed(1))}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </React.Fragment>
-                                    );
-                                })}
-                            <tr className="bg-green-50 font-bold border-t-2 border-green-300">
-                                <td className="py-2 px-2 sticky left-0 bg-green-50">🔢 전체 합계</td>
+                            {productProjects.map(bu => renderBusinessUnitSection(bu))}
+                            {/* Grand Total Row */}
+                            <tr className="bg-amber-50 font-bold border-t-2 border-amber-300">
+                                <td className="py-2 px-2 sticky left-0 bg-amber-50">🔢 전체 합계</td>
                                 {months.map(m => {
                                     const key = `${m.year}-${m.month}`;
                                     const total = projectSummary
@@ -233,7 +270,7 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                                     );
                                 })}
                                 <td className="text-center py-2 px-1 border-l">
-                                    {Number(projectSummary.reduce((sum, s) => sum + s.total_hours, 0).toFixed(1))}
+                                    {Number(grandTotal.toFixed(1))}
                                 </td>
                             </tr>
                         </tbody>
@@ -245,3 +282,4 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
 };
 
 export default ProjectSummaryTab;
+
