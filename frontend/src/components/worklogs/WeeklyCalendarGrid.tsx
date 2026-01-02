@@ -67,12 +67,12 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                 </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="p-2 space-y-1">
+                        <CardContent className="p-2 space-y-2">
                             {/* Worklogs for this day */}
                             {(worklogsByDate[dateStr] || []).map((wl) => (
                                 <div
                                     key={wl.id}
-                                    className="p-2 bg-muted rounded text-xs cursor-pointer hover:bg-muted/80 group"
+                                    className="p-2 bg-white border border-slate-200 rounded-md text-xs cursor-pointer hover:bg-slate-50 hover:border-slate-300 group relative shadow-sm"
                                     onClick={() => onWorklogEdit(wl)}
                                 >
                                     <div className="flex justify-between items-start">
@@ -84,6 +84,11 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                     <div className="text-muted-foreground truncate">
                                         {wl.work_type_category?.name || 'N/A'}
                                     </div>
+                                    {wl.description && (
+                                        <div className="text-muted-foreground/70 text-[11px] mt-1 line-clamp-2">
+                                            {wl.description}
+                                        </div>
+                                    )}
                                     <button
                                         className="hidden group-hover:block absolute top-1 right-1 text-destructive text-xs"
                                         onClick={(e) => {
