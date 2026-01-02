@@ -48,9 +48,8 @@ class BusinessUnit(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    departments = relationship("Department", back_populates="business_unit")
     programs = relationship("Program", back_populates="business_unit")
-    product_lines = relationship("ProductLine", back_populates="business_unit")  # NEW
+    product_lines = relationship("ProductLine", back_populates="business_unit")
 
 
 class Department(Base):
@@ -59,12 +58,9 @@ class Department(Base):
     __tablename__ = "departments"
 
     id = Column(String(50), primary_key=True)
-    business_unit_id = Column(
-        String(50), ForeignKey("business_units.id"), nullable=True
-    )
     division_id = Column(
         String(50), ForeignKey("divisions.id"), nullable=True
-    )  # NEW: Parent Division
+    )  # Parent Division
     name = Column(String(100), nullable=False)  # NVARCHAR
     code = Column(String(50), unique=True, nullable=False)
     is_active = Column(Boolean, default=True)
@@ -72,10 +68,8 @@ class Department(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    business_unit = relationship("BusinessUnit", back_populates="departments")
-    division = relationship("Division", back_populates="departments")  # NEW
+    division = relationship("Division", back_populates="departments")
     sub_teams = relationship("SubTeam", back_populates="department")
-    users = relationship("User", back_populates="department")
     owned_projects = relationship(
         "Project", back_populates="owner_department"
     )  # NEW: Functional Projects

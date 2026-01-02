@@ -13,7 +13,6 @@ class UserBase(BaseModel):
     email: EmailStr
     name: str
     korean_name: Optional[str] = None
-    department_id: str
     sub_team_id: Optional[str] = None
     position_id: str
     role: str = "USER"
@@ -33,7 +32,6 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     name: Optional[str] = None
     korean_name: Optional[str] = None
-    department_id: Optional[str] = None
     sub_team_id: Optional[str] = None
     position_id: Optional[str] = None
     role: Optional[str] = None

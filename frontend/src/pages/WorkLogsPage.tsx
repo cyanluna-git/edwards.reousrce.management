@@ -227,10 +227,9 @@ export function WorkLogsPage() {
                 projects={projects}
                 initialData={editingWorklog ? {
                     project_id: editingWorklog.project_id,
-                    work_type: editingWorklog.work_type,
+                    work_type_category_id: editingWorklog.work_type_category_id,
                     hours: editingWorklog.hours,
                     description: editingWorklog.description || '',
-                    meeting_type: editingWorklog.meeting_type || '',
                     is_sudden_work: editingWorklog.is_sudden_work,
                     is_business_trip: editingWorklog.is_business_trip,
                 } : undefined}

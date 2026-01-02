@@ -59,18 +59,15 @@ class WorkLog(Base):
     # 프로젝트 연결 (nullable - 비프로젝트 업무 or 제품군 일반 지원 가능)
     project_id = Column(String(36), ForeignKey("projects.id"), nullable=True)
 
-    # 제품군 직접 연결 (NEW) - 프로젝트 없이 제품군 지원 업무
+    # 제품군 직접 연결 - 프로젝트 없이 제품군 지원 업무
     product_line_id = Column(String(50), ForeignKey("product_lines.id"), nullable=True)
 
-    work_type = Column(String(50), nullable=False)  # Legacy - keep for compatibility
+    # 업무 유형 (hierarchical category)
     work_type_category_id = Column(
-        Integer, ForeignKey("work_type_categories.id"), nullable=True
-    )  # New hierarchical category
+        Integer, ForeignKey("work_type_categories.id"), nullable=False
+    )
     hours = Column(Float, nullable=False)
     description = Column(Text, nullable=True)
-    meeting_type = Column(
-        String(50), nullable=True
-    )  # Decision Making, Information Sharing, etc.
     is_sudden_work = Column(Boolean, default=False)
     is_business_trip = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -105,14 +105,19 @@ class ReportService:
             .all()
         )
 
-        # By work type
+        # By work type category
+        from app.models.work_type import WorkTypeCategory
+
         by_type = (
             self.db.query(
-                WorkLog.work_type,
+                WorkTypeCategory.name.label("category_name"),
                 func.sum(WorkLog.hours).label("total_hours"),
             )
+            .join(
+                WorkTypeCategory, WorkLog.work_type_category_id == WorkTypeCategory.id
+            )
             .filter(extract("year", WorkLog.date) == year)
-            .group_by(WorkLog.work_type)
+            .group_by(WorkTypeCategory.name)
             .order_by(func.sum(WorkLog.hours).desc())
             .all()
         )
@@ -144,7 +149,7 @@ class ReportService:
             ],
             "by_type": [
                 {
-                    "type": t.work_type,
+                    "type": t.category_name,
                     "total_hours": float(t.total_hours) if t.total_hours else 0,
                 }
                 for t in by_type

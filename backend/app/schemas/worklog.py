@@ -15,12 +15,10 @@ class WorkLogBase(BaseModel):
 
     date: date
     project_id: Optional[str] = None  # Made optional for non-project work
-    product_line_id: Optional[str] = None  # NEW: Direct product line support work
-    work_type: str
-    work_type_category_id: Optional[int] = None
+    product_line_id: Optional[str] = None  # Direct product line support work
+    work_type_category_id: int  # Required - hierarchical work type
     hours: float = Field(..., gt=0, le=24)
     description: Optional[str] = None
-    meeting_type: Optional[str] = None
     is_sudden_work: bool = False
     is_business_trip: bool = False
 
@@ -36,12 +34,10 @@ class WorkLogUpdate(BaseModel):
 
     date: Optional[date] = None
     project_id: Optional[str] = None
-    product_line_id: Optional[str] = None  # NEW
-    work_type: Optional[str] = None
+    product_line_id: Optional[str] = None
     work_type_category_id: Optional[int] = None
     hours: Optional[float] = Field(None, gt=0, le=24)
     description: Optional[str] = None
-    meeting_type: Optional[str] = None
     is_sudden_work: Optional[bool] = None
     is_business_trip: Optional[bool] = None
 

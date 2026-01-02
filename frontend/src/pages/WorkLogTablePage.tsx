@@ -70,9 +70,8 @@ export function WorkLogTablePage() {
         start_date: startDate,
         end_date: endDate,
         project_id: projectFilter || undefined,
-        department_id: departmentFilter || undefined,
+        sub_team_id: subTeamFilter || undefined,
         user_id: userFilter || undefined,
-        work_type: workTypeFilter || undefined,
         limit: 500,
     });
 
@@ -103,17 +102,14 @@ export function WorkLogTablePage() {
     }, [allProjects, programFilter, businessUnitFilter, filteredPrograms]);
 
     // ============ 조직 기반 필터 로직 ============
-    // Users filtered by department/subteam
+    // Users filtered by subteam
     const filteredUsers = useMemo(() => {
         let result = users;
-        if (departmentFilter) {
-            result = result.filter(u => u.department_id === departmentFilter);
-        }
         if (subTeamFilter) {
             result = result.filter(u => u.sub_team_id === subTeamFilter);
         }
         return result;
-    }, [users, departmentFilter, subTeamFilter]);
+    }, [users, subTeamFilter]);
 
     // Work types
     const workTypes = ['SW Develop', 'Documentation', 'Meeting', 'Review', 'Training', 'Test', 'Leave', 'Support'];
@@ -328,7 +324,7 @@ export function WorkLogTablePage() {
                                                     {wl.project_name}
                                                 </div>
                                             </td>
-                                            <td className="p-2 whitespace-nowrap">{wl.work_type}</td>
+                                            <td className="p-2 whitespace-nowrap">{wl.work_type_category?.name || 'N/A'}</td>
                                             <td className="p-2 text-right font-medium">{wl.hours}h</td>
                                             <td className="p-2">
                                                 <div className="truncate max-w-[350px]" title={wl.description || ''}>

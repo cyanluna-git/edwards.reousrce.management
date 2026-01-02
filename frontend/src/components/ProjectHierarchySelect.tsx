@@ -34,7 +34,7 @@ export function ProjectHierarchySelect({
 }: ProjectHierarchySelectProps) {
     const { user } = useAuth();
     const { data: projectHierarchy, isLoading: isLoadingProjects } = useProjectHierarchy(
-        user?.department_id ? String(user.department_id) : undefined
+        user?.sub_team_id ? String(user.sub_team_id) : undefined
     );
     const { data: productLineHierarchy, isLoading: isLoadingProductLines } = useProductLineHierarchy();
 

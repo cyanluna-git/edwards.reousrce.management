@@ -15,7 +15,7 @@ export interface WorkLogListParams {
     project_id?: string;
     start_date?: string;
     end_date?: string;
-    work_type?: string;
+    work_type_category_id?: number;
     skip?: number;
     limit?: number;
 }
@@ -87,7 +87,7 @@ export interface WorkLogWithUser extends WorkLog {
 }
 
 export interface WorkLogTableParams extends WorkLogListParams {
-    department_id?: string;
+    sub_team_id?: string;
 }
 
 /**

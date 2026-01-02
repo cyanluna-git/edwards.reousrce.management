@@ -256,19 +256,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
         setProjectModalOpen(true);
     };
 
-    const handleEditProject = (projectNode: any) => {
-        // Let's navigate to Project Details for full edit, or make a Quick Edit here.
-        // User asked for "Edit Business Area and Family". 
-        // "Project details" editing is existing functionality.
-        // Let's assume we want full edit.
-        // I will navigate to `/projects/:id` for editing project details to simple things.
-        // But wait, the user wants "Hierarchical editing".
-        // Let's implement Delete here.
-        // And Add.
-        // For Edit, I'll redirect to detail page or open a modal that fetches the project.
-        navigate(`/projects/${projectNode.id}`);
-        // Or if I really want a modal, I should fetch the project first.
-    };
 
     const handleDelete = () => {
         if (!deleteConfirm) return;

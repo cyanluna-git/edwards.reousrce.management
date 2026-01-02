@@ -37,7 +37,7 @@ class WorkLogService:
         project_id: Optional[str] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
-        work_type: Optional[str] = None,
+        work_type_category_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 100,
     ) -> List[WorkLog]:
@@ -52,8 +52,8 @@ class WorkLogService:
             query = query.filter(cast(WorkLog.date, Date) >= start_date)
         if end_date:
             query = query.filter(cast(WorkLog.date, Date) <= end_date)
-        if work_type:
-            query = query.filter(WorkLog.work_type == work_type)
+        if work_type_category_id:
+            query = query.filter(WorkLog.work_type_category_id == work_type_category_id)
 
         return query.order_by(WorkLog.date.desc()).offset(skip).limit(limit).all()
 
@@ -62,10 +62,10 @@ class WorkLogService:
         *,
         user_id: Optional[str] = None,
         project_id: Optional[str] = None,
-        department_id: Optional[str] = None,
+        sub_team_id: Optional[str] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
-        work_type: Optional[str] = None,
+        work_type_category_id: Optional[int] = None,
         skip: int = 0,
         limit: int = 500,
     ) -> List[WorkLog]:
@@ -86,14 +86,14 @@ class WorkLogService:
             query = query.filter(WorkLog.user_id == user_id)
         if project_id:
             query = query.filter(WorkLog.project_id == project_id)
-        if department_id:
-            query = query.filter(User.department_id == department_id)
+        if sub_team_id:
+            query = query.filter(User.sub_team_id == sub_team_id)
         if start_date:
             query = query.filter(cast(WorkLog.date, Date) >= start_date)
         if end_date:
             query = query.filter(cast(WorkLog.date, Date) <= end_date)
-        if work_type:
-            query = query.filter(WorkLog.work_type == work_type)
+        if work_type_category_id:
+            query = query.filter(WorkLog.work_type_category_id == work_type_category_id)
 
         return query.order_by(WorkLog.date.desc()).offset(skip).limit(limit).all()
 
@@ -210,10 +210,9 @@ class WorkLogService:
                 date=new_date,
                 user_id=user_id,
                 project_id=source.project_id,
-                work_type=source.work_type,
+                work_type_category_id=source.work_type_category_id,
                 hours=source.hours,
                 description=source.description,
-                meeting_type=source.meeting_type,
                 is_sudden_work=source.is_sudden_work,
                 is_business_trip=source.is_business_trip,
             )

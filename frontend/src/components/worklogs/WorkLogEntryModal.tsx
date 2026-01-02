@@ -3,7 +3,7 @@
  * Modal for creating/editing worklog entries
  * Now uses hierarchical work type categories and project/product line selection
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
@@ -19,22 +19,14 @@ import { WorkTypeCategorySelect } from '@/components/WorkTypeCategorySelect';
 import { ProjectHierarchySelect } from '@/components/ProjectHierarchySelect';
 import type { WorkLogCreate, WorkLogUpdate, Project, WorkTypeCategory } from '@/types';
 
-const MEETING_TYPES = [
-    { value: 'DECISION_MAKING', label: 'Decision Making' },
-    { value: 'INFO_SHARING', label: 'Information Sharing' },
-    { value: 'FEEDBACK', label: 'Feedback' },
-    { value: 'PERIODIC_UPDATE', label: 'Periodic Update' },
-    { value: 'PROBLEM_SOLVING', label: 'Problem Solving' },
-];
+
 
 interface WorkLogFormData {
     project_id?: string | null;
     product_line_id?: string | null;
-    work_type: string;
     work_type_category_id?: number;
     hours: number;
     description?: string;
-    meeting_type?: string;
     is_sudden_work: boolean;
     is_business_trip: boolean;
 }
@@ -67,38 +59,27 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         defaultValues: {
             project_id: null,
             product_line_id: null,
-            work_type: '',
             work_type_category_id: undefined,
             hours: 1,
             description: '',
-            meeting_type: '',
             is_sudden_work: false,
             is_business_trip: false,
             ...initialData,
         },
     });
 
-    const [projectRequired, setProjectRequired] = useState(true);
-
-
-    const workType = watch('work_type');
-    const showMeetingType = workType === 'Meeting' || workType === 'MEETING' || workType?.includes('MTG');
-
     useEffect(() => {
         if (isOpen) {
             reset({
                 project_id: null,
                 product_line_id: null,
-                work_type: '',
                 work_type_category_id: undefined,
                 hours: 1,
                 description: '',
-                meeting_type: '',
                 is_sudden_work: false,
                 is_business_trip: false,
                 ...initialData,
             });
-            setProjectRequired(true);
         }
     }, [isOpen, initialData, reset]);
 
@@ -136,25 +117,12 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         }
     };
 
-    const handleWorkTypeCategoryChange = (categoryId: number, category: WorkTypeCategory) => {
+    const handleWorkTypeCategoryChange = (categoryId: number, _category: WorkTypeCategory) => {
         setValue('work_type_category_id', categoryId);
-        setValue('work_type', category.name);
-
-        // Update project required based on category
-        // Note: project_required comes from backend, default to true if not set
-        const required = category.project_required !== false;
-        setProjectRequired(required);
     };
 
 
-    const watchProjectId = watch('project_id');
     const watchProductLineId = watch('product_line_id');
-
-    // Validate project/product line selection
-    const isProjectSelectionValid = () => {
-        if (!projectRequired) return true;
-        return !!watchProjectId || !!watchProductLineId;
-    };
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -217,23 +185,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                         </p>
                     </div>
 
-                    {showMeetingType && (
-                        <div className="space-y-2">
-                            <Label htmlFor="meeting_type">Meeting Type</Label>
-                            <select
-                                id="meeting_type"
-                                className="w-full p-2 border rounded-md bg-background"
-                                {...register('meeting_type')}
-                            >
-                                <option value="">Select meeting type...</option>
-                                {MEETING_TYPES.map((type) => (
-                                    <option key={type.value} value={type.value}>
-                                        {type.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    )}
+
 
                     <div className="space-y-2">
                         <Label htmlFor="hours">Hours *</Label>

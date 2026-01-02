@@ -6,13 +6,20 @@ export interface BusinessUnit {
     is_active: boolean
 }
 
-export interface Department {
+export interface Division {
     id: string
-    business_unit_id: string
     name: string
     code: string
     is_active: boolean
-    business_unit?: BusinessUnit
+}
+
+export interface Department {
+    id: string
+    division_id?: string  // Parent division
+    name: string
+    code: string
+    is_active: boolean
+    division?: Division
 }
 
 export interface SubTeam {
@@ -41,14 +48,12 @@ export interface User {
     email: string
     name: string
     korean_name?: string
-    department_id: number
-    sub_team_id?: number
+    sub_team_id?: string
     position_id: string
     role: UserRole
     is_active: boolean
     hire_date?: string
     termination_date?: string
-    department?: Department
     sub_team?: SubTeam
     position?: JobPosition
 }
@@ -238,24 +243,22 @@ export interface WorkLog {
     id: number
     date: string
     user_id: string
-    project_id?: string  // Made optional
-    product_line_id?: string  // NEW: Direct product line support
-    work_type: string
+    project_id?: string
+    product_line_id?: string
+    work_type_category_id: number
     hours: number
     description?: string
-    meeting_type?: string
     is_sudden_work: boolean
     is_business_trip: boolean
     created_at?: string
     updated_at?: string
     project_code?: string
     project_name?: string
-    product_line_name?: string  // NEW
-    product_line_code?: string  // NEW
+    product_line_name?: string
+    product_line_code?: string
     user?: User
     project?: Project
-    product_line?: ProductLine  // NEW
-    work_type_category_id?: number
+    product_line?: ProductLine
     work_type_category?: WorkTypeCategory
 }
 
@@ -263,13 +266,11 @@ export interface WorkLog {
 export interface WorkLogCreate {
     date: string
     user_id: string
-    project_id?: string  // Made optional
-    product_line_id?: string  // NEW
-    work_type: string
-    work_type_category_id?: number
+    project_id?: string
+    product_line_id?: string
+    work_type_category_id: number
     hours: number
     description?: string
-    meeting_type?: string
     is_sudden_work?: boolean
     is_business_trip?: boolean
 }
@@ -278,12 +279,10 @@ export interface WorkLogCreate {
 export interface WorkLogUpdate {
     date?: string
     project_id?: string
-    product_line_id?: string  // NEW
-    work_type?: string
+    product_line_id?: string
     work_type_category_id?: number
     hours?: number
     description?: string
-    meeting_type?: string
     is_sudden_work?: boolean
     is_business_trip?: boolean
 }

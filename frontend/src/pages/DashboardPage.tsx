@@ -8,7 +8,7 @@ import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { Construction } from 'lucide-react';
-import { L1_CATEGORY_COLORS, L2_COLORS, WORK_TYPE_TO_L1 } from '@/lib/constants';
+import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
@@ -93,9 +93,9 @@ export const DashboardPage: React.FC = () => {
 
     // Group by project
     const projectSummary = currentWorklogs.reduce((acc, wl) => {
-        const key = wl.project_id;
+        const key = wl.project_id || 'non-project';
         if (!acc[key]) {
-            acc[key] = { project_id: wl.project_id, project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
+            acc[key] = { project_id: wl.project_id || 'non-project', project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
         }
         acc[key].hours += wl.hours;
         return acc;
@@ -197,17 +197,9 @@ export const DashboardPage: React.FC = () => {
                     l1 = cat.code; l1Name = cat.name_ko || cat.name;
                 }
             } else {
-                // Fallback to Legacy String Mapping
-                const legacyL1 = WORK_TYPE_TO_L1[wl.work_type];
-                if (legacyL1) {
-                    l1 = legacyL1;
-                    l2 = wl.work_type; // Use legacy work_type string as L2
-                    l1Name = L1_CATEGORY_COLORS[l1]?.name_ko || l1;
-                    l2Name = l2; // Legacy strings are usually readable
-                } else {
-                    l1 = 'ADM'; // Default
-                    l1Name = '행정';
-                }
+                // No valid work_type_category_id - use default
+                l1 = 'ADM'; // Default
+                l1Name = '행정';
             }
 
             // Filtering Logic

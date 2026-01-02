@@ -73,7 +73,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                 date: singleDate,
                 user_id: userId,
                 project_id: defaultProjectId,
-                work_type: 'Leave',
+                work_type_category_id: 17, // Leave category ID
                 hours: leaveType === 'half' ? 4 : 8,
                 description: leaveType === 'half' ? '반휴' : '휴가',
                 is_sudden_work: false,
@@ -86,7 +86,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                     date: format(day, 'yyyy-MM-dd'),
                     user_id: userId,
                     project_id: defaultProjectId,
-                    work_type: 'Leave',
+                    work_type_category_id: 17, // Leave category ID
                     hours: 8,
                     description: '연속휴가',
                     is_sudden_work: false,

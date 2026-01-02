@@ -82,7 +82,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                         <span className="font-bold ml-1">{wl.hours}h</span>
                                     </div>
                                     <div className="text-muted-foreground truncate">
-                                        {wl.work_type}
+                                        {wl.work_type_category?.name || 'N/A'}
                                     </div>
                                     <button
                                         className="hidden group-hover:block absolute top-1 right-1 text-destructive text-xs"

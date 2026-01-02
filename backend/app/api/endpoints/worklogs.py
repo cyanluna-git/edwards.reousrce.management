@@ -28,7 +28,7 @@ async def list_worklogs(
     project_id: Optional[str] = Query(None),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    work_type: Optional[str] = Query(None),
+    work_type_category_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -42,7 +42,7 @@ async def list_worklogs(
         project_id=project_id,
         start_date=start_date,
         end_date=end_date,
-        work_type=work_type,
+        work_type_category_id=work_type_category_id,
         skip=skip,
         limit=limit,
     )
@@ -55,10 +55,10 @@ async def list_worklogs(
             "date": wl.date.date() if hasattr(wl.date, "date") else wl.date,
             "user_id": wl.user_id,
             "project_id": wl.project_id,
-            "work_type": wl.work_type,
+            "product_line_id": wl.product_line_id,
+            "work_type_category_id": wl.work_type_category_id,
             "hours": wl.hours,
             "description": wl.description,
-            "meeting_type": wl.meeting_type,
             "is_sudden_work": wl.is_sudden_work,
             "is_business_trip": wl.is_business_trip,
             "created_at": wl.created_at,
@@ -76,14 +76,14 @@ async def list_worklogs(
 async def list_worklogs_table(
     user_id: Optional[str] = Query(None),
     project_id: Optional[str] = Query(None),
-    department_id: Optional[str] = Query(None),
+    sub_team_id: Optional[str] = Query(None),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
-    work_type: Optional[str] = Query(None),
+    work_type_category_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(500, ge=1, le=5000),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),  # Returns User object, not dict
+    current_user=Depends(get_current_user),
 ):
     """
     List worklogs for table view with user info.
@@ -94,30 +94,35 @@ async def list_worklogs_table(
 
     # Role-based filtering: non-admin users can only see their own worklogs
     if current_user.role != "ADMIN":
-        user_id = current_user.id  # Force to current user's ID
+        user_id = current_user.id
 
     worklogs = service.get_multi_with_user(
         user_id=user_id,
         project_id=project_id,
-        department_id=department_id,
+        sub_team_id=sub_team_id,
         start_date=start_date,
         end_date=end_date,
-        work_type=work_type,
+        work_type_category_id=work_type_category_id,
         skip=skip,
         limit=limit,
     )
 
     result = []
     for wl in worklogs:
+        # Get department name via sub_team relationship
+        department_name = None
+        if wl.user and wl.user.sub_team and wl.user.sub_team.department:
+            department_name = wl.user.sub_team.department.name
+
         worklog_dict = {
             "id": wl.id,
             "date": wl.date.date() if hasattr(wl.date, "date") else wl.date,
             "user_id": wl.user_id,
             "project_id": wl.project_id,
-            "work_type": wl.work_type,
+            "product_line_id": wl.product_line_id,
+            "work_type_category_id": wl.work_type_category_id,
             "hours": wl.hours,
             "description": wl.description,
-            "meeting_type": wl.meeting_type,
             "is_sudden_work": wl.is_sudden_work,
             "is_business_trip": wl.is_business_trip,
             "created_at": wl.created_at,
@@ -126,10 +131,9 @@ async def list_worklogs_table(
             "project_name": wl.project.name if wl.project else None,
             "user_name": wl.user.name if wl.user else None,
             "user_korean_name": wl.user.korean_name if wl.user else None,
-            "department_name": (
-                wl.user.department.name if wl.user and wl.user.department else None
-            ),
+            "department_name": department_name,
             "project": wl.project,
+            "work_type_category": wl.work_type_category,
         }
         result.append(worklog_dict)
 
@@ -154,10 +158,10 @@ async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db
             ),
             "user_id": new_worklog.user_id,
             "project_id": new_worklog.project_id,
-            "work_type": new_worklog.work_type,
+            "product_line_id": new_worklog.product_line_id,
+            "work_type_category_id": new_worklog.work_type_category_id,
             "hours": new_worklog.hours,
             "description": new_worklog.description,
-            "meeting_type": new_worklog.meeting_type,
             "is_sudden_work": new_worklog.is_sudden_work,
             "is_business_trip": new_worklog.is_business_trip,
             "created_at": new_worklog.created_at,
@@ -200,10 +204,10 @@ async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
         "date": worklog.date.date() if hasattr(worklog.date, "date") else worklog.date,
         "user_id": worklog.user_id,
         "project_id": worklog.project_id,
-        "work_type": worklog.work_type,
+        "product_line_id": worklog.product_line_id,
+        "work_type_category_id": worklog.work_type_category_id,
         "hours": worklog.hours,
         "description": worklog.description,
-        "meeting_type": worklog.meeting_type,
         "is_sudden_work": worklog.is_sudden_work,
         "is_business_trip": worklog.is_business_trip,
         "created_at": worklog.created_at,
@@ -237,10 +241,10 @@ async def update_worklog(
             ),
             "user_id": updated_worklog.user_id,
             "project_id": updated_worklog.project_id,
-            "work_type": updated_worklog.work_type,
+            "product_line_id": updated_worklog.product_line_id,
+            "work_type_category_id": updated_worklog.work_type_category_id,
             "hours": updated_worklog.hours,
             "description": updated_worklog.description,
-            "meeting_type": updated_worklog.meeting_type,
             "is_sudden_work": updated_worklog.is_sudden_work,
             "is_business_trip": updated_worklog.is_business_trip,
             "created_at": updated_worklog.created_at,
@@ -289,10 +293,10 @@ async def copy_last_week_worklogs(
                 "date": wl.date.date() if hasattr(wl.date, "date") else wl.date,
                 "user_id": wl.user_id,
                 "project_id": wl.project_id,
-                "work_type": wl.work_type,
+                "product_line_id": wl.product_line_id,
+                "work_type_category_id": wl.work_type_category_id,
                 "hours": wl.hours,
                 "description": wl.description,
-                "meeting_type": wl.meeting_type,
                 "is_sudden_work": wl.is_sudden_work,
                 "is_business_trip": wl.is_business_trip,
                 "created_at": wl.created_at,
