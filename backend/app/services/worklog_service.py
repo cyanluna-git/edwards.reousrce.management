@@ -25,7 +25,10 @@ class WorkLogService:
         """Get a worklog by its ID."""
         return (
             self.db.query(WorkLog)
-            .options(joinedload(WorkLog.project))
+            .options(
+                joinedload(WorkLog.project),
+                joinedload(WorkLog.work_type_category),
+            )
             .filter(WorkLog.id == worklog_id)
             .first()
         )
@@ -42,7 +45,10 @@ class WorkLogService:
         limit: int = 100,
     ) -> List[WorkLog]:
         """Retrieve multiple worklogs with filters and pagination."""
-        query = self.db.query(WorkLog).options(joinedload(WorkLog.project))
+        query = self.db.query(WorkLog).options(
+            joinedload(WorkLog.project),
+            joinedload(WorkLog.work_type_category),
+        )
 
         if user_id:
             query = query.filter(WorkLog.user_id == user_id)

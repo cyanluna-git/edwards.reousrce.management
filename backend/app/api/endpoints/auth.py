@@ -80,7 +80,6 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         name=current_user.name,
         korean_name=current_user.korean_name,
         role=current_user.role,
-        department_id=current_user.department_id,
         sub_team_id=current_user.sub_team_id,
         position_id=current_user.position_id,
         is_active=current_user.is_active,

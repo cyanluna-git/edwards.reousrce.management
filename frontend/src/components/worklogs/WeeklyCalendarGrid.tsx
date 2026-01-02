@@ -77,7 +77,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                 >
                                     <div className="flex justify-between items-start">
                                         <span className="font-medium truncate flex-1">
-                                            {wl.project_code || 'Project'}
+                                            {wl.project_name || wl.project_code || '-'}
                                         </span>
                                         <span className="font-bold ml-1">{wl.hours}h</span>
                                     </div>

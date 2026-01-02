@@ -66,6 +66,16 @@ async def list_worklogs(
             "project_code": wl.project.code if wl.project else None,
             "project_name": wl.project.name if wl.project else None,
             "project": wl.project,
+            "work_type_category": (
+                {
+                    "id": wl.work_type_category.id,
+                    "name": wl.work_type_category.name,
+                    "code": wl.work_type_category.code,
+                    "level": wl.work_type_category.level,
+                }
+                if wl.work_type_category
+                else None
+            ),
         }
         result.append(worklog_dict)
 
