@@ -80,4 +80,5 @@ services:
 
 volumes:
   postgres-data:
-    driver: local
+    external: true
+    name: edwardsengineering_operation_managenent_postgres-data
