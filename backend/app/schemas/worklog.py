@@ -16,7 +16,7 @@ class WorkLogBase(BaseModel):
     date: date
     project_id: Optional[str] = None  # Made optional for non-project work
     product_line_id: Optional[str] = None  # Direct product line support work
-    work_type_category_id: int  # Required - hierarchical work type
+    work_type_category_id: Optional[int] = None  # Optional - can be NULL for imported data
     hours: float = Field(..., gt=0, le=24)
     description: Optional[str] = None
     is_sudden_work: bool = False
