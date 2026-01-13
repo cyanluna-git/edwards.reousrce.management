@@ -2,7 +2,7 @@
  * ProjectHierarchyEditor - Hierarchical management of projects
  * Level 0 (Business Unit) > Level 1 (Product Line) > Level 2 (Project)
  */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Card,
@@ -90,6 +90,61 @@ export const ProjectHierarchyEditor: React.FC = () => {
     // State
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const [activeTab, setActiveTab] = useState('product');
+
+    // Sorting state for All Projects table
+    const [sortColumn, setSortColumn] = useState<string>('code');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+    // Handle column header click for sorting
+    const handleSort = (column: string) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortColumn(column);
+            setSortDirection('asc');
+        }
+    };
+
+    // Sort projects based on current sort state
+    const sortedProjects = useMemo(() => {
+        const sorted = [...allProjects].sort((a, b) => {
+            let aVal: string | undefined;
+            let bVal: string | undefined;
+
+            switch (sortColumn) {
+                case 'code':
+                    aVal = a.code || '';
+                    bVal = b.code || '';
+                    break;
+                case 'name':
+                    aVal = a.name || '';
+                    bVal = b.name || '';
+                    break;
+                case 'category':
+                    aVal = a.category || 'PRODUCT';
+                    bVal = b.category || 'PRODUCT';
+                    break;
+                case 'business_unit':
+                    aVal = a.product_line?.business_unit?.name || '';
+                    bVal = b.product_line?.business_unit?.name || '';
+                    break;
+                case 'family':
+                    aVal = a.product_line?.name || '';
+                    bVal = b.product_line?.name || '';
+                    break;
+                case 'status':
+                    aVal = a.status || '';
+                    bVal = b.status || '';
+                    break;
+                default:
+                    return 0;
+            }
+
+            const comparison = aVal.localeCompare(bVal);
+            return sortDirection === 'asc' ? comparison : -comparison;
+        });
+        return sorted;
+    }, [allProjects, sortColumn, sortDirection]);
 
     // Business Unit Modal State
     const [buModalOpen, setBuModalOpen] = useState(false);
@@ -598,17 +653,77 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b bg-slate-50">
-                                            <th className="text-left p-2 font-medium">Code</th>
-                                            <th className="text-left p-2 font-medium">Name</th>
-                                            <th className="text-left p-2 font-medium">Category</th>
-                                            <th className="text-left p-2 font-medium">Business Unit</th>
-                                            <th className="text-left p-2 font-medium">Family</th>
-                                            <th className="text-left p-2 font-medium">Status</th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('code')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Code
+                                                    {sortColumn === 'code' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('name')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Name
+                                                    {sortColumn === 'name' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('category')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Category
+                                                    {sortColumn === 'category' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('business_unit')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Business Unit
+                                                    {sortColumn === 'business_unit' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('family')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Family
+                                                    {sortColumn === 'family' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
+                                            <th
+                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
+                                                onClick={() => handleSort('status')}
+                                            >
+                                                <span className="flex items-center gap-1">
+                                                    Status
+                                                    {sortColumn === 'status' && (
+                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                                                    )}
+                                                </span>
+                                            </th>
                                             <th className="text-left p-2 font-medium">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {allProjects.map((proj: Project) => (
+                                        {sortedProjects.map((proj: Project) => (
                                             <tr key={proj.id} className="border-b hover:bg-slate-50">
                                                 <td className="p-2 font-mono text-xs">{proj.code}</td>
                                                 <td className="p-2">
