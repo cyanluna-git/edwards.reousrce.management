@@ -20,6 +20,7 @@ export interface HierarchyNode {
 export interface ProjectHierarchyResponse {
     product_projects: HierarchyNode[];
     functional_projects: HierarchyNode[];
+    ungrouped_projects: HierarchyNode[];
 }
 
 /**

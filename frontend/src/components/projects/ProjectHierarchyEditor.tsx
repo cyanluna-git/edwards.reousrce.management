@@ -37,6 +37,7 @@ import {
     updateProductLine,
     deleteProductLine,
     deleteProject as apiDeleteProject,
+    getProjects,
 } from '@/api/client';
 import type { ProductLine, Project } from '@/types';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
@@ -72,11 +73,18 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const { data: hierarchy, isLoading } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
+    const ungroupedProjects = hierarchy?.ungrouped_projects || [];
 
     // Fetch Business Units for Product Line modal
     const { data: businessUnits = [] } = useQuery({
         queryKey: ['businessUnits'],
         queryFn: getBusinessUnits,
+    });
+
+    // Fetch all projects for management tab
+    const { data: allProjects = [] } = useQuery({
+        queryKey: ['projects'],
+        queryFn: () => getProjects(),
     });
 
     // State
@@ -308,9 +316,58 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 <TabsList>
                     <TabsTrigger value="product">Product Projects</TabsTrigger>
                     <TabsTrigger value="functional">Functional Projects</TabsTrigger>
+                    <TabsTrigger value="all">All Projects</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="product" className="mt-4">
+                    {/* Ungrouped Projects Section */}
+                    {ungroupedProjects.length > 0 && (
+                        <Card className="mb-4 border-amber-200 bg-amber-50">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-amber-800 flex items-center gap-2">
+                                    <span>Ungrouped Projects</span>
+                                    <span className="text-sm font-normal text-amber-600">({ungroupedProjects.length} projects without Product Line)</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-1">
+                                    {sortProjectsByStatus(ungroupedProjects).map((proj: any) => (
+                                        <div key={proj.id} className="flex items-center justify-between p-2 text-sm hover:bg-amber-100 border border-amber-200 rounded">
+                                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
+                                                <span>⚠️</span>
+                                                <span>{proj.name}</span>
+                                                <span className="text-xs text-muted-foreground">{proj.code}</span>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                    proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
+                                                    proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
+                                                    'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                    {proj.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <Button
+                                                    variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
+                                                    onClick={() => navigate(`/projects/${proj.id}`)}
+                                                    title="Edit to assign Product Line"
+                                                >
+                                                    ✏️
+                                                </Button>
+                                                <Button
+                                                    variant="ghost" size="sm" className="h-6 w-6 text-red-600"
+                                                    onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
+                                                    title="Delete Project"
+                                                >
+                                                    🗑️
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Product Hierarchy (Business Unit &gt; Product Line &gt; Project)</CardTitle>
@@ -524,6 +581,100 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                         )}
                                     </div>
                                 ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="all" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center justify-between">
+                                <span>All Projects ({allProjects.length} total)</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-slate-50">
+                                            <th className="text-left p-2 font-medium">Code</th>
+                                            <th className="text-left p-2 font-medium">Name</th>
+                                            <th className="text-left p-2 font-medium">Category</th>
+                                            <th className="text-left p-2 font-medium">Business Unit</th>
+                                            <th className="text-left p-2 font-medium">Family</th>
+                                            <th className="text-left p-2 font-medium">Status</th>
+                                            <th className="text-left p-2 font-medium">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allProjects.map((proj: Project) => (
+                                            <tr key={proj.id} className="border-b hover:bg-slate-50">
+                                                <td className="p-2 font-mono text-xs">{proj.code}</td>
+                                                <td className="p-2">
+                                                    <span
+                                                        className="cursor-pointer hover:text-blue-600"
+                                                        onClick={() => navigate(`/projects/${proj.id}`)}
+                                                    >
+                                                        {proj.name}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.category === 'FUNCTIONAL' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                                                    }`}>
+                                                        {proj.category === 'FUNCTIONAL' ? 'Functional' : 'Product'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    {proj.product_line?.business_unit ? (
+                                                        <span className="text-xs">{proj.product_line.business_unit.name}</span>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground">-</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-2">
+                                                    {proj.product_line ? (
+                                                        <span className="text-xs">{proj.product_line.name}</span>
+                                                    ) : (
+                                                        <span className="text-xs text-amber-600 italic">Ungrouped</span>
+                                                    )}
+                                                </td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
+                                                        proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
+                                                        proj.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {proj.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <div className="flex gap-1">
+                                                        <Button
+                                                            variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
+                                                            onClick={() => navigate(`/projects/${proj.id}`)}
+                                                            title="Edit Project"
+                                                        >
+                                                            ✏️
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost" size="sm" className="h-6 w-6 text-red-600"
+                                                            onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
+                                                            title="Delete Project"
+                                                        >
+                                                            🗑️
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {allProjects.length === 0 && (
+                                    <div className="text-center py-8 text-muted-foreground">No projects found</div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

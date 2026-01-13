@@ -31,7 +31,11 @@ import {
   Building2,
   Package,
   User,
-  FileText
+  FileText,
+  Layers,
+  FolderTree,
+  LayoutGrid,
+  ArrowLeft
 } from 'lucide-react';
 
 // StatusBadge is now imported from @/components/ui
@@ -219,6 +223,17 @@ export const ProjectDetailPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
+      {/* Back Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-1 text-muted-foreground hover:text-foreground -ml-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Button>
+
       {/* Project Details Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -279,6 +294,36 @@ export const ProjectDetailPage: React.FC = () => {
 
             <PropertyRow icon={Activity} label="Status">
               <StatusBadge status={project.status} />
+            </PropertyRow>
+
+            <PropertyRow icon={LayoutGrid} label="Category">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                project.category === 'FUNCTIONAL'
+                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                  : 'bg-blue-100 text-blue-700 border border-blue-200'
+              }`}>
+                {project.category === 'FUNCTIONAL' ? 'Functional Project' : 'Product Project'}
+              </span>
+            </PropertyRow>
+
+            <PropertyRow icon={Layers} label="Business Unit">
+              {project.product_line?.business_unit_id ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700">
+                  {project.product_line?.business_unit?.name || project.product_line?.business_unit_id}
+                </span>
+              ) : (
+                <span className="text-amber-600 italic text-sm">Not assigned</span>
+              )}
+            </PropertyRow>
+
+            <PropertyRow icon={FolderTree} label="Family">
+              {project.product_line ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700">
+                  {project.product_line.name}
+                </span>
+              ) : (
+                <span className="text-amber-600 italic text-sm">Not assigned</span>
+              )}
             </PropertyRow>
 
             <PropertyRow icon={Signal} label="Scale">

@@ -18,7 +18,7 @@ import {
 import { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectScale } from '@/types';
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects';
 // Note: getPrograms and getProjectTypes are hidden from UI
-import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers } from '@/api/client';
+import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers, getBusinessUnits } from '@/api/client';
 
 // ============================================================
 // Constants
@@ -39,6 +39,11 @@ export const SCALE_OPTIONS: { value: ProjectScale; label: string }[] = [
     { value: 'Simple', label: 'Simple' },
     { value: 'Complex', label: 'Complex' },
     { value: 'Platform', label: 'Platform' },
+];
+
+export const CATEGORY_OPTIONS: { value: 'PRODUCT' | 'FUNCTIONAL'; label: string; color: string }[] = [
+    { value: 'PRODUCT', label: 'Product Project', color: 'bg-blue-500' },
+    { value: 'FUNCTIONAL', label: 'Functional Project', color: 'bg-purple-500' },
 ];
 
 // ============================================================
@@ -63,7 +68,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     const isEditMode = !!project;
 
     // Build default values based on mode
-    const getDefaultValues = (): Partial<ProjectFormData> => {
+    const getDefaultValues = (): Partial<ProjectFormData & { business_unit_id?: string }> => {
         if (isEditMode && project) {
             return {
                 program_id: project.program_id || undefined,
@@ -72,7 +77,9 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 name: project.name || '',
                 status: project.status || 'Prospective',
                 scale: project.scale || undefined,
+                category: project.category || 'PRODUCT',
                 product_line_id: project.product_line_id || undefined,
+                business_unit_id: project.product_line?.business_unit_id || undefined,
                 pm_id: project.pm_id || undefined,
                 start_month: project.start_month || '',
                 end_month: project.end_month || '',
@@ -81,12 +88,17 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 description: project.description || '',
             };
         }
-        return { status: 'Prospective', ...initialValues };
+        return { status: 'Prospective', category: 'PRODUCT', ...initialValues };
     };
 
-    const { register, handleSubmit, reset, control, formState: { errors } } = useForm<ProjectFormData>({
+    const { register, handleSubmit, reset, control, watch, setValue, formState: { errors } } = useForm<ProjectFormData & { business_unit_id?: string }>({
         defaultValues: getDefaultValues(),
     });
+
+    // Watch business_unit_id for cascading filter
+    const selectedBusinessUnitId = watch('business_unit_id');
+    // Watch category for conditional rendering
+    const selectedCategory = watch('category');
 
 
     const createMutation = useCreateProject();
@@ -97,26 +109,25 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     // Note: programs and projectTypes are hidden from UI, commented out to avoid lint warnings
     // const { data: programs } = useQuery({ queryKey: ['programs'], queryFn: getPrograms });
     // const { data: projectTypes } = useQuery({ queryKey: ['projectTypes'], queryFn: getProjectTypes });
+    const { data: businessUnits } = useQuery({ queryKey: ['businessUnits'], queryFn: getBusinessUnits });
     const { data: productLines } = useQuery({ queryKey: ['productLines'], queryFn: getProductLines });
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers() });
 
     // Filter users with PM position
     const pmUsers = users?.filter(u => u.position_id === 'JP_PM') || [];
 
-    // Filter product lines (Family) by the same BU as the current project
-    // In edit mode, only show families from the same Business Unit
+    // Filter product lines (Family) by selected Business Unit
     const filteredProductLines = useMemo(() => {
         if (!productLines) return [];
 
-        // If editing and project has a product_line with business_unit_id, filter by BU
-        if (isEditMode && project?.product_line?.business_unit_id) {
-            const projectBuId = project.product_line.business_unit_id;
-            return productLines.filter(pl => pl.business_unit_id === projectBuId);
+        // Filter by selected business unit
+        if (selectedBusinessUnitId) {
+            return productLines.filter(pl => pl.business_unit_id === selectedBusinessUnitId);
         }
 
-        // In create mode or if no product_line, show all
+        // If no business unit selected, show all
         return productLines;
-    }, [productLines, isEditMode, project?.product_line?.business_unit_id]);
+    }, [productLines, selectedBusinessUnitId]);
 
     // Re-initialize form when project changes (for modal re-open scenarios)
     useEffect(() => {
@@ -203,8 +214,54 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 />
             </div> */}
 
-            {/* Row 1: Status & Scale */}
+            {/* Row 1: Category & Status */}
             <div className="grid grid-cols-2 gap-4">
+                {/* Category */}
+                <div>
+                    <Label htmlFor="category">Project Category</Label>
+                    <Controller
+                        name="category"
+                        control={control}
+                        render={({ field }) => {
+                            const selectedCat = CATEGORY_OPTIONS.find(opt => opt.value === field.value);
+                            return (
+                                <Select
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        // Clear Business Unit and Family when switching to FUNCTIONAL
+                                        if (value === 'FUNCTIONAL') {
+                                            setValue('business_unit_id', '');
+                                            setValue('product_line_id', '');
+                                        }
+                                    }}
+                                    value={field.value || 'PRODUCT'}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Category">
+                                            {selectedCat && (
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`w-3 h-3 rounded-full ${selectedCat.color}`} />
+                                                    {selectedCat.label}
+                                                </span>
+                                            )}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CATEGORY_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                <span className="flex items-center gap-2">
+                                                    <span className={`w-3 h-3 rounded-full ${opt.color}`} />
+                                                    {opt.label}
+                                                </span>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            );
+                        }}
+                    />
+                </div>
+
                 {/* Status */}
                 <div>
                     <Label htmlFor="status">Status</Label>
@@ -242,7 +299,10 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                     />
                     {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
                 </div>
+            </div>
 
+            {/* Row 2: Scale */}
+            <div className="grid grid-cols-2 gap-4">
                 {/* Scale */}
                 <div>
                     <Label htmlFor="scale">Scale</Label>
@@ -265,10 +325,42 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         )}
                     />
                 </div>
+                <div /> {/* Empty space for alignment */}
             </div>
 
-            {/* Row 2: Family & Project Manager */}
+            {/* Row 3: Business Unit & Family (only for PRODUCT projects) */}
+            {selectedCategory === 'PRODUCT' && (
             <div className="grid grid-cols-2 gap-4">
+                {/* Business Unit */}
+                <div>
+                    <Label htmlFor="business_unit_id">Business Unit</Label>
+                    <Controller
+                        name="business_unit_id"
+                        control={control}
+                        render={({ field }) => (
+                            <Select
+                                onValueChange={(value) => {
+                                    field.onChange(value);
+                                    // Clear product_line_id when business unit changes
+                                    setValue('product_line_id', '');
+                                }}
+                                value={field.value || ''}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Business Unit" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {businessUnits?.map((bu) => (
+                                        <SelectItem key={bu.id} value={bu.id}>
+                                            {bu.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                </div>
+
                 {/* Family (formerly Product Line) */}
                 <div>
                     <Label htmlFor="product_line_id">Family</Label>
@@ -276,9 +368,13 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         name="product_line_id"
                         control={control}
                         render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <Select
+                                onValueChange={field.onChange}
+                                value={field.value || ''}
+                                disabled={!selectedBusinessUnitId}
+                            >
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Select Family" />
+                                    <SelectValue placeholder={selectedBusinessUnitId ? "Select Family" : "Select Business Unit first"} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {filteredProductLines.map((pl) => (
@@ -291,7 +387,11 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         )}
                     />
                 </div>
+            </div>
+            )}
 
+            {/* Row 4: Project Manager */}
+            <div className="grid grid-cols-2 gap-4">
                 {/* Project Manager */}
                 <div>
                     <Label htmlFor="pm_id">Project Manager</Label>
@@ -314,9 +414,10 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         )}
                     />
                 </div>
+                <div /> {/* Empty space for alignment */}
             </div>
 
-            {/* Row 3: Customer & Product */}
+            {/* Row 4: Customer & Product */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="customer">Customer</Label>
@@ -328,7 +429,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 </div>
             </div>
 
-            {/* Row 4: Start & End Month - Side by side with native date picker */}
+            {/* Row 5: Start & End Month - Side by side with native date picker */}
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <Label htmlFor="start_month">Start Month</Label>

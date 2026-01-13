@@ -44,8 +44,9 @@ class ProductLine(BaseModel):
     id: str
     name: str
     code: str
-    business_unit_id: Optional[str] = None  # NEW
-    line_category: Optional[str] = "PRODUCT"  # NEW: PRODUCT, PLATFORM, LEGACY
+    business_unit_id: Optional[str] = None
+    business_unit: Optional[BusinessUnit] = None  # nested relationship
+    line_category: Optional[str] = "PRODUCT"  # PRODUCT, PLATFORM, LEGACY
     description: Optional[str] = None
 
     class Config:

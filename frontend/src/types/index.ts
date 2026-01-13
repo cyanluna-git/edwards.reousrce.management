@@ -90,8 +90,9 @@ export interface ProductLine {
     id: string
     name: string
     code: string
-    business_unit_id?: string  // NEW
-    line_category?: 'PRODUCT' | 'PLATFORM' | 'LEGACY'  // NEW
+    business_unit_id?: string
+    business_unit?: BusinessUnit  // nested relationship
+    line_category?: 'PRODUCT' | 'PLATFORM' | 'LEGACY'
     description?: string
 }
 

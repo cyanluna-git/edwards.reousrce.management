@@ -39,7 +39,7 @@ class ProjectService:
             .options(
                 joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.project_type),
-                joinedload(Project.product_line),
+                joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.pm),
             )
             .filter(Project.id == project_id)
@@ -81,7 +81,7 @@ class ProjectService:
             .options(
                 joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.project_type),
-                joinedload(Project.product_line),
+                joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.pm),
             )
         )
@@ -463,9 +463,32 @@ class ProjectService:
 
         functional_projects = list(dept_map.values())
 
+        # Get ungrouped PRODUCT projects (no product_line_id assigned)
+        ungrouped_product_projects = (
+            self.db.query(Project)
+            .filter(
+                Project.category == "PRODUCT",
+                Project.product_line_id == None,
+            )
+            .order_by(Project.code)
+            .all()
+        )
+
+        ungrouped_projects = [
+            {
+                "id": p.id,
+                "code": p.code,
+                "name": p.name,
+                "status": p.status,
+                "type": "project",
+            }
+            for p in ungrouped_product_projects
+        ]
+
         return {
             "product_projects": product_projects,
             "functional_projects": functional_projects,
+            "ungrouped_projects": ungrouped_projects,
         }
 
     def get_product_line_hierarchy(self) -> List[dict]:

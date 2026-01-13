@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec:*)",
+      "Bash(python backend/scripts/update_worklog_projects.py:*)"
+    ]
+  }
+}
