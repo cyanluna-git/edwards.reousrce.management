@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { MainLayout } from './components/layout';
-import { DashboardPage, LoginPage, ProjectsPage, ProjectDetailPage, WorkLogsPage, WorkLogTablePage, ResourcePlansPage, OrganizationPage, ReportsPage } from './pages';
+import { DashboardPage, LoginPage, ProjectsPage, ProjectDetailPage, WorkLogsPage, WorkLogTablePage, ResourcePlansPage, OrganizationPage, ReportsPage, RequestBoardPage } from './pages';
 
 import './App.css';
 
@@ -29,6 +29,7 @@ function App() {
             <Route path="/resource-plans" element={<ResourcePlansPage />} />
             <Route path="/organization" element={<OrganizationPage />} />
             <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/requests" element={<RequestBoardPage />} />
 
             {/* Add other protected routes here */}
             <Route path="*" element={<Navigate to="/" />} />

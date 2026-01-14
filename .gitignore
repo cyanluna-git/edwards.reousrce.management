@@ -63,3 +63,4 @@ alembic/versions/__pycache__/
 
 # Build/dist
 /build_output
+/ref_table

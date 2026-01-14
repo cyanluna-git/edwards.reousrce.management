@@ -15,6 +15,7 @@ import {
     Shield,
     Eye,
     PenSquare,
+    MessageSquare,
 } from 'lucide-react'
 
 // Monitoring - View/Analysis
@@ -36,6 +37,8 @@ const adminNavigation = [
     { name: 'Organization', href: '/organization', icon: Building2 },
     { name: 'Settings', href: '/settings', icon: Settings },
 ]
+
+const requestBoardLink = { name: '요청 게시판', href: '/requests', icon: MessageSquare }
 
 export function Sidebar() {
     const location = useLocation()
@@ -107,6 +110,13 @@ export function Sidebar() {
                 {renderSection('Admin Settings', Shield, adminNavigation, true)}
             </nav>
 
+            {/* Request board quick access */}
+            <div className="px-3 pb-4">
+                <div className="rounded-lg bg-slate-800/60 p-3 shadow-inner">
+                    {renderNavItem(requestBoardLink)}
+                    <p className="mt-2 text-xs text-slate-400">피드백/개선/의견을 남겨주세요.</p>
+                </div>
+            </div>
 
             {/* User info & Logout */}
             <div className="border-t border-slate-700 p-4 space-y-3">
