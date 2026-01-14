@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.work_type import WorkTypeCategory, WorkTypeLegacyMapping
 
 
-# L1 대분류 (8개)
+# L1 대분류 (9개)
 L1_CATEGORIES = [
     {
         "code": "ENG",
@@ -17,53 +17,60 @@ L1_CATEGORIES = [
         "sort_order": 1,
     },
     {
+        "code": "MTG",
+        "name": "Meeting & Collaboration",
+        "name_ko": "미팅/협업",
+        "description": "미팅, 회의, 협업 활동",
+        "sort_order": 2,
+    },
+    {
         "code": "PRJ",
         "name": "Project Execution",
         "name_ko": "프로젝트 실행",
-        "description": "프로젝트 관리, 협업, 미팅",
-        "sort_order": 2,
+        "description": "프로젝트 관리, 계획, 보고",
+        "sort_order": 3,
     },
     {
         "code": "OPS",
         "name": "Operations",
         "name_ko": "운영",
         "description": "현장/Shopfloor, 생산 지원",
-        "sort_order": 3,
+        "sort_order": 4,
     },
     {
         "code": "QMS",
         "name": "Quality & Compliance",
         "name_ko": "품질/규정준수",
         "description": "품질, 인증, 안전",
-        "sort_order": 4,
+        "sort_order": 5,
     },
     {
         "code": "KNW",
         "name": "Knowledge Work",
         "name_ko": "지식업무",
         "description": "문서화, 학습, 연구",
-        "sort_order": 5,
+        "sort_order": 6,
     },
     {
         "code": "SUP",
         "name": "Support & Service",
         "name_ko": "지원/서비스",
         "description": "고객지원, 필드서비스",
-        "sort_order": 6,
+        "sort_order": 7,
     },
     {
         "code": "ADM",
         "name": "Administration",
         "name_ko": "행정",
         "description": "행정, 이메일, 기타",
-        "sort_order": 7,
+        "sort_order": 8,
     },
     {
         "code": "ABS",
         "name": "Absence",
         "name_ko": "부재",
         "description": "휴가, 휴직, 교육훈련",
-        "sort_order": 8,
+        "sort_order": 9,
     },
 ]
 
@@ -109,34 +116,78 @@ L2_CATEGORIES = {
             "sort_order": 6,
         },
     ],
-    "PRJ": [
+    "MTG": [
         {
-            "code": "PRJ-MTG",
-            "name": "Meeting & Collaboration",
-            "name_ko": "미팅/협업",
+            "code": "MTG-INT",
+            "name": "Internal Meeting",
+            "name_ko": "내부 회의",
             "sort_order": 1,
         },
+        {
+            "code": "MTG-EXT",
+            "name": "Customer/Vendor Meeting",
+            "name_ko": "고객/외부 미팅",
+            "sort_order": 2,
+        },
+        {
+            "code": "MTG-REP",
+            "name": "Reporting",
+            "name_ko": "보고",
+            "sort_order": 3,
+        },
+        {
+            "code": "MTG-INF",
+            "name": "Information Sharing",
+            "name_ko": "정보 공유",
+            "sort_order": 4,
+        },
+        {
+            "code": "MTG-DEC",
+            "name": "Decision Making",
+            "name_ko": "의사 결정",
+            "sort_order": 5,
+        },
+        {
+            "code": "MTG-PRB",
+            "name": "Problem Solving",
+            "name_ko": "문제 해결",
+            "sort_order": 6,
+        },
+        {
+            "code": "MTG-UPD",
+            "name": "Periodic Updates",
+            "name_ko": "정기 점검",
+            "sort_order": 7,
+        },
+        {
+            "code": "MTG-FDB",
+            "name": "Feedback",
+            "name_ko": "피드백",
+            "sort_order": 8,
+        },
+    ],
+    "PRJ": [
         {
             "code": "PRJ-PLN",
             "name": "Planning & Scheduling",
             "name_ko": "계획/일정관리",
-            "sort_order": 2,
+            "sort_order": 1,
             "applicable_roles": "PM,LEAD",
         },
         {
             "code": "PRJ-REV",
             "name": "Review & Approval",
             "name_ko": "검토/승인",
-            "sort_order": 3,
+            "sort_order": 2,
         },
         {
             "code": "PRJ-MGT",
             "name": "Team Management",
             "name_ko": "팀 관리",
-            "sort_order": 4,
+            "sort_order": 3,
             "applicable_roles": "MANAGER,LEAD",
         },
-        {"code": "PRJ-REP", "name": "Reporting", "name_ko": "보고", "sort_order": 5},
+        {"code": "PRJ-REP", "name": "Reporting", "name_ko": "보고", "sort_order": 4},
     ],
     "OPS": [
         {
@@ -362,64 +413,12 @@ L3_CATEGORIES = {
             "sort_order": 2,
         },
     ],
-    # Project - Meeting
-    "PRJ-MTG": [
-        {
-            "code": "PRJ-MTG-INT",
-            "name": "Internal Meeting",
-            "name_ko": "내부 회의",
-            "sort_order": 1,
-        },
-        {
-            "code": "PRJ-MTG-EXT",
-            "name": "Customer/Vendor Meeting",
-            "name_ko": "고객/외부 미팅",
-            "sort_order": 2,
-        },
-        {
-            "code": "PRJ-MTG-REP",
-            "name": "Reporting",
-            "name_ko": "보고",
-            "sort_order": 3,
-        },
-        # New Meeting Types (Purpose-based)
-        {
-            "code": "PRJ-MTG-INF",
-            "name": "Information Sharing",
-            "name_ko": "정보 공유",
-            "sort_order": 4,
-        },
-        {
-            "code": "PRJ-MTG-DEC",
-            "name": "Decision Making",
-            "name_ko": "의사 결정",
-            "sort_order": 5,
-        },
-        {
-            "code": "PRJ-MTG-PRB",
-            "name": "Problem Solving",
-            "name_ko": "문제 해결",
-            "sort_order": 6,
-        },
-        {
-            "code": "PRJ-MTG-UPD",
-            "name": "Periodic Updates",
-            "name_ko": "정기 점검",
-            "sort_order": 7,
-        },
-        {
-            "code": "PRJ-MTG-FDB",
-            "name": "Feedback",
-            "name_ko": "피드백",
-            "sort_order": 8,
-        },
-    ],
 }
 
 
-# Legacy work_type → L2 mapping
+# Legacy work_type → L1/L2 mapping
 LEGACY_MAPPINGS = {
-    "Meeting": "PRJ-MTG",
+    "Meeting": "MTG",
     "Design": "ENG-DES",
     "Documentation": "KNW-DOC",
     "Leave": "ABS-LVE",
