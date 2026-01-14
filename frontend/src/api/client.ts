@@ -684,6 +684,23 @@ export interface UserUpdate {
   is_active?: boolean;
 }
 
+export interface UserCreate {
+  email: string;
+  name: string;
+  korean_name?: string | null;
+  department_id: string;
+  sub_team_id?: string | null;
+  position_id: string;
+  role?: string;
+  is_active?: boolean;
+  password: string;
+}
+
+export const createUser = async (data: UserCreate): Promise<UserDetails> => {
+  const response = await apiClient.post('/users', data);
+  return response.data;
+};
+
 export const updateUser = async (userId: string, data: UserUpdate): Promise<UserDetails> => {
   const response = await apiClient.put(`/users/${userId}`, data);
   return response.data;

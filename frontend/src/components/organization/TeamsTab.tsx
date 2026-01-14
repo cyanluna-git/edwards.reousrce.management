@@ -40,6 +40,7 @@ import {
     type UserDetails,
 } from '@/api/client';
 import type { JobPosition } from '@/types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type OrgLevel = 'level0' | 'level1' | 'level2';
 type ModalMode = 'create' | 'edit';
@@ -54,6 +55,7 @@ interface OrgItem {
 
 export const TeamsTab: React.FC = () => {
     const queryClient = useQueryClient();
+    const { canManageOrganization } = usePermissions();
     const [expandedL0, setExpandedL0] = useState<Set<string>>(new Set());
     const [expandedL1, setExpandedL1] = useState<Set<string>>(new Set());
 
@@ -287,7 +289,9 @@ export const TeamsTab: React.FC = () => {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Organization Hierarchy (Division &gt; Dept &gt; SubTeam)</CardTitle>
-                    <Button onClick={() => openCreateModal('level0')}>+ Division 추가</Button>
+                    {canManageOrganization && (
+                        <Button onClick={() => openCreateModal('level0')}>+ Division 추가</Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -303,6 +307,7 @@ export const TeamsTab: React.FC = () => {
                                     positions={positions}
                                     isExpanded={expandedL0.has(div.id)}
                                     expandedL1={expandedL1}
+                                    canManageOrganization={canManageOrganization}
                                     onToggle={() => toggleL0(div.id)}
                                     onToggleL1={toggleL1}
                                     onEdit={() => openEditModal({ type: 'level0', id: div.id, name: div.name, code: div.code })}
@@ -458,6 +463,7 @@ const DivisionRow: React.FC<{
     positions: JobPosition[];
     isExpanded: boolean;
     expandedL1: Set<string>;
+    canManageOrganization: boolean;
     onToggle: () => void;
     onToggleL1: (id: string) => void;
     onEdit: () => void;
@@ -469,7 +475,7 @@ const DivisionRow: React.FC<{
     onEditChildL2: (st: SubTeam, deptId: string) => void;
     onDeleteChildL2: (st: SubTeam) => void;
     queryClient: ReturnType<typeof useQueryClient>;
-}> = ({ item, departments, allUsers, positions, isExpanded, expandedL1, onToggle, onToggleL1, onEdit, onDelete, onAddChild, onEditChildL1, onDeleteChildL1, onAddChildL2, onEditChildL2, onDeleteChildL2, queryClient }) => {
+}> = ({ item, departments, allUsers, positions, isExpanded, expandedL1, canManageOrganization, onToggle, onToggleL1, onEdit, onDelete, onAddChild, onEditChildL1, onDeleteChildL1, onAddChildL2, onEditChildL2, onDeleteChildL2, queryClient }) => {
 
     return (
         <div className="border rounded-lg bg-white overflow-hidden shadow-sm">
@@ -480,11 +486,13 @@ const DivisionRow: React.FC<{
                         <div className="font-bold text-lg">{item.name}</div>
                     </div>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); onAddChild(); }}>+ Dept</Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEdit(); }}>✏️</Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(); }}>🗑️</Button>
-                </div>
+                {canManageOrganization && (
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); onAddChild(); }}>+ Dept</Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); onEdit(); }}>✏️</Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(); }}>🗑️</Button>
+                    </div>
+                )}
             </div>
 
             {isExpanded && (

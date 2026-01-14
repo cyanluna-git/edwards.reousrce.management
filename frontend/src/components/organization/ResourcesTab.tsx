@@ -26,17 +26,20 @@ import {
     getUsers,
     getUserHistory,
     updateUser,
+    createUser,
     type UserDetails,
 } from '@/api/client';
 import type { JobPosition } from '@/types';
 import { OrganizationSelect } from '@/components/OrganizationSelect';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type SortColumn = 'name' | 'email' | 'division' | 'department' | 'subteam' | 'position' | 'role' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export const ResourcesTab: React.FC = () => {
     const queryClient = useQueryClient();
+    const { canManageUsers } = usePermissions();
     const [selectedDeptId, setSelectedDeptId] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
@@ -183,16 +186,23 @@ export const ResourcesTab: React.FC = () => {
             <CardHeader className="flex flex-col gap-4">
                 <div className="flex flex-row items-center justify-between">
                     <CardTitle>Resources ({filteredUsers.length}명)</CardTitle>
-                    <select
-                        className="border rounded px-3 py-1.5 text-sm"
-                        value={selectedDeptId}
-                        onChange={(e) => setSelectedDeptId(e.target.value)}
-                    >
-                        <option value="">All Departments</option>
-                        {departments.map((dept) => (
-                            <option key={dept.id} value={dept.id}>{dept.name}</option>
-                        ))}
-                    </select>
+                    <div className="flex gap-2">
+                        {canManageUsers && (
+                            <Button onClick={() => setEditingUser({} as UserDetails)}>
+                                + 사용자 추가
+                            </Button>
+                        )}
+                        <select
+                            className="border rounded px-3 py-1.5 text-sm"
+                            value={selectedDeptId}
+                            onChange={(e) => setSelectedDeptId(e.target.value)}
+                        >
+                            <option value="">All Departments</option>
+                            {departments.map((dept) => (
+                                <option key={dept.id} value={dept.id}>{dept.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
                 {/* Search Input */}
                 <div className="relative max-w-md">
@@ -257,7 +267,9 @@ export const ResourcesTab: React.FC = () => {
                                         <span className={`inline-block w-2 h-2 rounded-full ${user.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
                                     </td>
                                     <td className="py-2 px-3 text-right space-x-2">
-                                        <button className="text-blue-600 hover:underline text-xs" onClick={() => setEditingUser(user)}>✏️ Edit</button>
+                                        {canManageUsers && (
+                                            <button className="text-blue-600 hover:underline text-xs" onClick={() => setEditingUser(user)}>✏️ Edit</button>
+                                        )}
                                         <button className="text-gray-600 hover:underline text-xs" onClick={() => setSelectedUser(user)}>📋 History</button>
                                     </td>
                                 </tr>
@@ -298,14 +310,21 @@ export const UserEditModal: React.FC<{
     onClose: () => void;
     onSuccess: () => void;
 }> = ({ user, positions, onClose, onSuccess }) => {
+    const isNewUser = !user.id;
     const [formData, setFormData] = useState({
-        name: user.name,
+        email: user.email || '',
+        name: user.name || '',
         korean_name: user.korean_name || '',
-        department_id: user.department_id,
+        department_id: user.department_id || '',
         sub_team_id: user.sub_team_id || '',
-        position_id: user.position_id,
-        role: user.role,
-        is_active: user.is_active,
+        position_id: user.position_id || (positions[0]?.id || ''),
+        role: user.role || 'USER',
+        is_active: user.is_active ?? true,
+    });
+
+    const createMutation = useMutation({
+        mutationFn: (data: Parameters<typeof createUser>[0]) => createUser(data),
+        onSuccess,
     });
 
     const updateMutation = useMutation({
@@ -314,25 +333,51 @@ export const UserEditModal: React.FC<{
     });
 
     const handleSubmit = () => {
-        updateMutation.mutate({
-            name: formData.name,
-            korean_name: formData.korean_name || null,
-            department_id: formData.department_id,
-            sub_team_id: formData.sub_team_id || null,
-            position_id: formData.position_id,
-            role: formData.role,
-            is_active: formData.is_active,
-        });
+        if (isNewUser) {
+            // Create new user with default password
+            createMutation.mutate({
+                email: formData.email,
+                name: formData.name,
+                korean_name: formData.korean_name || null,
+                department_id: formData.department_id,
+                sub_team_id: formData.sub_team_id || null,
+                position_id: formData.position_id,
+                role: formData.role,
+                is_active: formData.is_active,
+                password: 'Welcome2024!', // Default password
+            });
+        } else {
+            // Update existing user
+            updateMutation.mutate({
+                name: formData.name,
+                korean_name: formData.korean_name || null,
+                department_id: formData.department_id,
+                sub_team_id: formData.sub_team_id || null,
+                position_id: formData.position_id,
+                role: formData.role,
+                is_active: formData.is_active,
+            });
+        }
     };
+
+    const isPending = createMutation.isPending || updateMutation.isPending;
+    const error = createMutation.error || updateMutation.error;
 
     return (
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Edit Member: {user.name}</DialogTitle>
-                    <DialogDescription>사용자 정보를 수정합니다.</DialogDescription>
+                    <DialogTitle>{isNewUser ? '신규 사용자 추가' : `Edit Member: ${user.name}`}</DialogTitle>
+                    <DialogDescription>
+                        {isNewUser ? '신규 사용자를 생성합니다. 기본 패스워드는 "Welcome2024!" 입니다.' : '사용자 정보를 수정합니다.'}
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
+                            {error.message || '오류가 발생했습니다.'}
+                        </div>
+                    )}
                     {/* Name Fields */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -357,8 +402,15 @@ export const UserEditModal: React.FC<{
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="text" className="w-full border rounded px-3 py-2 bg-gray-50" value={user.email} disabled />
+                        <label className="block text-sm font-medium mb-1">Email {isNewUser && '*'}</label>
+                        <input 
+                            type="email" 
+                            className={`w-full border rounded px-3 py-2 ${isNewUser ? '' : 'bg-gray-50'}`}
+                            value={isNewUser ? formData.email : user.email} 
+                            onChange={isNewUser ? (e) => setFormData({ ...formData, email: e.target.value }) : undefined}
+                            disabled={!isNewUser}
+                            placeholder={isNewUser ? "user@edwardsvacuum.com" : undefined}
+                        />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">조직 *</label>
@@ -411,10 +463,10 @@ export const UserEditModal: React.FC<{
                     <Button variant="outline" onClick={onClose}>취소</Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={updateMutation.isPending}
+                        disabled={isPending}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                        {updateMutation.isPending ? '저장 중...' : '저장'}
+                        {isPending ? '처리 중...' : (isNewUser ? '생성' : '저장')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

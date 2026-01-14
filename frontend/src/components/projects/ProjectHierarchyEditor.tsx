@@ -43,6 +43,7 @@ import type { ProductLine, Project } from '@/types';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
 import ProjectForm from '@/components/forms/ProjectForm';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type HierarchyLevel = 'business_unit' | 'product_line' | 'project';
 
@@ -71,6 +72,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
     const location = useLocation();
+    const { canManageProjects } = usePermissions();
     const { data: hierarchy, isLoading } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
@@ -359,14 +361,16 @@ export const ProjectHierarchyEditor: React.FC = () => {
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Projects</h2>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleAddBusinessUnit}>
-                        + New Business Unit
-                    </Button>
-                    <Button onClick={() => handleAddProject('', 'product_line')}>
-                        + New Project
-                    </Button>
-                </div>
+                {canManageProjects && (
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleAddBusinessUnit}>
+                            + New Business Unit
+                        </Button>
+                        <Button onClick={() => handleAddProject('', 'product_line')}>
+                            + New Project
+                        </Button>
+                    </div>
+                )}
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -443,35 +447,37 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 <span className="font-semibold">{bu.name}</span>
                                                 <span className="text-xs text-muted-foreground">({bu.code})</span>
                                             </div>
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 text-green-600"
-                                                    onClick={(e) => { e.stopPropagation(); handleAddProductLine(bu.id); }}
-                                                    title="Add Product Line"
-                                                >
-                                                    ➕ PL
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 text-blue-600"
-                                                    onClick={(e) => { e.stopPropagation(); handleEditBusinessUnit(bu); }}
-                                                    title="Edit Business Unit"
-                                                >
-                                                    ✏️
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 text-red-600"
-                                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'business_unit', id: bu.id, name: bu.name }); }}
-                                                    title="Delete Business Unit"
-                                                >
-                                                    🗑️
-                                                </Button>
-                                            </div>
+                                            {canManageProjects && (
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-green-600"
+                                                        onClick={(e) => { e.stopPropagation(); handleAddProductLine(bu.id); }}
+                                                        title="Add Product Line"
+                                                    >
+                                                        ➕ PL
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-blue-600"
+                                                        onClick={(e) => { e.stopPropagation(); handleEditBusinessUnit(bu); }}
+                                                        title="Edit Business Unit"
+                                                    >
+                                                        ✏️
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-red-600"
+                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'business_unit', id: bu.id, name: bu.name }); }}
+                                                        title="Delete Business Unit"
+                                                    >
+                                                        🗑️
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Product Lines */}
@@ -491,29 +497,31 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                     {pl.line_category || 'PRODUCT'}
                                                                 </span>
                                                             </div>
-                                                            <div className="flex gap-1">
-                                                                <Button
-                                                                    variant="ghost" size="sm" className="h-7 w-7 text-green-600"
-                                                                    onClick={(e) => { e.stopPropagation(); handleAddProject(pl.id, 'product_line'); }}
-                                                                    title="Add Project"
-                                                                >
-                                                                    ➕
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost" size="sm" className="h-7 w-7 text-blue-600"
-                                                                    onClick={(e) => { e.stopPropagation(); handleEditProductLine(pl, bu.id); }}
-                                                                    title="Edit Product Line"
-                                                                >
-                                                                    ✏️
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost" size="sm" className="h-7 w-7 text-red-600"
-                                                                    onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'product_line', id: pl.id, name: pl.name }); }}
-                                                                    title="Delete Product Line"
-                                                                >
-                                                                    🗑️
-                                                                </Button>
-                                                            </div>
+                                                            {canManageProjects && (
+                                                                <div className="flex gap-1">
+                                                                    <Button
+                                                                        variant="ghost" size="sm" className="h-7 w-7 text-green-600"
+                                                                        onClick={(e) => { e.stopPropagation(); handleAddProject(pl.id, 'product_line'); }}
+                                                                        title="Add Project"
+                                                                    >
+                                                                        ➕
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost" size="sm" className="h-7 w-7 text-blue-600"
+                                                                        onClick={(e) => { e.stopPropagation(); handleEditProductLine(pl, bu.id); }}
+                                                                        title="Edit Product Line"
+                                                                    >
+                                                                        ✏️
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost" size="sm" className="h-7 w-7 text-red-600"
+                                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'product_line', id: pl.id, name: pl.name }); }}
+                                                                        title="Delete Product Line"
+                                                                    >
+                                                                        🗑️
+                                                                    </Button>
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         {/* Projects - sorted by status priority */}
@@ -532,22 +540,24 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                                 {proj.status}
                                                                             </span>
                                                                         </div>
-                                                                        <div className="flex gap-1">
-                                                                            <Button
-                                                                                variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
-                                                                                title="View/Edit Project"
-                                                                            >
-                                                                                ✏️
-                                                                            </Button>
-                                                                            <Button
-                                                                                variant="ghost" size="sm" className="h-6 w-6 text-red-600"
-                                                                                onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
-                                                                                title="Delete Project"
-                                                                            >
-                                                                                🗑️
-                                                                            </Button>
-                                                                        </div>
+                                                                        {canManageProjects && (
+                                                                            <div className="flex gap-1">
+                                                                                <Button
+                                                                                    variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
+                                                                                    onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
+                                                                                    title="View/Edit Project"
+                                                                                >
+                                                                                    ✏️
+                                                                                </Button>
+                                                                                <Button
+                                                                                    variant="ghost" size="sm" className="h-6 w-6 text-red-600"
+                                                                                    onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
+                                                                                    title="Delete Project"
+                                                                                >
+                                                                                    🗑️
+                                                                                </Button>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 ))}
                                                                 {(!pl.children || pl.children.length === 0) && (
