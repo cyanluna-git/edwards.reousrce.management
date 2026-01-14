@@ -5,7 +5,6 @@ import { useAuth } from '@/hooks/useAuth'
 import {
     LayoutDashboard,
     FolderKanban,
-    Users,
     Clock,
     Calendar,
     BarChart3,
@@ -21,7 +20,6 @@ import {
 // Monitoring - View/Analysis
 const monitoringNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Team', href: '/team', icon: Users },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
 ]
 
