@@ -3,7 +3,7 @@ Service layer for user-related business logic
 """
 from typing import List, Optional
 from typing import cast
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime
 
 from app.core.security import get_password_hash
@@ -28,7 +28,7 @@ class UserService:
 
     def get_by_id(self, user_id: str) -> Optional[User]:
         """Get a user by their ID."""
-        return self.db.query(User).filter(User.id == user_id).first()
+        return self.db.query(User).options(joinedload(User.sub_team)).filter(User.id == user_id).first()
 
     def get_by_email(self, email: str) -> Optional[User]:
         """Get a user by their email."""
@@ -44,19 +44,17 @@ class UserService:
         self.db.add(db_user)
         self.db.flush()  # Flush to get the db_user.id if it's auto-generated
 
-        # Create initial history record (department derived via sub_team)
-        dept_id = self._get_department_id_for_sub_team_id(db_user.sub_team_id)
-        if dept_id:
-            initial_history = UserHistory(
-                user_id=db_user.id,
-                department_id=dept_id,
-                sub_team_id=db_user.sub_team_id,
-                position_id=db_user.position_id,
-                start_date=db_user.created_at or datetime.utcnow(),
-                change_type="HIRE",
-                remarks="Initial user creation.",
-            )
-            self.db.add(initial_history)
+        # Create initial history record
+        initial_history = UserHistory(
+            user_id=db_user.id,
+            department_id=db_user.department_id,
+            sub_team_id=db_user.sub_team_id,
+            position_id=db_user.position_id,
+            start_date=db_user.created_at or datetime.utcnow(),
+            change_type="HIRE",
+            remarks="Initial user creation.",
+        )
+        self.db.add(initial_history)
         
         self.db.commit()
         self.db.refresh(db_user)
@@ -71,12 +69,10 @@ class UserService:
         is_active: Optional[bool] = None
     ) -> List[User]:
         """Retrieve multiple users with filters and pagination."""
-        query = self.db.query(User)
+        query = self.db.query(User).options(joinedload(User.sub_team))
 
         if department_id is not None:
-            query = query.join(SubTeam, User.sub_team_id == SubTeam.id).filter(
-                SubTeam.department_id == department_id
-            )
+            query = query.filter(User.department_id == department_id)
 
         if is_active is not None:
             query = query.filter(User.is_active == is_active)
@@ -88,6 +84,7 @@ class UserService:
         update_data = user_in.model_dump(exclude_unset=True)
 
         # Capture pre-update values for history logging
+        old_department_id = user.department_id
         old_sub_team_id = user.sub_team_id
         old_position_id = user.position_id
 
@@ -104,22 +101,20 @@ class UserService:
 
         # Log history changes after applying updates
         self.db.flush()
+        new_department_id = user.department_id
         new_sub_team_id = user.sub_team_id
         new_position_id = user.position_id
-        org_changed = (old_sub_team_id != new_sub_team_id) or (
-            old_position_id != new_position_id
-        )
+        org_changed = (old_department_id != new_department_id) or (
+            old_sub_team_id != new_sub_team_id
+        ) or (old_position_id != new_position_id)
+        
         if org_changed:
-            new_department_id = self._get_department_id_for_sub_team_id(
-                cast(Optional[str], new_sub_team_id)
+            self._log_history_change(
+                user_id=cast(str, user.id),
+                department_id=cast(str, new_department_id),
+                sub_team_id=cast(Optional[str], new_sub_team_id),
+                position_id=cast(str, new_position_id),
             )
-            if new_department_id:
-                self._log_history_change(
-                    user_id=cast(str, user.id),
-                    department_id=new_department_id,
-                    sub_team_id=cast(Optional[str], new_sub_team_id),
-                    position_id=cast(str, new_position_id),
-                )
         self.db.commit()
         self.db.refresh(user)
         return user

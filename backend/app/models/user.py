@@ -23,6 +23,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)  # English name
     korean_name = Column(String(100), nullable=True)  # Korean name
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
     sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
     role = Column(String(20), default="USER")  # ADMIN, PM, FM, USER
@@ -33,6 +34,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    department = relationship("Department", foreign_keys=[department_id])
     sub_team = relationship("SubTeam", back_populates="users")
     position = relationship("JobPosition", back_populates="users")
     history = relationship("UserHistory", back_populates="user")

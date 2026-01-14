@@ -21,6 +21,8 @@ import {
 } from '@/components/ui';
 import {
     getDepartments,
+    getDivisions,
+    getSubTeams,
     getUsers,
     getUserHistory,
     updateUser,
@@ -30,7 +32,7 @@ import type { JobPosition } from '@/types';
 import { OrganizationSelect } from '@/components/OrganizationSelect';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
-type SortColumn = 'name' | 'email' | 'department' | 'position' | 'role' | 'status';
+type SortColumn = 'name' | 'email' | 'division' | 'department' | 'subteam' | 'position' | 'role' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export const ResourcesTab: React.FC = () => {
@@ -41,6 +43,11 @@ export const ResourcesTab: React.FC = () => {
     const [editingUser, setEditingUser] = useState<UserDetails | null>(null);
     const [sortColumn, setSortColumn] = useState<SortColumn>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+    const { data: divisions = [] } = useQuery({
+        queryKey: ['divisions'],
+        queryFn: () => getDivisions(),
+    });
 
     const { data: departments = [] } = useQuery({
         queryKey: ['departments'],
@@ -54,7 +61,33 @@ export const ResourcesTab: React.FC = () => {
 
     const { data: positions = [] } = useJobPositionsList();
 
-    const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || deptId;
+    // Get all sub-teams for all departments
+    const departmentIds = Array.from(new Set(users.map(u => u.department_id)));
+    const { data: allSubTeams = [] } = useQuery({
+        queryKey: ['all-sub-teams', departmentIds],
+        queryFn: async () => {
+            const results = await Promise.all(
+                departmentIds.map(deptId => getSubTeams(deptId))
+            );
+            return results.flat();
+        },
+        enabled: departmentIds.length > 0,
+    });
+
+    const getDivisionName = (deptId: string) => {
+        const dept = departments.find(d => d.id === deptId);
+        if (!dept) return '-';
+        const div = divisions.find(d => d.id === dept.division_id);
+        return div?.name || '-';
+    };
+
+    const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || '-';
+    
+    const getSubTeamName = (subTeamId: string | null) => {
+        if (!subTeamId) return '-';
+        return allSubTeams.find(st => st.id === subTeamId)?.name || '-';
+    };
+
     const getPositionName = (posId: string) => positions.find(p => p.id === posId)?.name || posId;
 
     // Handle column header click for sorting
@@ -95,9 +128,17 @@ export const ResourcesTab: React.FC = () => {
                     valueA = (a.email || '').toLowerCase();
                     valueB = (b.email || '').toLowerCase();
                     break;
+                case 'division':
+                    valueA = getDivisionName(a.department_id).toLowerCase();
+                    valueB = getDivisionName(b.department_id).toLowerCase();
+                    break;
                 case 'department':
                     valueA = getDeptName(a.department_id).toLowerCase();
                     valueB = getDeptName(b.department_id).toLowerCase();
+                    break;
+                case 'subteam':
+                    valueA = getSubTeamName(a.sub_team_id).toLowerCase();
+                    valueB = getSubTeamName(b.sub_team_id).toLowerCase();
                     break;
                 case 'position':
                     valueA = getPositionName(a.position_id).toLowerCase();
@@ -118,7 +159,7 @@ export const ResourcesTab: React.FC = () => {
         });
 
         return result;
-    }, [users, searchTerm, sortColumn, sortDirection, departments, positions]);
+    }, [users, searchTerm, sortColumn, sortDirection, departments, divisions, allSubTeams, positions]);
 
     // Sortable header component
     const SortableHeader: React.FC<{ column: SortColumn; children: React.ReactNode; className?: string }> = ({ column, children, className = '' }) => (
@@ -186,7 +227,9 @@ export const ResourcesTab: React.FC = () => {
                             <tr className="border-b bg-slate-50">
                                 <SortableHeader column="name" className="text-left">Name</SortableHeader>
                                 <SortableHeader column="email" className="text-left">Email</SortableHeader>
+                                <SortableHeader column="division" className="text-left">Division</SortableHeader>
                                 <SortableHeader column="department" className="text-left">Department</SortableHeader>
+                                <SortableHeader column="subteam" className="text-left">SubTeam</SortableHeader>
                                 <SortableHeader column="position" className="text-left">Position</SortableHeader>
                                 <SortableHeader column="role" className="text-left">Role</SortableHeader>
                                 <SortableHeader column="status" className="text-center">Status</SortableHeader>
@@ -201,7 +244,9 @@ export const ResourcesTab: React.FC = () => {
                                         {user.korean_name && <div className="text-xs text-muted-foreground">{user.korean_name}</div>}
                                     </td>
                                     <td className="py-2 px-3 text-muted-foreground">{user.email}</td>
+                                    <td className="py-2 px-3">{getDivisionName(user.department_id)}</td>
                                     <td className="py-2 px-3">{getDeptName(user.department_id)}</td>
+                                    <td className="py-2 px-3 text-muted-foreground">{getSubTeamName(user.sub_team_id)}</td>
                                     <td className="py-2 px-3">{getPositionName(user.position_id)}</td>
                                     <td className="py-2 px-3">
                                         <span className={`px-2 py-0.5 rounded text-xs ${user.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}>

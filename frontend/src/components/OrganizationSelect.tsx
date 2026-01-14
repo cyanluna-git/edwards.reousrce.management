@@ -73,7 +73,7 @@ export function OrganizationSelect({
     const { data: allSubTeams = [] } = useQuery({
         queryKey: ['sub-teams', departmentId],
         queryFn: () => getSubTeams(departmentId!),
-        enabled: !!departmentId && !!subTeamId, // Only fetch when both are set
+        enabled: !!departmentId, // Fetch when department is set
     });
 
     // Get display name for selected value - show full hierarchy path
