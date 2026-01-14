@@ -642,10 +642,14 @@ export const deleteSubTeam = async (id: string): Promise<void> => {
 };
 
 // Users (for Resources tab)
-export const getUsers = async (departmentId?: string, isActive?: boolean): Promise<UserDetails[]> => {
+export const getUsers = async (departmentId?: string, isActive?: boolean, includeInactive = false): Promise<UserDetails[]> => {
   const params = new URLSearchParams();
   if (departmentId) params.append('department_id', departmentId);
-  if (isActive !== undefined) params.append('is_active', String(isActive));
+  if (includeInactive) {
+    params.append('include_inactive', 'true');
+  } else if (isActive !== undefined) {
+    params.append('is_active', String(isActive));
+  }
   params.append('limit', '500');
   const response = await apiClient.get(`/users?${params.toString()}`);
   return response.data;

@@ -48,8 +48,8 @@ export const ResourcesTab: React.FC = () => {
     });
 
     const { data: users = [], isLoading } = useQuery({
-        queryKey: ['users', selectedDeptId],
-        queryFn: () => getUsers(selectedDeptId || undefined),
+        queryKey: ['users', selectedDeptId, 'includeInactive'],
+        queryFn: () => getUsers(selectedDeptId || undefined, undefined, true),
     });
 
     const { data: positions = [] } = useJobPositionsList();

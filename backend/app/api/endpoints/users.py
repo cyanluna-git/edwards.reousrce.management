@@ -18,6 +18,13 @@ router = APIRouter()
 async def list_users(
     department_id: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(True),
+    include_inactive: bool = Query(
+        False,
+        description=(
+            "When true, returns both active and inactive users "
+            "(overrides is_active filter)."
+        ),
+    ),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -26,10 +33,17 @@ async def list_users(
     List users with optional filters.
     - **department_id**: Filter by department.
     - **is_active**: Filter by active status (default: True).
+        - **include_inactive**: If true, return all users regardless of active
+            status.
     """
     service = UserService(db)
+    if include_inactive:
+        is_active = None
     users = service.get_multi(
-        skip=skip, limit=limit, department_id=department_id, is_active=is_active
+        skip=skip,
+        limit=limit,
+        department_id=department_id,
+        is_active=is_active,
     )
     return users
 
@@ -65,7 +79,11 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_id}", response_model=User)
-async def update_user(user_id: str, user_in: UserUpdate, db: Session = Depends(get_db)):
+async def update_user(
+    user_id: str,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+):
     """
     Update a user's information.
     """

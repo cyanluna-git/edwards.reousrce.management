@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.models.hiring_plan import HiringPlan
-from app.models.organization import Department
+from app.models.organization import Department, SubTeam
 from app.models.user import User
 
 router = APIRouter()
@@ -191,7 +191,9 @@ async def get_headcount_forecast(
     # Current active users
     user_query = db.query(func.count(User.id)).filter(User.is_active == True)
     if department_id:
-        user_query = user_query.filter(User.department_id == department_id)
+        user_query = user_query.join(SubTeam, User.sub_team_id == SubTeam.id).filter(
+            SubTeam.department_id == department_id
+        )
     current_headcount = user_query.scalar() or 0
 
     # Planned hires up to target_date (exclude CANCELLED and already FILLED that are linked to users)

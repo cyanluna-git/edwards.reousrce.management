@@ -320,7 +320,8 @@ async def delete_department(
     # Check for dependent users (only active users)
     user_count = (
         db.query(User)
-        .filter(User.department_id == department_id, User.is_active == True)
+        .join(SubTeam, User.sub_team_id == SubTeam.id)
+        .filter(SubTeam.department_id == department_id, User.is_active == True)
         .count()
     )
     if user_count > 0:
@@ -345,7 +346,11 @@ async def get_department_members(
     if not dept:
         raise HTTPException(status_code=404, detail="Department not found")
 
-    query = db.query(User).filter(User.department_id == department_id)
+    query = (
+        db.query(User)
+        .join(SubTeam, User.sub_team_id == SubTeam.id)
+        .filter(SubTeam.department_id == department_id)
+    )
     if is_active is not None:
         query = query.filter(User.is_active == is_active)
 
