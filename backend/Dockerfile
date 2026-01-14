@@ -58,5 +58,5 @@ EXPOSE 8004
 # Set Python to run in unbuffered mode for real-time logging
 ENV PYTHONUNBUFFERED=1
 
-# Run the application with detailed logging
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload", "--log-level", "debug", "--access-log"]
+# Run the application (production-friendly defaults)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--log-level", "info", "--access-log"]

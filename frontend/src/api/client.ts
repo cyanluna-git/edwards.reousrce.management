@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Token } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8004/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const AUTH_TOKEN_KEY = 'authToken';
 
 export const apiClient = axios.create({

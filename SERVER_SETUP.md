@@ -11,8 +11,8 @@ EUV Program IS 리소스 운영 관리 시스템 (PoC)
 git clone <repository-url>
 cd edwards.engineering_operation_managenent
 
-# 환경 변수 파일
-# - 로컬 개발: .env 사용 (.env가 없으면 첫 실행 시 .env.example에서 자동 생성)
+# 서버 운영 환경 변수
+# - 로컬 개발: .env 사용
 # - 서버 운영: .env.remote 사용 (레포에 커밋하지 않음)
 #   예) .env.remote.example을 복사해서 서버에 .env.remote로 생성
 ```
@@ -66,6 +66,12 @@ BACKEND_PORT=8004     # FastAPI
 FRONTEND_PORT=3004    # Vite/React
 ```
 
+서버에서 Docker Compose로 실행할 때는 다음처럼 서버용 env 파일을 지정하는 것을 권장:
+
+```bash
+docker compose --env-file .env.remote up -d --build
+```
+
 ---
 
 ## 🔧 기타 실행 방법
@@ -111,7 +117,7 @@ docker compose down
 
 ```bash
 # PostgreSQL 시작 (Docker 사용)
-docker compose up -d db
+docker-compose up -d db
 
 # Backend
 cd backend
@@ -221,4 +227,3 @@ python3 backup_db.py
 ## Documentation
 - [개발 메모](./docs/todo.md)
 - [요구사항](./docs/requirements.md)
-- [요구사항](./requirment.md)

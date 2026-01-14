@@ -109,8 +109,9 @@ def check_docker():
 def check_backend_running():
     """Check if backend service is running"""
     try:
+        compose = get_compose_command()
         result = subprocess.run(
-            ["docker-compose", "ps", "-q", "backend"],
+            compose + ["ps", "-q", "backend"],
             capture_output=True,
             text=True,
             check=True,
@@ -118,6 +119,25 @@ def check_backend_running():
         return bool(result.stdout.strip())
     except subprocess.CalledProcessError:
         return False
+
+
+def get_compose_command():
+    """Return docker compose command with the preferred compose file.
+
+    Defaults to docker-compose.dev.yml when present to keep local dev behavior
+    close to production (same /api base), while still supporting hot reload.
+
+    Override by setting COMPOSE_FILE to a specific filename.
+    """
+
+    compose_file = os.getenv("COMPOSE_FILE")
+    if compose_file:
+        return ["docker", "compose", "-f", compose_file]
+
+    if Path("docker-compose.dev.yml").exists():
+        return ["docker", "compose", "-f", "docker-compose.dev.yml"]
+
+    return ["docker", "compose"]
 
 
 def check_existing_postgres():
@@ -189,12 +209,10 @@ def run_backend():
             "[INFO] Using existing postgres container, starting backend only...",
             Colors.GREEN,
         )
-        subprocess.run(
-            ["docker-compose", "up", "-d", "--no-deps", "backend"], check=True
-        )
+        subprocess.run(get_compose_command() + ["up", "-d", "--no-deps", "backend"], check=True)
     else:
         print_colored("[INFO] Starting database and backend services...", Colors.GREEN)
-        subprocess.run(["docker-compose", "up", "-d", "db", "backend"], check=True)
+        subprocess.run(get_compose_command() + ["up", "-d", "db", "backend"], check=True)
 
     # Wait for services to initialize
     print_colored("[INFO] Waiting for services to initialize...", Colors.GREEN)
@@ -231,7 +249,7 @@ def run_backend():
 
     # Show logs
     try:
-        subprocess.run(["docker-compose", "logs", "-f", "--tail=50", "backend"])
+        subprocess.run(get_compose_command() + ["logs", "-f", "--tail=50", "backend"])
     except KeyboardInterrupt:
         print()
         print_colored(
@@ -275,7 +293,7 @@ def run_frontend():
     print()
 
     # Start frontend service
-    subprocess.run(["docker-compose", "up", "-d", "frontend"], check=True)
+    subprocess.run(get_compose_command() + ["up", "-d", "frontend"], check=True)
 
     # Wait for service to start
     print_colored("[INFO] Waiting for frontend to initialize...", Colors.GREEN)
@@ -296,9 +314,9 @@ def run_frontend():
     print_colored("  ✓ Config files are mounted for instant updates", Colors.GREEN)
     print()
     print_colored("Commands:", Colors.CYAN)
-    print_colored("  View logs: docker-compose logs -f frontend", Colors.WHITE)
-    print_colored("  Stop service: docker-compose stop frontend", Colors.WHITE)
-    print_colored("  Stop all: docker-compose down", Colors.WHITE)
+    print_colored("  View logs: docker compose logs -f frontend", Colors.WHITE)
+    print_colored("  Stop service: docker compose stop frontend", Colors.WHITE)
+    print_colored("  Stop all: docker compose down", Colors.WHITE)
     print()
     print_colored(
         "[INFO] Opening live logs... (Press Ctrl+C to exit logs view)", Colors.YELLOW
@@ -307,7 +325,7 @@ def run_frontend():
 
     # Show logs
     try:
-        subprocess.run(["docker-compose", "logs", "-f", "--tail=50", "frontend"])
+        subprocess.run(get_compose_command() + ["logs", "-f", "--tail=50", "frontend"])
     except KeyboardInterrupt:
         print()
         print_colored(
@@ -337,12 +355,12 @@ def run_all():
             Colors.GREEN,
         )
         subprocess.run(
-            ["docker-compose", "up", "-d", "--no-deps", "backend", "frontend"],
+            get_compose_command() + ["up", "-d", "--no-deps", "backend", "frontend"],
             check=True,
         )
     else:
         print_colored("[INFO] Starting all services...", Colors.GREEN)
-        subprocess.run(["docker-compose", "up", "-d"], check=True)
+        subprocess.run(get_compose_command() + ["up", "-d"], check=True)
 
     # Wait for services to initialize
     print_colored("[INFO] Waiting for services to initialize...", Colors.GREEN)
@@ -367,10 +385,10 @@ def run_all():
     )
     print()
     print_colored("Commands:", Colors.CYAN)
-    print_colored("  View all logs: docker-compose logs -f", Colors.WHITE)
-    print_colored("  View backend logs: docker-compose logs -f backend", Colors.WHITE)
-    print_colored("  View frontend logs: docker-compose logs -f frontend", Colors.WHITE)
-    print_colored("  Stop all: docker-compose down", Colors.WHITE)
+    print_colored("  View all logs: docker compose logs -f", Colors.WHITE)
+    print_colored("  View backend logs: docker compose logs -f backend", Colors.WHITE)
+    print_colored("  View frontend logs: docker compose logs -f frontend", Colors.WHITE)
+    print_colored("  Stop all: docker compose down", Colors.WHITE)
     print()
     print_colored(
         "[INFO] Opening live logs... (Press Ctrl+C to exit logs view)", Colors.YELLOW
@@ -379,7 +397,7 @@ def run_all():
 
     # Show logs
     try:
-        subprocess.run(["docker-compose", "logs", "-f", "--tail=50"])
+        subprocess.run(get_compose_command() + ["logs", "-f", "--tail=50"])
     except KeyboardInterrupt:
         print()
         print_colored(
@@ -392,7 +410,7 @@ def stop_all():
     print_header("Stopping All Services")
     print()
     print_colored("[INFO] Stopping all Docker services...", Colors.YELLOW)
-    subprocess.run(["docker-compose", "down"], check=True)
+    subprocess.run(get_compose_command() + ["down"], check=True)
     print()
     print_colored("[OK] All services stopped.", Colors.GREEN)
 
@@ -401,7 +419,7 @@ def show_status():
     """Show status of all services"""
     print_header("Services Status")
     print()
-    subprocess.run(["docker-compose", "ps"])
+    subprocess.run(get_compose_command() + ["ps"])
 
 
 def print_usage():

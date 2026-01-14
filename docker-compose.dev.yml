@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: edwards-postgres
+    ports:
+      - "${DB_PORT:-5434}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-edwards}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: edwards-api
+    ports:
+      - "${BACKEND_PORT:-8004}:8004"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-edwards}"
+      SECRET_KEY: "${SECRET_KEY:-edwards-secret-key-change-in-production}"
+      DEBUG: "${DEBUG:-true}"
+      LOG_LEVEL: "${LOG_LEVEL:-debug}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3004,http://localhost:5173}"
+    depends_on:
+      - db
+    volumes:
+      - ./backend/app:/app/app
+      - ./backend/alembic:/app/alembic
+      - ./backend/scripts:/app/scripts
+      - ./backend/alembic.ini:/app/alembic.ini
+      - ./backend/requirements.txt:/app/requirements.txt
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload", "--log-level", "debug", "--access-log"]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: edwards-web
+    ports:
+      - "${FRONTEND_PORT:-3004}:3004"
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-/api}"
+      VITE_DEV_PROXY_TARGET: "${VITE_DEV_PROXY_TARGET:-http://backend:8004}"
+      CHOKIDAR_USEPOLLING: "true"
+      DEBUG: "vite:*"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/tsconfig.app.json:/app/tsconfig.app.json
+    restart: unless-stopped
+
+volumes:
+  db_data:
