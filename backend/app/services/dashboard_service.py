@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
 
 from app.models.user import User
-from app.models.organization import Department
+from app.models.organization import Department, SubTeam
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
 
@@ -163,14 +163,19 @@ class DashboardService:
         user = (
             self.db.query(User)
             .options(
-                joinedload(User.department),
-                joinedload(User.sub_team),
+                joinedload(User.sub_team)
+                .joinedload(SubTeam.department)
+                .joinedload(Department.division),
             )
             .filter(User.id == user_id)
             .first()
         )
         if not user:
             return {}
+
+        # Get department through sub_team
+        user_department = user.sub_team.department if user.sub_team else None
+        user_department_id = user_department.id if user_department else None
 
         # Date range calculation
         today = datetime.now().date()
@@ -201,22 +206,35 @@ class DashboardService:
             team_query = team_query.filter(User.sub_team_id == user.sub_team_id)
             team_name = user.sub_team.name if user.sub_team else "Unknown"
             team_code = user.sub_team.code if user.sub_team else ""
-        elif scope == "department":
-            team_query = team_query.filter(User.department_id == user.department_id)
-            team_name = user.department.name if user.department else "Unknown"
-            team_code = user.department.code if user.department else ""
-        elif scope == "business_unit":
-            # Get all departments in the same business unit
+        elif scope == "department" and user_department_id:
+            # Get all sub_teams in the same department
+            sub_team_ids = [
+                st.id
+                for st in self.db.query(SubTeam)
+                .filter(SubTeam.department_id == user_department_id)
+                .all()
+            ]
+            team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
+            team_name = user_department.name if user_department else "Unknown"
+            team_code = user_department.code if user_department else ""
+        elif scope == "business_unit" and user_department:
+            # Get all departments in the same division, then all sub_teams
             dept_ids = [
                 d.id
                 for d in self.db.query(Department)
-                .filter(Department.business_unit_id == user.department.business_unit_id)
+                .filter(Department.division_id == user_department.division_id)
                 .all()
             ]
-            team_query = team_query.filter(User.department_id.in_(dept_ids))
-            bu = user.department.business_unit if user.department else None
-            team_name = bu.name if bu else "Unknown"
-            team_code = bu.code if bu else ""
+            sub_team_ids = [
+                st.id
+                for st in self.db.query(SubTeam)
+                .filter(SubTeam.department_id.in_(dept_ids))
+                .all()
+            ]
+            team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
+            division = user_department.division if user_department else None
+            team_name = division.name if division else "Unknown"
+            team_code = division.code if division else ""
         else:  # all - entire engineering
             team_name = "PCAS Engineering"
             team_code = "ENG"
@@ -336,10 +354,10 @@ class DashboardService:
 
         # Organization hierarchy path
         org_path = []
-        if user.department:
-            if user.department.business_unit:
-                org_path.append(user.department.business_unit.name)
-            org_path.append(user.department.name)
+        if user_department:
+            if user_department.division:
+                org_path.append(user_department.division.name)
+            org_path.append(user_department.name)
         if user.sub_team:
             org_path.append(user.sub_team.name)
 
