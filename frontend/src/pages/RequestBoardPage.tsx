@@ -1,5 +1,3 @@
-import React from 'react'
-
 const PADLET_EMBED_URL = 'https://padlet.com/embed/gsskotsami66njvo'
 
 export function RequestBoardPage() {

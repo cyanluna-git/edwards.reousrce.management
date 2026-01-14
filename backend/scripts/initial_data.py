@@ -23,206 +23,224 @@ def init_data(db: Session):
     # ============================================================
     # 1. Business Units (CSV의 Business Area 기반)
     # ============================================================
-    bu_is = BusinessUnit(id="BU_IS", name="Integrated System", code="IS")
-    bu_abt = BusinessUnit(id="BU_ABT", name="Abatement", code="ABT")
-    bu_acm = BusinessUnit(id="BU_ACM", name="ACM", code="ACM")
-    bu_shared = BusinessUnit(id="BU_SHARED", name="Shared", code="SHR")
-    db.add_all([bu_is, bu_abt, bu_acm, bu_shared])
-    db.commit()
-    print("Business Units created: IS, Abatement, ACM, Shared")
+    existing_bu = db.query(BusinessUnit).first()
+    if existing_bu:
+        print("Business Units already exist, skipping...")
+    else:
+        bu_is = BusinessUnit(id="BU_IS", name="Integrated System", code="IS")
+        bu_abt = BusinessUnit(id="BU_ABT", name="Abatement", code="ABT")
+        bu_acm = BusinessUnit(id="BU_ACM", name="ACM", code="ACM")
+        bu_shared = BusinessUnit(id="BU_SHARED", name="Shared", code="SHR")
+        db.add_all([bu_is, bu_abt, bu_acm, bu_shared])
+        db.commit()
+        print("Business Units created: IS, Abatement, ACM, Shared")
 
     # ============================================================
     # 1.5 Divisions (New Level 0)
     # ============================================================
-    div_eng = Division(
-        id="DIV_ENG", name="Engineering Division", code="ENG", is_active=True
-    )
-    div_prod = Division(
-        id="DIV_PROD", name="Product Division", code="PROD", is_active=True
-    )
-    db.add_all([div_eng, div_prod])
-    db.commit()
-    print("Divisions created: Engineering, Product")
+    existing_div = db.query(Division).first()
+    if existing_div:
+        print("Divisions already exist, skipping...")
+    else:
+        div_eng = Division(
+            id="DIV_ENG", name="Engineering Division", code="ENG", is_active=True
+        )
+        div_prod = Division(
+            id="DIV_PROD", name="Product Division", code="PROD", is_active=True
+        )
+        db.add_all([div_eng, div_prod])
+        db.commit()
+        print("Divisions created: Engineering, Product")
 
     # ============================================================
     # 2. Departments (CSV의 Team 기반)
     # ============================================================
-    dept_acm_tech = Department(
-        id="DEPT_ACM_TECH",
-        name="ACM Tech",
-        code="ACM_TECH",
-        business_unit_id="BU_ACM",
-        division_id="DIV_PROD",
-    )
-    dept_central = Department(
-        id="DEPT_CENTRAL",
-        name="Central Engineering",
-        code="CENTRAL",
-        business_unit_id="BU_SHARED",
-        division_id="DIV_ENG",
-    )
-    dept_control = Department(
-        id="DEPT_CONTROL",
-        name="Control Engineering",
-        code="CONTROL",
-        business_unit_id="BU_SHARED",
-        division_id="DIV_ENG",
-    )
-    dept_eto = Department(
-        id="DEPT_ETO",
-        name="ETO",
-        code="ETO",
-        business_unit_id="BU_SHARED",
-        division_id="DIV_ENG",
-    )
-    dept_npi_abt = Department(
-        id="DEPT_NPI_ABT",
-        name="NPI, Abatement",
-        code="NPI_ABT",
-        business_unit_id="BU_ABT",
-        division_id="DIV_PROD",
-    )
-    dept_npi_is = Department(
-        id="DEPT_NPI_IS",
-        name="NPI, IntegratedSystem",
-        code="NPI_IS",
-        business_unit_id="BU_IS",
-        division_id="DIV_PROD",
-    )
-    db.add_all(
-        [dept_acm_tech, dept_central, dept_control, dept_eto, dept_npi_abt, dept_npi_is]
-    )
-    db.commit()
-    print(
-        "Departments created: ACM Tech, Central Engineering, Control Engineering, ETO, NPI Abatement, NPI IS"
-    )
+    existing_dept = db.query(Department).first()
+    if existing_dept:
+        print("Departments already exist, skipping...")
+    else:
+        dept_acm_tech = Department(
+            id="DEPT_ACM_TECH",
+            name="ACM Tech",
+            code="ACM_TECH",
+            division_id="DIV_PROD",
+        )
+        dept_central = Department(
+            id="DEPT_CENTRAL",
+            name="Central Engineering",
+            code="CENTRAL",
+            division_id="DIV_ENG",
+        )
+        dept_control = Department(
+            id="DEPT_CONTROL",
+            name="Control Engineering",
+            code="CONTROL",
+            division_id="DIV_ENG",
+        )
+        dept_eto = Department(
+            id="DEPT_ETO",
+            name="ETO",
+            code="ETO",
+            division_id="DIV_ENG",
+        )
+        dept_npi_abt = Department(
+            id="DEPT_NPI_ABT",
+            name="NPI, Abatement",
+            code="NPI_ABT",
+            division_id="DIV_PROD",
+        )
+        dept_npi_is = Department(
+            id="DEPT_NPI_IS",
+            name="NPI, IntegratedSystem",
+            code="NPI_IS",
+            division_id="DIV_PROD",
+        )
+        db.add_all(
+            [dept_acm_tech, dept_central, dept_control, dept_eto, dept_npi_abt, dept_npi_is]
+        )
+        db.commit()
+        print(
+            "Departments created: ACM Tech, Central Engineering, Control Engineering, ETO, NPI Abatement, NPI IS"
+        )
 
     # ============================================================
     # 3. Sub-Teams (CSV의 Sub-Team 기반)
     # ============================================================
-    sub_teams_data = [
-        # Central Engineering
-        {"id": "ST_DES", "name": "DES", "code": "DES", "department_id": "DEPT_CENTRAL"},
-        {
-            "id": "ST_LAB",
-            "name": "Lab Management",
-            "code": "LAB",
-            "department_id": "DEPT_CENTRAL",
-        },
-        {
-            "id": "ST_ANALYSIS",
-            "name": "Analysis Tech.",
-            "code": "ANALYSIS",
-            "department_id": "DEPT_CENTRAL",
-        },
-        {"id": "ST_RA", "name": "RA", "code": "RA", "department_id": "DEPT_CENTRAL"},
-        # Control Engineering - IntegratedSystem
-        {
-            "id": "ST_CTRL_SW_IS",
-            "name": "Software (IS)",
-            "code": "CTRL_SW_IS",
-            "department_id": "DEPT_CONTROL",
-        },
-        {
-            "id": "ST_CTRL_ELEC_IS",
-            "name": "Electrical (IS)",
-            "code": "CTRL_ELEC_IS",
-            "department_id": "DEPT_CONTROL",
-        },
-        # Control Engineering - Abatement
-        {
-            "id": "ST_CTRL_SW_ABT",
-            "name": "Software (ABT)",
-            "code": "CTRL_SW_ABT",
-            "department_id": "DEPT_CONTROL",
-        },
-        {
-            "id": "ST_CTRL_ELEC_ABT",
-            "name": "Electrical (ABT)",
-            "code": "CTRL_ELEC_ABT",
-            "department_id": "DEPT_CONTROL",
-        },
-        # ETO
-        {
-            "id": "ST_ETO_ELEC",
-            "name": "ETO Elec",
-            "code": "ETO_ELEC",
-            "department_id": "DEPT_ETO",
-        },
-        # NPI IntegratedSystem
-        {
-            "id": "ST_SYS_ENG",
-            "name": "Systems Engineering",
-            "code": "SYS_ENG",
-            "department_id": "DEPT_NPI_IS",
-        },
-        {
-            "id": "ST_MECH_ENG",
-            "name": "Mechanical Engineering",
-            "code": "MECH_ENG",
-            "department_id": "DEPT_NPI_IS",
-        },
-        # NPI Abatement
-        {
-            "id": "ST_NPI1",
-            "name": "NPI 1 Team",
-            "code": "NPI1",
-            "department_id": "DEPT_NPI_ABT",
-        },
-    ]
+    existing_st = db.query(SubTeam).first()
+    if existing_st:
+        print("Sub-Teams already exist, skipping...")
+    else:
+        sub_teams_data = [
+            # Central Engineering
+            {"id": "ST_DES", "name": "DES", "code": "DES", "department_id": "DEPT_CENTRAL"},
+            {
+                "id": "ST_LAB",
+                "name": "Lab Management",
+                "code": "LAB",
+                "department_id": "DEPT_CENTRAL",
+            },
+            {
+                "id": "ST_ANALYSIS",
+                "name": "Analysis Tech.",
+                "code": "ANALYSIS",
+                "department_id": "DEPT_CENTRAL",
+            },
+            {"id": "ST_RA", "name": "RA", "code": "RA", "department_id": "DEPT_CENTRAL"},
+            # Control Engineering - IntegratedSystem
+            {
+                "id": "ST_CTRL_SW_IS",
+                "name": "Software (IS)",
+                "code": "CTRL_SW_IS",
+                "department_id": "DEPT_CONTROL",
+            },
+            {
+                "id": "ST_CTRL_ELEC_IS",
+                "name": "Electrical (IS)",
+                "code": "CTRL_ELEC_IS",
+                "department_id": "DEPT_CONTROL",
+            },
+            # Control Engineering - Abatement
+            {
+                "id": "ST_CTRL_SW_ABT",
+                "name": "Software (ABT)",
+                "code": "CTRL_SW_ABT",
+                "department_id": "DEPT_CONTROL",
+            },
+            {
+                "id": "ST_CTRL_ELEC_ABT",
+                "name": "Electrical (ABT)",
+                "code": "CTRL_ELEC_ABT",
+                "department_id": "DEPT_CONTROL",
+            },
+            # ETO
+            {
+                "id": "ST_ETO_ELEC",
+                "name": "ETO Elec",
+                "code": "ETO_ELEC",
+                "department_id": "DEPT_ETO",
+            },
+            # NPI IntegratedSystem
+            {
+                "id": "ST_SYS_ENG",
+                "name": "Systems Engineering",
+                "code": "SYS_ENG",
+                "department_id": "DEPT_NPI_IS",
+            },
+            {
+                "id": "ST_MECH_ENG",
+                "name": "Mechanical Engineering",
+                "code": "MECH_ENG",
+                "department_id": "DEPT_NPI_IS",
+            },
+            # NPI Abatement
+            {
+                "id": "ST_NPI1",
+                "name": "NPI 1 Team",
+                "code": "NPI1",
+                "department_id": "DEPT_NPI_ABT",
+            },
+        ]
 
-    sub_team_map = {}
-    for st in sub_teams_data:
-        sub_team = SubTeam(**st)
-        db.add(sub_team)
-        sub_team_map[st["name"]] = st["id"]
-    db.commit()
-    print(f"Sub-Teams created: {len(sub_teams_data)} teams")
+        for st in sub_teams_data:
+            sub_team = SubTeam(**st)
+            db.add(sub_team)
+        db.commit()
+        print(f"Sub-Teams created: {len(sub_teams_data)} teams")
 
     # ============================================================
     # 4. Job Positions (기존 유지)
     # ============================================================
-    job_positions_data = [
-        "Electrical engineer",
-        "Mechanical engineer",
-        "PM",
-        "Service engineer",
-        "Software engineer",
-        "SW test engineer",
-        "System engineer",
-        "Tech Lead",
-        "Technician",
-        "Engineer",  # 기본 직무
-    ]
-
+    existing_jp = db.query(JobPosition).first()
     job_positions = {}
-    for name in job_positions_data:
-        jp_id = f"JP_{name.upper().replace(' ', '_')}"
-        jp = JobPosition(id=jp_id, name=name, is_active=True)
-        db.add(jp)
-        job_positions[name] = jp_id
-    db.commit()
-    print(f"Created {len(job_positions_data)} Job Positions.")
+    if existing_jp:
+        print("Job Positions already exist, skipping...")
+        # Load existing job positions for reference
+        for jp in db.query(JobPosition).all():
+            job_positions[jp.name] = jp.id
+    else:
+        job_positions_data = [
+            "Electrical engineer",
+            "Mechanical engineer",
+            "PM",
+            "Service engineer",
+            "Software engineer",
+            "SW test engineer",
+            "System engineer",
+            "Tech Lead",
+            "Technician",
+            "Engineer",  # 기본 직무
+        ]
 
-    default_position_id = job_positions["Engineer"]
+        for name in job_positions_data:
+            jp_id = f"JP_{name.upper().replace(' ', '_')}"
+            jp = JobPosition(id=jp_id, name=name, is_active=True)
+            db.add(jp)
+            job_positions[name] = jp_id
+        db.commit()
+        print(f"Created {len(job_positions_data)} Job Positions.")
+
+    default_position_id = job_positions.get("Engineer", "JP_ENGINEER")
 
     # ============================================================
     # 5. Admin User (서비스 관리자)
     # ============================================================
-    user_service = UserService(db)
-
-    admin_user_data = UserCreate(
-        email="admin@edwards.com",
-        name="System Admin",
-        korean_name="시스템관리자",
-        password="password",
-        is_active=True,
-        role="ADMIN",
-        position_id=job_positions["PM"],
-        department_id="DEPT_CENTRAL",
-    )
-    user_service.create_user(admin_user_data)
-    print("Admin user created: admin@edwards.com")
+    existing_admin = db.query(User).filter(User.email == "admin@edwards.com").first()
+    if existing_admin:
+        print("Admin user already exists, skipping...")
+    else:
+        user_service = UserService(db)
+        admin_user_data = UserCreate(
+            email="admin@edwards.com",
+            name="System Admin",
+            korean_name="시스템관리자",
+            password="password",
+            is_active=True,
+            role="ADMIN",
+            position_id=job_positions.get("PM", "JP_PM"),
+            department_id="DEPT_CENTRAL",
+        )
+        user_service.create_user(admin_user_data)
+        print("Admin user created: admin@edwards.com")
 
     # ============================================================
     # 6. Members from CSV
@@ -1107,37 +1125,47 @@ def init_data(db: Session):
         },
     ]
 
-    created_count = 0
-    for m in members_data:
-        user_data = UserCreate(
-            email=m["email"].strip().lower(),
-            name=m["name"],
-            korean_name=m.get("korean_name"),
-            password="password",
-            is_active=True,
-            role="USER",
-            position_id=default_position_id,
-            department_id=m["department_id"],
-            sub_team_id=m.get("sub_team_id"),
-        )
-        try:
-            user_service.create_user(user_data)
-            created_count += 1
-        except Exception as e:
-            print(f"Warning: Could not create user {m['email']}: {e}")
+    # Check if members already exist
+    existing_user_count = db.query(User).filter(User.email != "admin@edwards.com").count()
+    if existing_user_count > 0:
+        print(f"Members already exist ({existing_user_count} users), skipping...")
+    else:
+        user_service = UserService(db)
+        created_count = 0
+        for m in members_data:
+            user_data = UserCreate(
+                email=m["email"].strip().lower(),
+                name=m["name"],
+                korean_name=m.get("korean_name"),
+                password="password",
+                is_active=True,
+                role="USER",
+                position_id=default_position_id,
+                department_id=m["department_id"],
+                sub_team_id=m.get("sub_team_id"),
+            )
+            try:
+                user_service.create_user(user_data)
+                created_count += 1
+            except Exception as e:
+                print(f"Warning: Could not create user {m['email']}: {e}")
 
-    print(f"Members created: {created_count} users")
+        print(f"Members created: {created_count} users")
 
     # ============================================================
     # 7. Project Types
     # ============================================================
-    pt_npi = ProjectType(id="NPI", name="New Product Introduction")
-    pt_eto = ProjectType(id="ETO", name="Engineering To Order")
-    pt_cip = ProjectType(id="CIP", name="Continuous Improvement")
-    pt_support = ProjectType(id="SUP", name="Support / General")
-    db.add_all([pt_npi, pt_eto, pt_cip, pt_support])
-    db.commit()
-    print("Project Types created.")
+    existing_pt = db.query(ProjectType).first()
+    if existing_pt:
+        print("Project Types already exist, skipping...")
+    else:
+        pt_npi = ProjectType(id="NPI", name="New Product Introduction")
+        pt_eto = ProjectType(id="ETO", name="Engineering To Order")
+        pt_cip = ProjectType(id="CIP", name="Continuous Improvement")
+        pt_support = ProjectType(id="SUP", name="Support / General")
+        db.add_all([pt_npi, pt_eto, pt_cip, pt_support])
+        db.commit()
+        print("Project Types created.")
 
     # ============================================================
     # 7.5 Product Lines (제품군) - Updated with business_unit_id
@@ -1227,138 +1255,150 @@ def init_data(db: Session):
             "line_category": "PRODUCT",
         },
     ]
-    for pl_data in product_lines_data:
-        pl = ProductLine(**pl_data)
-        db.add(pl)
-    db.commit()
-    print(f"Product Lines created: {len(product_lines_data)} lines")
+    existing_pl = db.query(ProductLine).first()
+    if existing_pl:
+        print("Product Lines already exist, skipping...")
+    else:
+        for pl_data in product_lines_data:
+            pl = ProductLine(**pl_data)
+            db.add(pl)
+        db.commit()
+        print(f"Product Lines created: {len(product_lines_data)} lines")
 
     # ============================================================
     # 8. Programs
     # ============================================================
-    prog_euv_npi = Program(id="EUV_NPI", name="EUV NPI", business_unit_id="BU_IS")
-    prog_is_npi = Program(id="IS_NPI", name="IS NPI", business_unit_id="BU_IS")
-    prog_abt_npi = Program(
-        id="ABT_NPI", name="Abatement NPI", business_unit_id="BU_ABT"
-    )
-    prog_abt_eto = Program(
-        id="ABT_ETO", name="Abatement ETO", business_unit_id="BU_ABT"
-    )
-    prog_euv_eto = Program(id="EUV_ETO", name="EUV ETO", business_unit_id="BU_IS")
-    prog_acm_npi = Program(id="ACM_NPI", name="ACM NPI", business_unit_id="BU_ACM")
-    prog_acm_eto = Program(id="ACM_ETO", name="ACM ETO", business_unit_id="BU_ACM")
-    prog_general = Program(
-        id="GEN_FUNC", name="General/Functional", business_unit_id="BU_SHARED"
-    )
-    db.add_all(
-        [
-            prog_euv_npi,
-            prog_is_npi,
-            prog_abt_npi,
-            prog_abt_eto,
-            prog_euv_eto,
-            prog_acm_npi,
-            prog_acm_eto,
-            prog_general,
-        ]
-    )
-    db.commit()
-    print("Programs created.")
+    existing_prog = db.query(Program).first()
+    if existing_prog:
+        print("Programs already exist, skipping...")
+    else:
+        prog_euv_npi = Program(id="EUV_NPI", name="EUV NPI", business_unit_id="BU_IS")
+        prog_is_npi = Program(id="IS_NPI", name="IS NPI", business_unit_id="BU_IS")
+        prog_abt_npi = Program(
+            id="ABT_NPI", name="Abatement NPI", business_unit_id="BU_ABT"
+        )
+        prog_abt_eto = Program(
+            id="ABT_ETO", name="Abatement ETO", business_unit_id="BU_ABT"
+        )
+        prog_euv_eto = Program(id="EUV_ETO", name="EUV ETO", business_unit_id="BU_IS")
+        prog_acm_npi = Program(id="ACM_NPI", name="ACM NPI", business_unit_id="BU_ACM")
+        prog_acm_eto = Program(id="ACM_ETO", name="ACM ETO", business_unit_id="BU_ACM")
+        prog_general = Program(
+            id="GEN_FUNC", name="General/Functional", business_unit_id="BU_SHARED"
+        )
+        db.add_all(
+            [
+                prog_euv_npi,
+                prog_is_npi,
+                prog_abt_npi,
+                prog_abt_eto,
+                prog_euv_eto,
+                prog_acm_npi,
+                prog_acm_eto,
+                prog_general,
+            ]
+        )
+        db.commit()
+        print("Programs created.")
 
     # ============================================================
     # 9. Sample Projects
     # ============================================================
-    admin_user = db.query(User).filter(User.email == "admin@edwards.com").first()
-    pm_id = admin_user.id if admin_user else None
+    existing_project = db.query(Project).first()
+    if existing_project:
+        print("Projects already exist, skipping...")
+    else:
+        admin_user = db.query(User).filter(User.email == "admin@edwards.com").first()
+        pm_id = admin_user.id if admin_user else None
 
-    projects_data = [
-        {
-            "code": "406372",
-            "name": "Gen3+, HRSD, H2D-HP x 2, HVM",
-            "program_id": "EUV_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": "TSMC HVM",
-        },
-        {
-            "code": "406422",
-            "name": "Gen3+ SMM2",
-            "program_id": "EUV_NPI",
-            "project_type_id": "NPI",
-            "status": "Completed",
-            "customer": "ASML",
-        },
-        {
-            "code": "406376",
-            "name": "Gen4, Kanarra",
-            "program_id": "EUV_NPI",
-            "project_type_id": "NPI",
-            "status": "OnHold",
-            "customer": None,
-        },
-        {
-            "code": "406397",
-            "name": "2025 Ruby - SIC integration",
-            "program_id": "IS_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": None,
-        },
-        {
-            "code": "406399",
-            "name": "2025 Havasu",
-            "program_id": "IS_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": "TEL",
-        },
-        {
-            "code": "406437",
-            "name": "2025 EUV Gen4 Phase 1 Tumalo",
-            "program_id": "IS_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": None,
-        },
-        {
-            "code": "406420",
-            "name": "2025 Protron | Single ROW",
-            "program_id": "ABT_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": None,
-        },
-        {
-            "code": "404721",
-            "name": "EUV TSMC Gen3 H2D-R(TS marked)",
-            "program_id": "EUV_ETO",
-            "project_type_id": "ETO",
-            "status": "InProgress",
-            "customer": "TSMC",
-        },
-        {
-            "code": "406362",
-            "name": "2025 NRTL (DTLR / ARS)",
-            "program_id": "ACM_NPI",
-            "project_type_id": "NPI",
-            "status": "InProgress",
-            "customer": "SEC",
-        },
-    ]
+        projects_data = [
+            {
+                "code": "406372",
+                "name": "Gen3+, HRSD, H2D-HP x 2, HVM",
+                "program_id": "EUV_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": "TSMC HVM",
+            },
+            {
+                "code": "406422",
+                "name": "Gen3+ SMM2",
+                "program_id": "EUV_NPI",
+                "project_type_id": "NPI",
+                "status": "Completed",
+                "customer": "ASML",
+            },
+            {
+                "code": "406376",
+                "name": "Gen4, Kanarra",
+                "program_id": "EUV_NPI",
+                "project_type_id": "NPI",
+                "status": "OnHold",
+                "customer": None,
+            },
+            {
+                "code": "406397",
+                "name": "2025 Ruby - SIC integration",
+                "program_id": "IS_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": None,
+            },
+            {
+                "code": "406399",
+                "name": "2025 Havasu",
+                "program_id": "IS_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": "TEL",
+            },
+            {
+                "code": "406437",
+                "name": "2025 EUV Gen4 Phase 1 Tumalo",
+                "program_id": "IS_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": None,
+            },
+            {
+                "code": "406420",
+                "name": "2025 Protron | Single ROW",
+                "program_id": "ABT_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": None,
+            },
+            {
+                "code": "404721",
+                "name": "EUV TSMC Gen3 H2D-R(TS marked)",
+                "program_id": "EUV_ETO",
+                "project_type_id": "ETO",
+                "status": "InProgress",
+                "customer": "TSMC",
+            },
+            {
+                "code": "406362",
+                "name": "2025 NRTL (DTLR / ARS)",
+                "program_id": "ACM_NPI",
+                "project_type_id": "NPI",
+                "status": "InProgress",
+                "customer": "SEC",
+            },
+        ]
 
-    for p in projects_data:
-        proj = Project(
-            id=str(uuid.uuid4()),
-            code=p["code"],
-            name=p["name"],
-            program_id=p["program_id"],
-            project_type_id=p["project_type_id"],
-            status=p["status"],
-            customer=p.get("customer"),
-            pm_id=pm_id,
-        )
-        db.add(proj)
-    db.commit()
-    print(f"Created {len(projects_data)} sample projects.")
+        for p in projects_data:
+            proj = Project(
+                id=str(uuid.uuid4()),
+                code=p["code"],
+                name=p["name"],
+                program_id=p["program_id"],
+                project_type_id=p["project_type_id"],
+                status=p["status"],
+                customer=p.get("customer"),
+                pm_id=pm_id,
+            )
+            db.add(proj)
+        db.commit()
+        print(f"Created {len(projects_data)} sample projects.")
 
     print("Data initialization complete!")

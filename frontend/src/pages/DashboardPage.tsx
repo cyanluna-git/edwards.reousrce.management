@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
@@ -59,7 +59,7 @@ export const DashboardPage: React.FC = () => {
         enabled: true, // Always load monthly data
     });
 
-    const { data: quarterlyWorklogs = [], isLoading: quarterlyLoading } = useWorklogsTable({
+    const { data: quarterlyWorklogs = [], isLoading: _quarterlyLoading } = useWorklogsTable({
         start_date: quarterStart,
         end_date: quarterEnd,
         user_id: user?.id,
@@ -67,7 +67,7 @@ export const DashboardPage: React.FC = () => {
         enabled: viewMode === 'quarterly' || viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
     });
 
-    const { data: halfYearWorklogs = [], isLoading: halfYearLoading } = useWorklogsTable({
+    const { data: halfYearWorklogs = [], isLoading: _halfYearLoading } = useWorklogsTable({
         start_date: halfYearStart,
         end_date: halfYearEnd,
         user_id: user?.id,
@@ -75,7 +75,7 @@ export const DashboardPage: React.FC = () => {
         enabled: viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
     });
 
-    const { data: yearlyWorklogs = [], isLoading: yearlyLoading } = useWorklogsTable({
+    const { data: yearlyWorklogs = [], isLoading: _yearlyLoading } = useWorklogsTable({
         start_date: yearStart,
         end_date: yearEnd,
         user_id: user?.id,
@@ -329,7 +329,7 @@ export const DashboardPage: React.FC = () => {
 
     // Calculate monthly Top-5 project trend data
     const monthlyProjectTrendData = useMemo(() => {
-        if (!last12MonthsWorklogs.length) return [];
+        if (!last12MonthsWorklogs.length) return { chartData: [] as any[], topProjects: [] as string[] };
 
         // Group by month and project (use project name for display)
         const monthlyData: Record<string, Record<string, number>> = {};
@@ -688,7 +688,7 @@ export const DashboardPage: React.FC = () => {
                                             dataKey="month" 
                                             tick={{ fontSize: 12 }}
                                             tickFormatter={(value) => {
-                                                const [year, month] = value.split('-');
+                                                const [, month] = value.split('-');
                                                 return `${month}월`;
                                             }}
                                         />
@@ -698,7 +698,7 @@ export const DashboardPage: React.FC = () => {
                                         />
                                         <Tooltip 
                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                                            formatter={(value: number, name: string) => [`${value.toFixed(0)}h`, name]}
+                                            formatter={(value, name) => [`${(value as number)?.toFixed(0) ?? 0}h`, name]}
                                             labelFormatter={(label) => {
                                                 const [year, month] = label.split('-');
                                                 return `${year}년 ${month}월`;

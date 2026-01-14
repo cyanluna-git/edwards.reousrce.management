@@ -390,7 +390,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                 <div className="space-y-1">
                                     {sortProjectsByStatus(ungroupedProjects).map((proj: any) => (
                                         <div key={proj.id} className="flex items-center justify-between p-2 text-sm hover:bg-amber-100 border border-amber-200 rounded">
-                                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
+                                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}>
                                                 <span>⚠️</span>
                                                 <span>{proj.name}</span>
                                                 <span className="text-xs text-muted-foreground">{proj.code}</span>
@@ -405,7 +405,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                             <div className="flex gap-1">
                                                 <Button
                                                     variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                    onClick={() => navigate(`/projects/${proj.id}`)}
+                                                    onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
                                                     title="Edit to assign Product Line"
                                                 >
                                                     ✏️
@@ -521,7 +521,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                             <div className="ml-4 mt-1 space-y-1">
                                                                 {sortProjectsByStatus(pl.children).map((proj: any) => (
                                                                     <div key={proj.id} className="flex items-center justify-between p-1.5 text-sm hover:bg-slate-50 border border-slate-100 rounded">
-                                                                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
+                                                                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}>
                                                                             <span>🔹</span>
                                                                             <span>{proj.name}</span>
                                                                             <span className="text-xs text-muted-foreground">{proj.code}</span>
@@ -535,7 +535,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                         <div className="flex gap-1">
                                                                             <Button
                                                                                 variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                                                onClick={() => navigate(`/projects/${proj.id}`)}
+                                                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
                                                                                 title="View/Edit Project"
                                                                             >
                                                                                 ✏️
@@ -604,7 +604,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                             <div className="pl-6 py-2 bg-white space-y-1">
                                                 {sortProjectsByStatus(dept.children).map((proj: any) => (
                                                     <div key={proj.id} className="flex items-center justify-between p-1.5 text-sm hover:bg-slate-50 border border-slate-100 rounded">
-                                                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
+                                                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'functional' } })}>
                                                             <span>🔹</span>
                                                             <span>{proj.name}</span>
                                                             <span className="text-xs text-muted-foreground">{proj.code}</span>
@@ -618,7 +618,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         <div className="flex gap-1">
                                                             <Button
                                                                 variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                                onClick={() => navigate(`/projects/${proj.id}`)}
+                                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'functional' } })}
                                                             >
                                                                 ✏️
                                                             </Button>
@@ -731,7 +731,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 <td className="p-2">
                                                     <span
                                                         className="cursor-pointer hover:text-blue-600"
-                                                        onClick={() => navigate(`/projects/${proj.id}`)}
+                                                        onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all' } })}
                                                     >
                                                         {proj.name}
                                                     </span>
@@ -771,7 +771,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     <div className="flex gap-1">
                                                         <Button
                                                             variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                            onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all-projects' } })}
+                                                            onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all' } })}
                                                             title="Edit Project"
                                                         >
                                                             ✏️
