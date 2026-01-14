@@ -112,7 +112,7 @@ def restore_database(backup_file: str):
     print()
     
     # Confirm restoration
-    response = input(f"{Colors.YELLOW}⚠️  This will REPLACE all current data. Continue? (yes/no): {Colors.RESET}")
+    response = input(f"{Colors.YELLOW}⚠️  This will DESTROY and REPLACE the entire '{os.getenv('POSTGRES_DB', 'edwards')}' database. Continue? (yes/no): {Colors.RESET}")
     if response.lower() not in ['yes', 'y']:
         print_colored("[INFO] Restore cancelled.", Colors.YELLOW)
         sys.exit(0)
@@ -120,16 +120,49 @@ def restore_database(backup_file: str):
     print()
     
     try:
-        # Execute psql inside the database container
+        # 1. Stop backend to release locks
+        print_colored("[INFO] Stopping backend service...", Colors.CYAN)
+        subprocess.run(['docker-compose', 'stop', 'backend'], check=True)
+
+        db_name = os.getenv('POSTGRES_DB', 'edwards')
+        db_user = os.getenv('POSTGRES_USER', 'postgres')
+
+        # 2. Drop and Recreate Database
+        print_colored("[INFO] Recreating database...", Colors.CYAN)
+        # Connect to 'postgres' (system db) to perform admin actions
+        # WITH (FORCE) kills existing connections (Postgres 13+)
+        drop_cmd = [
+            'docker-compose', 'exec', '-T', 'db',
+            'psql', '-U', db_user, '-d', 'postgres',
+            '-c', f'DROP DATABASE IF EXISTS "{db_name}" WITH (FORCE);'
+        ]
+        subprocess.run(drop_cmd, check=True)
+
+        create_cmd = [
+            'docker-compose', 'exec', '-T', 'db',
+            'psql', '-U', db_user, '-d', 'postgres',
+            '-c', f'CREATE DATABASE "{db_name}";'
+        ]
+        subprocess.run(create_cmd, check=True)
+
+        # 3. Restore from Backup
+        print_colored("[INFO] Importing data...", Colors.CYAN)
         with open(backup_path, 'r') as f:
-            cmd = [
+            restore_cmd = [
                 'docker-compose', 'exec', '-T', 'db',
-                'psql',
-                '-U', os.getenv('POSTGRES_USER', 'postgres'),
-                '-d', os.getenv('POSTGRES_DB', 'edwards')
+                'psql', '-U', db_user, '-d', db_name
             ]
-            
-            subprocess.run(cmd, stdin=f, check=True, capture_output=True, text=True)
+            # Use capture_output=False to show psql output or errors directly if desired, 
+            # but usually better to capture to avoid spam unless error.
+            # Using text=True and capture_output=True for cleaner logs.
+            proc = subprocess.run(restore_cmd, stdin=f, check=True, capture_output=True, text=True)
+            if proc.stderr:
+                 # Filter out harmless warnings if needed, or just print everything
+                 pass
+
+        # 4. Restart Backend
+        print_colored("[INFO] Restarting backend service...", Colors.CYAN)
+        subprocess.run(['docker-compose', 'start', 'backend'], check=True)
         
         print()
         print_colored("=" * 50, Colors.GREEN)
@@ -144,8 +177,12 @@ def restore_database(backup_file: str):
     except subprocess.CalledProcessError as e:
         print()
         print_colored(f"[ERROR] Restore failed: {e}", Colors.RED)
-        if e.stderr:
+        if hasattr(e, 'stderr') and e.stderr:
             print_colored(f"Error details: {e.stderr}", Colors.RED)
+        
+        # Attempt to restart backend anyway so the system isn't down
+        print_colored("[INFO] Attempting to restart backend...", Colors.YELLOW)
+        subprocess.run(['docker-compose', 'start', 'backend'], check=False)
         sys.exit(1)
 
 

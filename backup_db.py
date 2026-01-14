@@ -92,8 +92,6 @@ def backup_database():
             'pg_dump',
             '-U', os.getenv('POSTGRES_USER', 'postgres'),
             '-d', os.getenv('POSTGRES_DB', 'edwards'),
-            '--clean',  # Include DROP statements
-            '--if-exists',  # Use IF EXISTS for DROP statements
             '--no-owner',  # Don't set ownership
             '--no-privileges'  # Don't set privileges
         ]
