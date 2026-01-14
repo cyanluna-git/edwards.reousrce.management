@@ -17,7 +17,7 @@ Person.id,KoreanName,Department,ID,Person.email,English Name,Team,email,Buniness
 "101","임준혁","Software",18,"joel.lim@edwardsvacuum.com","Joel Lim","Control Engineering","joel.lim@edwardsvacuum.com","IntegratedSystem",True,"Joel Lim"
 "58","조문수","Software",19,"Moonsu.Cho@edwardsvacuum.com","MoonSu Cho","Control Engineering","moonsu.cho@edwardsvacuum.com","IntegratedSystem",True,"Moonsu Cho"
 "65","김세한","Software",20,"dave.kim@edwardsvacuum.com","Dave Kim","Control Engineering","dave.kim@edwardsvacuum.com","IntegratedSystem",True,"Dave Kim"
-"95","안유수","Software",21,"amelia.an@edwardsvacuum.com","Amelia An","Control Engineering","dave.kim@edwardsvacuum.com","IntegratedSystem",True,"Amelia An"
+"95","안유수","Software",21,"amelia.an@edwardsvacuum.com","Amelia An","Control Engineering","amelia.an@edwardsvacuum.com","IntegratedSystem",True,"Amelia An"
 "17","곽영웅","Systems",22,"Harry.Kwak@edwardsvacuum.com","Harry Kwak","NPI, IntegratedSystem","harry.kwak@edwardsvacuum.com","IntegratedSystem",True,"Harry Kwak"
 "49","박지훈","Systems",23,"tred.park@edwardsvacuum.com","Tred Park","NPI, IntegratedSystem","tred.park@edwardsvacuum.com","IntegratedSystem",True,"Tred Park"
 "76","고현준","Systems",24,"kevin.ko@edwardsvacuum.com","Kevin Ko","NPI, IntegratedSystem","kevin.ko@edwardsvacuum.com","IntegratedSystem",True,"Kevin Ko"
