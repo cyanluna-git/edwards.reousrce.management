@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useProject, useProjectWorklogStats } from '@/hooks/useProject';
 import { useDeleteProject } from '@/hooks/useProjects';
@@ -79,6 +79,8 @@ const STANDARD_GATES = [
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTab = (location.state as any)?.returnTab;
   const { data: project, isLoading, isError, error } = useProject(id || '');
   const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
 
@@ -227,7 +229,13 @@ export const ProjectDetailPage: React.FC = () => {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          if (returnTab) {
+            navigate('/projects', { state: { activeTab: returnTab } });
+          } else {
+            navigate(-1);
+          }
+        }}
         className="flex items-center gap-1 text-muted-foreground hover:text-foreground -ml-2"
       >
         <ArrowLeft className="w-4 h-4" />

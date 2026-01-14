@@ -42,7 +42,7 @@ import {
 import type { ProductLine, Project } from '@/types';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
 import ProjectForm from '@/components/forms/ProjectForm';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 type HierarchyLevel = 'business_unit' | 'product_line' | 'project';
 
@@ -70,6 +70,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const location = useLocation();
     const { data: hierarchy, isLoading } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
@@ -89,7 +90,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
     // State
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-    const [activeTab, setActiveTab] = useState('product');
+    const returnTab = (location.state as any)?.activeTab;
+    const [activeTab, setActiveTab] = useState(returnTab || 'product');
 
     // Sorting state for All Projects table
     const [sortColumn, setSortColumn] = useState<string>('code');
@@ -769,7 +771,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     <div className="flex gap-1">
                                                         <Button
                                                             variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                            onClick={() => navigate(`/projects/${proj.id}`)}
+                                                            onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all-projects' } })}
                                                             title="Edit Project"
                                                         >
                                                             ✏️
