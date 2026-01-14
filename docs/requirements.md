@@ -1,7 +1,7 @@
 # Project Name: Edwards Project Operation Board (PoC)
 
 ## 1. Project Overview
-We are building a Proof of Concept (PoC) for an integrated resource management platform using **MS SQL Server**.
+We are building a Proof of Concept (PoC) for an integrated resource management platform.
 The goal is to replace scattered SharePoint/Excel workflows with a unified web application.
 The system is designed for **Edwards PCP (Product Commercialization Process)** management.
 
@@ -23,14 +23,14 @@ The system is designed for **Edwards PCP (Product Commercialization Process)** m
 - **Routing:** React Router v6
 
 ### Backend
-- **Framework:** FastAPI (Python 3.11+)
+- **Framework:** FastAPI (Python 3.12 recommended)
 - **ORM:** SQLAlchemy 2.0 + Alembic (migrations)
 - **Validation:** Pydantic v2
 - **Authentication:** JWT (python-jose)
 
 ### Database
-- **Production:** MS SQL Server (Azure SQL Database)
-- **Local Development:** Docker `mcr.microsoft.com/azure-sql-edge` (Apple Silicon compatible)
+- **Local Development:** PostgreSQL (Docker, `postgres:15-alpine`)
+- **Notes:** Backend image includes MS ODBC driver for potential future MS SQL integration, but the current compose/dev setup uses PostgreSQL.
 
 ### Deployment
 - **Container:** Docker + Docker Compose
@@ -39,11 +39,15 @@ The system is designed for **Edwards PCP (Product Commercialization Process)** m
 
 ---
 
-## 3. Database Schema Requirements (MS SQL Server)
+## 3. Database Schema (Current)
+
+This project currently targets PostgreSQL in local development.
 
 > [!IMPORTANT]
-> - Use `NVARCHAR` for all string fields to support Korean characters.
-> - Use `DATETIME2` for accurate timestamps.
+> The application creates/updates tables on startup via `Base.metadata.create_all()`.
+> If you need a clean slate, set `RESET_DB=true` in `.env` to drop and recreate the public schema.
+
+For the up-to-date entity list and relationships, see `docs/datamodel_improv.md`.
 
 ---
 
@@ -350,7 +354,7 @@ Program (프로그램)
 
 ### Project Structure
 ```
-edwards.engineering_operation_management/
+engineering.resource.management/
 ├── docker-compose.yml
 ├── frontend/                    # React + Vite
 │   ├── src/
@@ -372,31 +376,35 @@ edwards.engineering_operation_management/
 │   ├── Dockerfile
 │   └── requirements.txt
 └── docs/
-    └── requirement.md
+    └── requirements.md
 ```
 
 ### Docker Compose
 ```yaml
-version: '3.8'
 services:
   db:
-    image: mcr.microsoft.com/azure-sql-edge
-    container_name: edwards-mssql
+    image: postgres:15-alpine
+    container_name: edwards-postgres
     ports:
-      - "1433:1433"
+      - "${DB_PORT:-5434}:5432"
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "YourStrong@Password123"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-edwards}
     volumes:
-      - mssql-data:/var/opt/mssql
+      - postgres-data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        TARGETARCH: ${DOCKER_BUILD_ARCH:-auto}
     container_name: edwards-api
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8004}:8004"
     environment:
-      DATABASE_URL: "mssql+pyodbc://sa:YourStrong@Password123@db:1433/edwards?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=yes"
+      DATABASE_URL: "${DATABASE_URL:-postgresql://postgres:password@db:5432/edwards}"
     depends_on:
       - db
 
@@ -404,13 +412,25 @@ services:
     build: ./frontend
     container_name: edwards-web
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3004}:3004"
+    environment:
+      VITE_API_URL: "${VITE_API_URL:-http://localhost:8004/api}"
     depends_on:
       - backend
 
 volumes:
-  mssql-data:
+  postgres-data:
+    external: true
+    # NOTE: If compose errors with "external volume not found", create it:
+    # docker volume create edwardsengineering_operation_managenent_postgres-data
+    name: edwardsengineering_operation_managenent_postgres-data
 ```
+
+### Common Commands
+- Start all: `docker compose up -d`
+- Start DB only: `docker compose up -d db`
+- Logs: `docker compose logs -f backend` / `docker compose logs -f frontend`
+- Stop: `docker compose down`
 
 ### Seed Data
 1. **CommonCodes:** All WORK_TYPE, MEETING_TYPE codes
@@ -458,6 +478,7 @@ volumes:
 | GET | `/api/users/{id}` | Get user detail |
 | GET | `/api/departments` | List departments |
 | GET | `/api/departments/{id}/members` | Department members |
+| GET | `/api/divisions` | List divisions |
 
 ### Projects
 | Method | Endpoint | Description |
@@ -474,19 +495,24 @@ volumes:
 | GET | `/api/resource-plans` | List plans (by project/month) |
 | POST | `/api/resource-plans` | Create plan |
 | PUT | `/api/resource-plans/{id}` | Update plan |
-| GET | `/api/resource-plans/tbd` | List TBD positions |
+| GET | `/api/project-roles` | List project roles |
 
 ### WorkLogs
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/worklogs` | List worklogs (with date range) |
+| GET | `/api/worklogs/table` | Worklogs table view (with user/org info) |
 | POST | `/api/worklogs` | Create worklog |
 | PUT | `/api/worklogs/{id}` | Update worklog |
 | POST | `/api/worklogs/copy-week` | Copy last week's logs |
+| GET | `/api/work-types/tree` | Work type category tree |
 
 ### Reports & Analytics
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/reports/capacity` | Team capacity report |
-| GET | `/api/reports/department/{id}` | Department resource summary |
-| GET | `/api/reports/project/{id}` | Project resource breakdown |
+| GET | `/api/reports/capacity-summary` | Capacity summary (charts) |
+| GET | `/api/reports/worklog-summary` | Worklog summary (charts) |
+| GET | `/api/dashboard/my-summary` | My dashboard summary |
+| GET | `/api/dashboard/team-summary` | Team dashboard summary |
+
+For the complete and always up-to-date list, use Swagger: `http://localhost:8004/api/docs`.

@@ -107,7 +107,7 @@ DB_PORT=5434            # 데이터베이스 포트
 호환성 확인:
 ```bash
 docker --version
-docker-compose --version
+docker compose version
 ```
 
 ---

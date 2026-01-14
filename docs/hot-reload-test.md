@@ -9,7 +9,7 @@
 4. **저장** 후 브라우저 자동 새로고침 확인
 
 ### Backend 테스트
-1. API 문서 열기: `http://localhost:8004/docs`
+1. API 문서 열기: `http://localhost:8004/api/docs`
 2. 다음 파일 편집: `backend/app/main.py`
 3. 새 엔드포인트 또는 응답값 수정
 4. **저장** 후 터미널에서 "Reloading..." 메시지 확인
@@ -21,10 +21,10 @@
 
 ```bash
 # Frontend 볼륨 확인
-docker-compose exec frontend sh -c "mount | grep src"
+docker compose exec frontend sh -c "mount | grep src"
 
 # Backend 볼륨 확인
-docker-compose exec backend sh -c "mount | grep app"
+docker compose exec backend sh -c "mount | grep app"
 ```
 
 ---
@@ -33,12 +33,20 @@ docker-compose exec backend sh -c "mount | grep app"
 
 ### Frontend 리로드 로그
 ```bash
-docker-compose logs -f frontend | grep -i "reload\|HMR"
+# macOS/Linux
+docker compose logs -f frontend | grep -i "reload\|HMR"
+
+# Windows PowerShell
+docker compose logs -f frontend | Select-String -Pattern "reload|HMR" -CaseSensitive:$false
 ```
 
 ### Backend 리로드 로그
 ```bash
-docker-compose logs -f backend | grep -i "reload"
+# macOS/Linux
+docker compose logs -f backend | grep -i "reload"
+
+# Windows PowerShell
+docker compose logs -f backend | Select-String -Pattern "reload" -CaseSensitive:$false
 ```
 
 ---
@@ -61,15 +69,15 @@ docker-compose logs -f backend | grep -i "reload"
 
 - **Frontend 개발**: IDE와 브라우저를 나란히 배치
 - **Backend 개발**: IDE와 터미널을 나란히 배치
-- **동시 개발**: `docker-compose logs -f` 로 모든 로그 한 번에 확인
+- **동시 개발**: `docker compose logs -f` 로 모든 로그 한 번에 확인
 
 ```bash
 # 모든 서비스 로그 실시간 보기
-docker-compose logs -f
+docker compose logs -f
 
 # 특정 서비스만
-docker-compose logs -f backend
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f frontend
 ```
 
 완벽하게 설정되었습니다! 즐거운 개발되세요! 🎉

@@ -58,3 +58,6 @@ backups/
 
 # Alembic
 alembic/versions/__pycache__/
+
+# Build/dist
+/build_output

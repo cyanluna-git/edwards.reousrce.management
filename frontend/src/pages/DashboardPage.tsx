@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subYears } from 'date-fns';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
@@ -38,45 +38,58 @@ export const DashboardPage: React.FC = () => {
     const halfYearEnd = format(endOfMonth(now), 'yyyy-MM-dd');
     const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
     const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
+    
+    // Last 12 months for trend chart
+    const last12MonthsStart = format(subMonths(startOfMonth(now), 11), 'yyyy-MM-dd');
+    const last12MonthsEnd = format(endOfMonth(now), 'yyyy-MM-dd');
 
-    const { data: weeklyWorklogs = [] } = useWorklogsTable({
+    const { data: weeklyWorklogs = [], isLoading: weeklyLoading } = useWorklogsTable({
         start_date: weekStart,
         end_date: weekEnd,
         user_id: user?.id,
         limit: 100,
-        enabled: viewMode === 'weekly',
+        enabled: true, // Always load weekly data
     });
 
-    const { data: monthlyWorklogs = [] } = useWorklogsTable({
+    const { data: monthlyWorklogs = [], isLoading: monthlyLoading } = useWorklogsTable({
         start_date: monthStart,
         end_date: monthEnd,
         user_id: user?.id,
         limit: 200,
-        enabled: viewMode === 'monthly',
+        enabled: true, // Always load monthly data
     });
 
-    const { data: quarterlyWorklogs = [] } = useWorklogsTable({
+    const { data: quarterlyWorklogs = [], isLoading: quarterlyLoading } = useWorklogsTable({
         start_date: quarterStart,
         end_date: quarterEnd,
         user_id: user?.id,
         limit: 500,
-        enabled: viewMode === 'quarterly',
+        enabled: viewMode === 'quarterly' || viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
     });
 
-    const { data: halfYearWorklogs = [] } = useWorklogsTable({
+    const { data: halfYearWorklogs = [], isLoading: halfYearLoading } = useWorklogsTable({
         start_date: halfYearStart,
         end_date: halfYearEnd,
         user_id: user?.id,
         limit: 1000,
-        enabled: viewMode === 'halfYear',
+        enabled: viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
     });
 
-    const { data: yearlyWorklogs = [] } = useWorklogsTable({
+    const { data: yearlyWorklogs = [], isLoading: yearlyLoading } = useWorklogsTable({
         start_date: yearStart,
         end_date: yearEnd,
         user_id: user?.id,
         limit: 2000,
-        enabled: viewMode === 'yearly',
+        enabled: viewMode === 'yearly', // Load when needed
+    });
+
+    // Last 12 months data for trend chart
+    const { data: last12MonthsWorklogs = [] } = useWorklogsTable({
+        start_date: last12MonthsStart,
+        end_date: last12MonthsEnd,
+        user_id: user?.id,
+        limit: 2000,
+        enabled: true, // Always load for trend chart
     });
 
     const currentWorklogs = useMemo(() => {
@@ -116,11 +129,25 @@ export const DashboardPage: React.FC = () => {
         const map: Record<string, any> = {};
         const traverse = (cats: any[], parent?: any) => {
             for (const cat of cats) {
-                map[cat.code] = { ...cat, parent };
-                if (cat.children) traverse(cat.children, cat);
+                // Store category with parent reference
+                map[cat.code] = { 
+                    ...cat, 
+                    parent: parent ? {
+                        id: parent.id,
+                        code: parent.code,
+                        name: parent.name,
+                        name_ko: parent.name_ko,
+                        level: parent.level,
+                        parent: parent.parent // Keep grandparent for L3
+                    } : undefined 
+                };
+                if (cat.children && cat.children.length > 0) {
+                    traverse(cat.children, map[cat.code]);
+                }
             }
         };
         traverse(categoryTree);
+        console.log('[Dashboard] Category Map sample:', Object.keys(map).slice(0, 5).map(k => ({ code: k, cat: map[k] })));
         return map;
     }, [categoryTree]);
 
@@ -157,6 +184,8 @@ export const DashboardPage: React.FC = () => {
             }
         };
         traverse(categoryTree);
+        console.log('[Dashboard] Category ID to Code Map:', map);
+        console.log('[Dashboard] Category Tree:', categoryTree);
         return map;
     }, [categoryTree]);
 
@@ -169,38 +198,74 @@ export const DashboardPage: React.FC = () => {
         const currentLevel = drillDownPath.length; // 0, 1, or 2
         const parentCode = currentLevel > 0 ? drillDownPath[currentLevel - 1] : null;
 
+        // Debug: Log worklogs and their work_type_category info
+        console.log(`[Dashboard ${viewMode}] Total worklogs:`, currentWorklogs.length);
+        console.log(`[Dashboard ${viewMode}] Sample worklog:`, currentWorklogs[0]);
+        if (currentWorklogs.length > 0) {
+            const withCategory = currentWorklogs.filter(wl => wl.work_type_category_id).length;
+            const withoutCategory = currentWorklogs.length - withCategory;
+            console.log(`[Dashboard ${viewMode}] With category: ${withCategory}, Without: ${withoutCategory}`);
+        }
+
         // Bucket accumulator
         const buckets: Record<string, { name: string; code: string; value: number; color?: string }> = {};
 
-        currentWorklogs.forEach(wl => {
+        currentWorklogs.forEach((wl, idx) => {
             // Determine WL's path
-            let l1 = 'Other';
-            let l2 = 'Other';
-            let l3 = 'Other';
-            let l1Name = '기타';
-            let l2Name = '기타';
+            let l1 = 'ADM'; // Default if no category
+            let l2 = 'ADM-GEN';
+            let l3 = 'ADM-GEN-OTH';
+            let l1Name = '행정';
+            let l2Name = '일반';
             let l3Name = '기타';
+
+            // Debug first few worklogs
+            if (idx < 3) {
+                console.log(`[WL ${idx}] work_type_category_id:`, wl.work_type_category_id);
+                console.log(`[WL ${idx}] work_type_category:`, wl.work_type_category);
+            }
 
             // Try to resolve from ID first (New Logic)
             if (wl.work_type_category_id && categoryIdToCode[wl.work_type_category_id]) {
                 const code = categoryIdToCode[wl.work_type_category_id];
                 const cat = categoryMap[code];
 
-                if (cat.level === 3) {
-                    l3 = cat.code; l3Name = cat.name_ko || cat.name;
-                    l2 = cat.parent?.code; l2Name = cat.parent?.name_ko || cat.parent?.name;
-                    l1 = cat.parent?.parent?.code; l1Name = cat.parent?.parent?.name_ko || cat.parent?.parent?.name;
-                } else if (cat.level === 2) {
-                    l2 = cat.code; l2Name = cat.name_ko || cat.name;
-                    l1 = cat.parent?.code; l1Name = cat.parent?.name_ko || cat.parent?.name;
-                } else if (cat.level === 1) {
-                    l1 = cat.code; l1Name = cat.name_ko || cat.name;
+                if (idx < 3) {
+                    console.log(`[WL ${idx}] Found code: ${code}, cat:`, cat);
+                }
+
+                if (cat) {
+                    if (cat.level === 3) {
+                        l3 = cat.code; l3Name = cat.name_ko || cat.name;
+                        if (cat.parent) {
+                            l2 = cat.parent.code; l2Name = cat.parent.name_ko || cat.parent.name;
+                            if (cat.parent.parent) {
+                                l1 = cat.parent.parent.code; l1Name = cat.parent.parent.name_ko || cat.parent.parent.name;
+                            }
+                        }
+                    } else if (cat.level === 2) {
+                        l2 = cat.code; l2Name = cat.name_ko || cat.name;
+                        if (cat.parent) {
+                            l1 = cat.parent.code; l1Name = cat.parent.name_ko || cat.parent.name;
+                        }
+                    } else if (cat.level === 1) {
+                        l1 = cat.code; l1Name = cat.name_ko || cat.name;
+                    }
+                    
+                    if (idx < 3) {
+                        console.log(`[WL ${idx}] Resolved to L1: ${l1} (${l1Name})`);
+                    }
+                } else {
+                    if (idx < 3) {
+                        console.log(`[WL ${idx}] ❌ Category not found in categoryMap for code: ${code}`);
+                    }
                 }
             } else {
-                // No valid work_type_category_id - use default
-                l1 = 'ADM'; // Default
-                l1Name = '행정';
+                if (idx < 3) {
+                    console.log(`[WL ${idx}] ❌ No category ID or not in mapping`);
+                }
             }
+            // If still no valid category found, keep default ADM
 
             // Filtering Logic
             let targetGroupKey: string | null = null;
@@ -261,6 +326,54 @@ export const DashboardPage: React.FC = () => {
             });
 
     }, [drillDownPath, currentWorklogs, categoryMap, categoryIdToCode]);
+
+    // Calculate monthly Top-5 project trend data
+    const monthlyProjectTrendData = useMemo(() => {
+        if (!last12MonthsWorklogs.length) return [];
+
+        // Group by month and project (use project name for display)
+        const monthlyData: Record<string, Record<string, number>> = {};
+        
+        last12MonthsWorklogs.forEach(wl => {
+            const monthKey = format(new Date(wl.date), 'yyyy-MM');
+            const projectKey = wl.project_name || wl.project_code || '기타';
+            
+            if (!monthlyData[monthKey]) {
+                monthlyData[monthKey] = {};
+            }
+            monthlyData[monthKey][projectKey] = (monthlyData[monthKey][projectKey] || 0) + wl.hours;
+        });
+
+        // Find overall top 5 projects (by total hours across all months)
+        const projectTotals: Record<string, number> = {};
+        Object.values(monthlyData).forEach(month => {
+            Object.entries(month).forEach(([project, hours]) => {
+                projectTotals[project] = (projectTotals[project] || 0) + hours;
+            });
+        });
+
+        const topProjects = Object.entries(projectTotals)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([project]) => project);
+
+        // Build chart data
+        const chartData = Object.entries(monthlyData)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, projects]) => {
+                const dataPoint: any = { month };
+                topProjects.forEach(project => {
+                    dataPoint[project] = projects[project] || 0;
+                });
+                // Calculate "Others"
+                const topTotal = topProjects.reduce((sum, p) => sum + (projects[p] || 0), 0);
+                const allTotal = Object.values(projects).reduce((sum, h) => sum + h, 0);
+                dataPoint['기타'] = allTotal - topTotal;
+                return dataPoint;
+            });
+
+        return { chartData, topProjects };
+    }, [last12MonthsWorklogs]);
 
     const activeLabel = useMemo(() => {
         if (drillDownPath.length === 0) return null;
@@ -464,8 +577,18 @@ export const DashboardPage: React.FC = () => {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                {activeChartData.length === 0 ? (
-                                    <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                {weeklyLoading && viewMode === 'weekly' ? (
+                                    <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
+                                ) : monthlyLoading && viewMode === 'monthly' ? (
+                                    <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
+                                ) : activeChartData.length === 0 ? (
+                                    <div className="text-center py-4 text-muted-foreground">
+                                        데이터가 없습니다.
+                                        <div className="text-xs mt-2">
+                                            {viewMode === 'weekly' && `(${weekStart} ~ ${weekEnd})`}
+                                            {viewMode === 'monthly' && `(${monthStart} ~ ${monthEnd})`}
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
                                         <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
@@ -533,6 +656,86 @@ export const DashboardPage: React.FC = () => {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Monthly Top-5 Project Trend Chart */}
+                    {monthlyProjectTrendData.chartData && monthlyProjectTrendData.chartData.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>월별 Top-5 프로젝트 투입 시간 추이</CardTitle>
+                                <p className="text-xs text-muted-foreground mt-1">최근 12개월</p>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={400}>
+                                    <AreaChart data={monthlyProjectTrendData.chartData}>
+                                        <defs>
+                                            {monthlyProjectTrendData.topProjects.map((project, idx) => {
+                                                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                                                const color = colors[idx % colors.length];
+                                                return (
+                                                    <linearGradient key={project} id={`colorProject${idx}`} x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
+                                                        <stop offset="95%" stopColor={color} stopOpacity={0.3}/>
+                                                    </linearGradient>
+                                                );
+                                            })}
+                                            <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.6}/>
+                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                        <XAxis 
+                                            dataKey="month" 
+                                            tick={{ fontSize: 12 }}
+                                            tickFormatter={(value) => {
+                                                const [year, month] = value.split('-');
+                                                return `${month}월`;
+                                            }}
+                                        />
+                                        <YAxis 
+                                            label={{ value: '투입 시간 (h)', angle: -90, position: 'insideLeft' }}
+                                            tick={{ fontSize: 12 }}
+                                        />
+                                        <Tooltip 
+                                            contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
+                                            formatter={(value: number, name: string) => [`${value.toFixed(0)}h`, name]}
+                                            labelFormatter={(label) => {
+                                                const [year, month] = label.split('-');
+                                                return `${year}년 ${month}월`;
+                                            }}
+                                        />
+                                        <Legend 
+                                            wrapperStyle={{ paddingTop: '20px' }}
+                                            iconType="rect"
+                                        />
+                                        {monthlyProjectTrendData.topProjects.map((project, idx) => {
+                                            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+                                            const color = colors[idx % colors.length];
+                                            return (
+                                                <Area
+                                                    key={project}
+                                                    type="monotone"
+                                                    dataKey={project}
+                                                    stackId="1"
+                                                    stroke={color}
+                                                    fill={`url(#colorProject${idx})`}
+                                                    strokeWidth={2}
+                                                />
+                                            );
+                                        })}
+                                        <Area
+                                            type="monotone"
+                                            dataKey="기타"
+                                            stackId="1"
+                                            stroke="#94a3b8"
+                                            fill="url(#colorOthers)"
+                                            strokeWidth={1}
+                                        />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
 
 
                     {/* My Projects Timeline */}

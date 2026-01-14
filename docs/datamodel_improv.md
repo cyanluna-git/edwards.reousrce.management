@@ -1,202 +1,137 @@
-# 데이터 모델 개선 계획서
+# 데이터 모델 & DB 스키마 (최신)
 
-## 1. 개요
-
-현재 데이터베이스 스키마를 분석한 결과, **중복된 경로(Multiple Paths)**, **불필요한 컬럼**, 그리고 **데이터 불일치 가능성**이 있는 구조가 발견되었습니다.
-
-이 문서는 이러한 문제점을 해결하기 위한 개선 계획을 정의합니다.
+이 문서는 현재 코드베이스(특히 `backend/app/models/*`)를 기준으로 한 **권장/기준 데이터 모델**을 정리합니다.
 
 > [!IMPORTANT]
-> 모든 변경 사항은 **데이터 백업 후** 진행해야 하며, **개발 환경에서 충분히 테스트** 후 운영 환경에 적용해야 합니다.
+> 현재 애플리케이션은 시작 시 `Base.metadata.create_all()`로 테이블을 생성/보정합니다.
+> `.env`의 `RESET_DB=true`를 켜면 public schema를 drop & recreate 합니다.
+> Alembic `backend/alembic/versions/*`는 존재하지만, 현 시점에서는 "정확한 최신 스키마의 단일 근거"로 사용되지 않습니다.
 
----
+## 1. 큰 그림
 
-## 2. 현재 문제점 및 개선 항목
+- 조직: `divisions` → `departments` → `sub_teams`
+- 사용자: `users`는 `sub_teams`(옵션) + `job_positions`(필수)에 속함
+- 프로젝트: `programs`/`project_types` 기반의 `projects` + `project_milestones`
+- 실적: `worklogs`는 날짜/시간 + (프로젝트 또는 제품군) + `work_type_categories`(업무유형 트리)
+- 계획: `resource_plans`(월 단위) 및 시나리오(`project_scenarios`, `scenario_*`)
 
-### 2.1. 조직 계층 구조의 "다이아몬드 결합"
+## 2. 핵심 테이블 요약
 
-| 항목 | 내용 |
-|------|------|
-| **현재 상태** | `departments` 테이블이 `business_units`와 `divisions` 두 곳을 모두 FK로 참조 |
-| **문제점** | BU와 Division이 논리적으로 연결되지 않은 경우 데이터 정합성 깨짐 |
-| **영향도** | 중간 (조직 관리 혼란) |
+### 2.1 조직
 
-**개선안:**
-- `departments.business_unit_id` 컬럼을 **Drop**합니다.
-- 조직 구조는 `Division > Department > SubTeam` 단일 계층으로 정리합니다.
-- BU 정보가 필요한 경우 별도 매핑 테이블로 관리하거나, Division 레벨에서 BU 정보를 연결합니다.
+#### divisions (L0)
+- `id` (PK), `code` (unique), `name`, `is_active`, timestamps
 
----
+#### departments (L1)
+- `id` (PK), `division_id` (FK, nullable), `code` (unique), `name`, `is_active`, timestamps
+- Functional 프로젝트 소유 조직을 위해 `projects.owner_department_id`가 `departments.id`를 참조할 수 있음
 
-### 2.2. 프로젝트-라인업 매핑의 이중 경로
+#### sub_teams (L2)
+- `id` (PK), `department_id` (FK), `code` (unique), `name`, `is_active`, timestamps
 
-| 항목 | 내용 |
-|------|------|
-| **현재 상태** | `projects.product_line_id` FK + `project_product_lines` 매핑 테이블 동시 존재 |
-| **문제점** | 한쪽만 업데이트되면 데이터 불일치 발생 |
-| **영향도** | 높음 (프로젝트 관리 혼란) |
+### 2.2 사용자/역할
 
-**개선안:**
-- 프로젝트는 **1개의 라인업에만 속함** (1:N 관계)으로 유지합니다.
-- `project_product_lines` 테이블을 **Drop**합니다.
-- `projects.product_line_id` 컬럼만 유지합니다.
+#### job_positions (FunctionalRole)
+- `id` (PK), `name`, `level`, `std_hourly_rate`, `is_active`, timestamps
 
----
+#### users
+- `id` (PK, UUID), `email`(unique), `hashed_password`
+- `name`, `korean_name`
+- `sub_team_id` (FK, nullable), `position_id` (FK)
+- `role` (예: `ADMIN`, `PM`, `FM`, `USER`), `is_active`, timestamps
 
-### 2.3. Worklogs 업무 유형 식별자 통일
+#### user_history
+- 사용자 조직/직무 변화를 기간으로 기록
+- `user_id` (FK), `department_id` (FK), `sub_team_id` (FK, nullable), `position_id` (FK)
+- `start_date`, `end_date`(nullable), `change_type`, `remarks`
 
-| 항목 | 내용 |
-|------|------|
-| **현재 상태** | `worklogs` 테이블에 `work_type`(string)과 `work_type_category_id`(int) 혼재 |
-| **문제점** | 텍스트와 ID 병행 기록으로 통계 오류 발생 가능 |
-| **영향도** | 높음 (리포트 정확성) |
+### 2.3 프로젝트/제품군
 
-**개선안:**
-- `worklogs.work_type` 문자열 컬럼을 **Drop**합니다.
-- `worklogs.meeting_type` 문자열 컬럼을 **Drop**합니다 (work_type_categories에 이미 상세 분류 존재).
-- `work_type_category_id` FK만 사용하도록 강제합니다.
+#### business_units
+- `id` (PK), `code` (unique), `name`, `is_active`, timestamps
 
----
+#### programs
+- `id` (PK), `business_unit_id` (FK), `name`, `is_active`, timestamps
 
-### 2.4. 유저 소속 정보의 중복
+#### project_types
+- `id` (PK), `name`, `description`, `is_active`
 
-| 항목 | 내용 |
-|------|------|
-| **현재 상태** | `users` 테이블에 `department_id`와 `sub_team_id` 동시 존재 |
-| **문제점** | SubTeam A에 속했는데 Department가 다른 곳이면 계층 꼬임 |
-| **영향도** | 중간 (데이터 정합성) |
+#### product_lines
+- `id` (PK), `code` (unique), `name`
+- `business_unit_id` (FK, nullable)
+- `line_category` (예: `PRODUCT`, `PLATFORM`, `LEGACY`), `is_active`, timestamps
 
-**개선안:**
-- `users.department_id` 컬럼을 **Drop**합니다.
-- 부서 정보는 `sub_teams.department_id`를 통해 조인으로 조회합니다.
-- 팀에 속하지 않은 인원은 "General" 가상 팀에 배치합니다.
+#### projects
+- `id` (PK, UUID), `program_id` (FK), `project_type_id` (FK)
+- `code` (unique), `name`
+- `status` (예: `Prospective`, `Planned`, `InProgress`, `OnHold`, `Cancelled`, `Completed`)
+- `category` (예: `PRODUCT`, `FUNCTIONAL`)
+- `scale` (예: `CIP`, `A&D`, `Simple`, `Complex`, `Platform`)
+- `product_line_id` (FK, nullable) + `project_product_lines`(다대다, cross-family 지원)
+- `owner_department_id` (FK, nullable) : Functional 프로젝트의 소유 조직
+- `pm_id` (FK, nullable)
+- `start_month`, `end_month` (YYYY-MM)
+- `customer`, `product`, `description`, timestamps
 
----
+#### project_product_lines (many-to-many)
+- `project_id` (FK), `product_line_id` (FK)
 
-### 2.5. Resource Plans의 Position 중복
+#### project_milestones
+- `project_id` (FK)
+- `name`, `type` (`STD_GATE`, `CUSTOM`), `target_date`, `actual_date`
+- `status` (`Pending`, `Completed`, `Delayed`), `is_key_gate`, timestamps
 
-| 항목 | 내용 |
-|------|------|
-| **현재 상태** | `resource_plans`에 `user_id`와 `position_id` 동시 존재 |
-| **문제점** | user_id가 지정되면 position은 users 테이블에서 조회 가능 |
-| **영향도** | 낮음 (중복 데이터) |
+### 2.4 업무 유형 (계층)
 
-**개선안:**
-- **유지**: 미확정 인원(Generic Role) 계획에서 position_id가 필요하므로 현재 구조 유지
-- 단, 로직에서 user_id가 있을 경우 position_id는 users 테이블에서 가져오도록 일관성 적용
+#### work_type_categories
+- `id` (PK), `code`(unique), `name`, `name_ko`, `description`
+- `level` (1/2/3), `parent_id` (self FK)
+- `sort_order`, `is_active`
+- `applicable_roles` (nullable): 사용 가능한 역할 제한(문자열)
+- `project_required` (bool): 프로젝트/제품군 선택 필수 여부
 
----
+#### work_type_legacy_mappings
+- 레거시 문자열(work type)을 카테고리로 매핑
+- `legacy_work_type` (unique), `category_id` (FK)
 
-## 3. Drop 대상 컬럼/테이블 요약
+### 2.5 실적/계획
 
-| 테이블 | 컬럼/테이블 | 조치 | 사유 |
-|--------|-------------|------|------|
-| `departments` | `business_unit_id` | DROP COLUMN | Division으로 계층 정리 |
-| `project_product_lines` | (전체 테이블) | DROP TABLE | projects.product_line_id로 1:N 관계 유지 |
-| `worklogs` | `work_type` | DROP COLUMN | work_type_category_id로 통일 |
-| `worklogs` | `meeting_type` | DROP COLUMN | 카테고리에 이미 상세 분류 존재 |
-| `users` | `department_id` | DROP COLUMN | sub_team_id를 통해 조인 가능 |
+#### worklogs
+- `id` (PK), `date` (date)
+- `user_id` (FK)
+- `project_id` (FK, nullable): 비프로젝트 업무 가능
+- `product_line_id` (FK, nullable): 프로젝트 없이 제품군 지원 업무 가능
+- `work_type_category_id` (FK)
+- `hours`, `description`
+- `is_sudden_work`, `is_business_trip`, timestamps
 
----
+#### project_roles
+- 프로젝트 수행 역할 마스터
+- `id` (PK), `name`, `category`, `std_hourly_rate`, `is_active`, timestamps
 
-## 4. 마이그레이션 SQL 스크립트
+#### resource_plans
+- 월 단위 계획
+- `project_id` (FK), `year`, `month`
+- `position_id` (FK), `project_role_id` (FK, nullable)
+- `user_id` (FK, nullable) : 미지정(TBD) 가능
+- `planned_hours`, `created_by` (FK), timestamps
 
-> [!WARNING]
-> 반드시 **백업 후** 실행하세요. `python3 backup_db.py` 명령으로 백업을 먼저 수행합니다.
+#### project_scenarios / scenario_milestones / scenario_resource_plans
+- 프로젝트별 일정/리소스 계획 시나리오를 별도로 관리
 
-### 4.1. 사전 작업: 데이터 백업
+### 2.6 공통 데이터
 
-```bash
-# 로컬 DB 백업
-python3 backup_db.py
-```
+#### common_codes
+- 공통 코드(그룹 + 코드)
+- `group_code`, `code_id`, `name`, `description`, `sort_order`, `is_active`, timestamps
 
-### 4.2. Phase 1: 조직 계층 정리
+#### holidays
+- `date`, `name`, `type` (`LEGAL`, `COMPANY`), `year`
 
-```sql
--- departments에서 business_unit_id 컬럼 제거
--- 먼저 FK 제약 조건 삭제
-ALTER TABLE departments DROP CONSTRAINT IF EXISTS departments_business_unit_id_fkey;
+## 3. 실무 팁
 
--- 컬럼 삭제
-ALTER TABLE departments DROP COLUMN IF EXISTS business_unit_id;
-```
-
-### 4.3. Phase 2: 프로젝트-라인업 이중 경로 정리
-
-```sql
--- project_product_lines 매핑 테이블 삭제
-DROP TABLE IF EXISTS project_product_lines;
-```
-
-### 4.4. Phase 3: Worklogs 컬럼 정리
-
-```sql
--- work_type 문자열 컬럼 삭제 (이미 work_type_category_id로 관리)
-ALTER TABLE worklogs DROP COLUMN IF EXISTS work_type;
-
--- meeting_type 문자열 컬럼 삭제 (카테고리에 상세 분류 존재)
-ALTER TABLE worklogs DROP COLUMN IF EXISTS meeting_type;
-```
-
-### 4.5. Phase 4: 유저 소속 정보 정리
-
-```sql
--- 먼저 FK 제약 조건 삭제
-ALTER TABLE users DROP CONSTRAINT IF EXISTS users_department_id_fkey;
-
--- department_id 컬럼 삭제
-ALTER TABLE users DROP COLUMN IF EXISTS department_id;
-```
-
----
-
-## 5. 코드 수정 영향 범위
-
-### 5.1. Backend (FastAPI)
-
-| 파일 | 수정 내용 |
-|------|----------|
-| `app/models/*.py` | SQLAlchemy 모델에서 삭제된 컬럼/테이블 제거 |
-| `app/schemas/*.py` | Pydantic 스키마에서 삭제된 필드 제거 |
-| `app/api/endpoints/*.py` | 관련 API 로직 수정 |
-| `app/services/*.py` | 비즈니스 로직에서 삭제된 필드 참조 제거 |
-
-### 5.2. Frontend (React)
-
-| 파일 | 수정 내용 |
-|------|----------|
-| `src/types/*.ts` | TypeScript 타입 정의에서 삭제된 필드 제거 |
-| `src/components/**/*.tsx` | UI 컴포넌트에서 삭제된 필드 참조 제거 |
-| `src/hooks/*.ts` | API 호출 로직 수정 |
-
----
-
-## 6. 검증 계획
-
-### 6.1. 자동 검증
-
-1. **백엔드 서버 시작**: `./run.py backend` 실행 후 에러 없이 구동되는지 확인
-2. **API 문서 접속**: `http://localhost:8004/docs` 에서 Swagger UI 정상 로드 확인
-
-### 6.2. 수동 검증
-
-1. **조직 관리 페이지**: `/organization` 접속 → Division > Dept > SubTeam 트리 정상 표시 확인
-2. **프로젝트 관리**: 새 프로젝트 생성 시 라인업 선택 정상 동작 확인
-3. **Worklog 등록**: 업무 유형 선택 → 카테고리 트리로 정상 동작 확인
-4. **사용자 관리**: 사용자 팀 변경 시 부서 정보 자동 반영 확인
-
----
-
-## 7. 일정 (예상)
-
-| 단계 | 작업 내용 | 예상 소요 |
-|------|----------|----------|
-| **1단계** | 계획 리뷰 및 승인 | 1일 |
-| **2단계** | DB 마이그레이션 실행 | 1시간 |
-| **3단계** | 백엔드 모델/API 수정 | 2-3시간 |
-| **4단계** | 프론트엔드 수정 | 2-3시간 |
-| **5단계** | 통합 테스트 | 1일 |
+- 최신 엔드포인트/스키마 확인은 Swagger가 가장 빠릅니다: `http://localhost:8004/api/docs`
+- 스키마 리셋이 필요하면 `.env`에서 `RESET_DB=true` 후 백엔드 재시작
 
 ---
 

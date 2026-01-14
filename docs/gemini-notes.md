@@ -7,7 +7,7 @@
 - **목적**: Edwards(또는 PCAS) 엔지니어링 조직의 운영 관리(프로젝트, 인력, 리소스, 업무 기록)를 위한 내부 풀스택 웹 애플리케이션입니다.
 - **기술 스택**:
     - **통합**: Docker Compose
-    - **백엔드**: Python, FastAPI, SQLAlchemy, MS SQL
+    - **백엔드**: Python, FastAPI, SQLAlchemy, PostgreSQL
     - **프론트엔드**: TypeScript, React, Vite, Tailwind CSS
 
 ## 2. 무시할 파일 및 디렉토리 (Ignore List)
@@ -57,17 +57,18 @@
     - **비동기 처리**: 데이터베이스 접근 등 I/O 작업에는 `async def`를 사용합니다.
     - **단일 책임 원칙**: 각 모듈은 하나의 명확한 목적을 가집니다.
 - **데이터베이스**:
-    - MS SQL Server를 사용하며, 한글 지원을 위해 모든 문자열은 `NVARCHAR` 타입을 사용합니다.
-    - 기본 키(Primary Key)는 가능한 경우 UUID를 사용합니다.
+    - 로컬 개발은 Docker Compose의 PostgreSQL 컨테이너를 사용합니다.
+    - 기본 키는 테이블별로 UUID 또는 문자열/정수 PK가 혼재할 수 있습니다(모델 정의를 따름).
 
-## 4. 🚨 CRITICAL: Database Strategy (Rapid Prototyping)
-**"No Migrations, Just Reset."**
-- **상태:** 현재는 초기 개발 단계로 데이터 보존 불필요.
-- **규칙 1 (No Alembic):** `alembic revision`이나 마이그레이션 파일 생성을 제안하지 말 것.
-- **규칙 2 (Auto-Reset):** DB 스키마 변경이 필요하면, **"Drop All & Create All"** 전략을 사용함.
-- **규칙 3 (Seeding):** 앱 재시작 시 `Base.metadata.create_all`이 실행되고, 더미 데이터(Seeding)가 주입되는 로직을 기본으로 가정할 것. - >**"초기 개발 단계(Rapid Prototyping)"**의 전형적인 모습입니다. 이 시기에는 데이터 보존이 필요 없는데 굳이 Alembic으로 마이그레이션 히스토리(versions/)를 관리하는 건 개발 속도를 갉아먹는 족쇄가 됩니다.
+## 4. 🚨 Database Strategy (Dev 기준)
 
-현재 상황(Docker, MSSQL, FastAPI, 더미 데이터)에 딱 맞는 "Nuke and Pave (다 지우고 새로 깔기)" 전략을 제안 ----
+- **기본 전략:** 개발 환경에서는 빠른 반복을 위해 앱 시작 시 `Base.metadata.create_all()`로 스키마를 생성/보정합니다.
+- **리셋:** `.env`의 `RESET_DB=true`로 public schema를 drop & recreate 하는 리셋 플로우를 사용합니다.
+- **Seeding:** 초기 데이터(Seeding)는 앱 시작 시 주입될 수 있습니다.
+- **Alembic:** `backend/alembic/versions/*`가 존재하지만, 현재는 "스키마 최신 상태의 단일 근거"로 가정하지 않습니다.
+    - 새로운 마이그레이션 생성/운영 마이그레이션 전략은 **요청이 있을 때만** 제안/작업합니다.
+
+스키마/관계 요약은 [docs/datamodel_improv.md](./datamodel_improv.md)를 기준으로 합니다.
 
 ## 5. 프론트엔드 가이드라인 (TypeScript/React)
 

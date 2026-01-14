@@ -80,13 +80,13 @@ docker compose logs -f backend
 docker compose exec frontend pnpm install && docker compose restart frontend
 
 # API 문서
-http://localhost:8000/api/docs
+http://localhost:8004/api/docs
 ```
 
 ---
 
 ## 📚 참고 문서
-- [요구사항](./requirment.md)
+- [요구사항](./requirements.md)
 - [Backend README](./backend/README.md)
 - [Frontend README](./frontend/README.md)
 

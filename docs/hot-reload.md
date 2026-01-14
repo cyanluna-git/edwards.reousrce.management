@@ -9,7 +9,7 @@
 
 ### Backend (FastAPI + Uvicorn)
 - ✓ **활성화됨**: ./backend/app/ 변경 시 자동 리로드
-- ✓ **재시작 없음**: 모듈만 재로드되어 데이터베이스 연결 유지
+- ✓ **자동 리로드**: 코드 변경 시 Uvicorn이 재시작/리로드 수행
 - ✓ **마이그레이션 마운트**: ./backend/alembic/ 변경 감지
 
 ---
@@ -95,7 +95,7 @@ python run.py all
 
 **2단계: API 테스트**
 ```
-http://localhost:8004/docs
+http://localhost:8004/api/docs
 ```
 
 **3단계: 코드 수정**
@@ -144,10 +144,10 @@ uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
 **원인 1: 파일 감시 시스템 문제**
 ```bash
 # Docker 재시작
-docker-compose restart frontend
+docker compose restart frontend
 
 # 또는 재빌드
-docker-compose up -d --build frontend
+docker compose up -d --build frontend
 ```
 
 **원인 2: 너무 큰 변경**
@@ -167,7 +167,7 @@ WebSocket ws://localhost:3004/@vite/hmr 연결 확인
 **원인 1: Syntax Error**
 ```bash
 # 로그 확인
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # 에러 수정 후 자동 재로드됨
 ```
@@ -175,12 +175,16 @@ docker-compose logs -f backend
 **원인 2: 모듈 임포트 에러**
 - 순환 참조 발생 시 수동 재시작 필요
 ```bash
-docker-compose restart backend
+docker compose restart backend
 ```
 
 **확인 방법: 로그 확인**
 ```bash
-docker-compose logs -f backend | grep -i "reload\|started"
+# macOS/Linux
+docker compose logs -f backend | grep -i "reload\|started"
+
+# Windows PowerShell
+docker compose logs -f backend | Select-String -Pattern "reload|started" -CaseSensitive:$false
 ```
 
 ---
@@ -205,10 +209,10 @@ docker-compose logs -f backend | grep -i "reload\|started"
 
 ```bash
 # 터미널 1: 백엔드 로그 보기
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # 터미널 2: 프론트엔드 로그 보기
-docker-compose logs -f frontend
+docker compose logs -f frontend
 
 # 터미널 3: 코드 편집 (IDE 사용)
 # 이곳에서 코드 수정하면 위의 두 터미널에서 리로드 메시지 확인 가능
