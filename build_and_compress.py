@@ -57,10 +57,9 @@ def check_prerequisites():
     required_tools = ['docker', 'docker-compose']
     
     for tool in required_tools:
-        try:
-            subprocess.run(['which', tool], capture_output=True, check=True)
+        if shutil.which(tool) is not None:
             print_colored(f"  ✓ {tool}", Colors.GREEN)
-        except subprocess.CalledProcessError:
+        else:
             print_error(f"{tool} is required but not installed.")
             sys.exit(1)
     
@@ -206,9 +205,7 @@ def build_frontend(project_dir):
     
     try:
         # Check for pnpm
-        try:
-            subprocess.run(['which', 'pnpm'], capture_output=True, check=True)
-        except subprocess.CalledProcessError:
+        if shutil.which('pnpm') is None:
             print_info("Installing pnpm globally...")
             subprocess.run(
                 ['npm', 'install', '-g', 'pnpm'],
@@ -217,6 +214,9 @@ def build_frontend(project_dir):
             )
         
         # Install dependencies
+        if shutil.which('pnpm') is None:
+            print_error("pnpm is not installed or not found in PATH. Please install pnpm and ensure it is available.")
+            return False
         print_info("Installing frontend dependencies...")
         subprocess.run(
             ['pnpm', 'install'],
@@ -224,7 +224,6 @@ def build_frontend(project_dir):
             check=True,
             capture_output=True
         )
-        
         # Build
         print_info("Building frontend bundle...")
         subprocess.run(
@@ -233,7 +232,6 @@ def build_frontend(project_dir):
             check=True,
             capture_output=True
         )
-        
         print_info("Frontend build complete")
         return True
         
@@ -292,7 +290,7 @@ def export_docker_images(project_dir):
     images_to_export = [
         ('edwards_project-backend:latest', 'edwards-backend.tar.gz'),
         ('edwards_project-frontend:latest', 'edwards-frontend.tar.gz'),
-        ('postgres:16', 'postgres-16.tar.gz'),
+        ('postgres:15', 'postgres-15.tar.gz'),
     ]
     
     for image_name, file_name in images_to_export:
@@ -346,10 +344,10 @@ echo "Loading Docker images..."
 cd "$(dirname "$0")"
 
 echo "[1/3] Loading PostgreSQL image..."
-if [ -f postgres-16.tar.gz ]; then
-    docker load < postgres-16.tar.gz
+if [ -f postgres-15.tar.gz ]; then
+    docker load < postgres-15.tar.gz
 else
-    echo "  ⚠ postgres-16.tar.gz not found, skipping..."
+    echo "  ⚠ postgres-15.tar.gz not found, skipping..."
 fi
 
 echo "[2/3] Loading backend image..."
@@ -383,10 +381,10 @@ Set-Location $ScriptDir
 Write-Host "Loading Docker images..."
 
 Write-Host "[1/3] Loading PostgreSQL image..."
-if (Test-Path "postgres-16.tar.gz") {
-    docker load -i postgres-16.tar.gz
+if (Test-Path "postgres-15.tar.gz") {
+    docker load -i postgres-15.tar.gz
 } else {
-    Write-Host "  ⚠ postgres-16.tar.gz not found, skipping..."
+    Write-Host "  ⚠ postgres-15.tar.gz not found, skipping..."
 }
 
 Write-Host "[2/3] Loading backend image..."

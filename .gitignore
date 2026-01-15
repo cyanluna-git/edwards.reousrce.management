@@ -3,7 +3,7 @@
 .env.local
 .env.*.local
 .env.remote
-.env.vm
+# .env.vm
 
 # Python
 __pycache__/

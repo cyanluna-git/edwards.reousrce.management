@@ -1,0 +1,120 @@
+================================================================================
+                    빌드 파일 정보
+================================================================================
+
+📦 빌드 파일
+────────────────────────────────────────────────────────────────────────────
+
+파일명: edwards_project_20260115_111412.tar.gz
+크기: 87.5MB
+위치: ../build_output/edwards_project_20260115_111412.tar.gz
+타입: tar.gz (압축)
+생성: 2026-01-15 11:14:12
+
+📋 포함 내용
+────────────────────────────────────────────────────────────────────────────
+
+✓ 백엔드 소스 코드
+  - Python FastAPI 애플리케이션
+  - requirements.txt (의존성)
+  - .venv/ (가상환경 - 사전 설치)
+
+✓ 프론트엔드 소스 코드
+  - React/Vite 애플리케이션
+  - dist/ (빌드된 정적 파일)
+  - node_modules/ (의존성 - 사전 설치)
+
+✓ Docker 이미지 (3개)
+  - edwards-backend (이미지명: edwards_project-backend:latest)
+  - edwards-frontend (이미지명: edwards_project-frontend:latest)
+  - PostgreSQL 15 (이미지명: postgres:15)
+
+✓ 배포 스크립트
+  - load_images.sh (Linux/Mac용)
+  - load_images.ps1 (Windows용)
+
+✓ 설정 파일
+  - docker-compose.yml
+  - .env.example
+  - README.md
+
+🚀 배포 방법
+────────────────────────────────────────────────────────────────────────────
+
+자동 배포:
+  Windows:   .\deploy\deploy_to_vm.ps1
+  Linux/Mac: python3 deploy/deploy_to_vm_expect.py
+
+수동 배포:
+  배포 단계: deploy/VM_DEPLOYMENT_MANUAL.md 참조
+
+📦 빌드 아카이브 내부 구조
+────────────────────────────────────────────────────────────────────────────
+
+edwards_project/
+├── docker-compose.yml              (컨테이너 설정)
+├── .env.example                    (환경 템플릿)
+├── README.md                       (프로젝트 가이드)
+│
+├── backend/                        (백엔드)
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   ├── .venv/                      (가상환경)
+│   ├── app/
+│   ├── main.py
+│   └── ...
+│
+├── frontend/                       (프론트엔드)
+│   ├── Dockerfile
+│   ├── vite.config.ts
+│   ├── dist/                       (빌드 결과)
+│   ├── node_modules/               (의존성)
+│   ├── src/
+│   ├── package.json
+│   └── ...
+│
+├── docker_images/                  (Docker 이미지 파일)
+│   ├── edwards-backend.tar.gz
+│   ├── edwards-frontend.tar.gz
+│   ├── postgres-15.tar.gz
+│   ├── load_images.sh
+│   ├── load_images.ps1
+│   └── DEPLOY_ON_VM.md
+│
+├── docs/                           (문서)
+└── DEPLOY_ON_VM.md                 (배포 가이드)
+
+⚠️ 주의사항
+────────────────────────────────────────────────────────────────────────────
+
+1. 아카이브 크기가 87.5MB이므로 충분한 디스크 공간 필요 (최소 15GB)
+2. 네트워크 속도에 따라 전송 시간 다름
+3. 추출 및 이미지 로드에 5-10분 소요
+4. 데이터베이스 복원은 별도로 수행 필요
+
+✅ 배포 체크
+────────────────────────────────────────────────────────────────────────────
+
+배포 전:
+  [ ] 파일 존재 확인
+  [ ] 파일 크기 확인 (87.5MB)
+  [ ] 네트워크 연결 확인
+  [ ] 대상 서버 접근 가능 확인
+  [ ] 디스크 여유 공간 확인 (최소 15GB)
+
+배포 후:
+  [ ] 파일 추출 확인
+  [ ] Docker 이미지 로드 확인
+  [ ] 3개 컨테이너 모두 Up 상태 확인
+  [ ] 프로프트엔드/백엔드 접근 확인
+  [ ] 데이터베이스 복원 완료 확인
+
+📞 도움말
+────────────────────────────────────────────────────────────────────────────
+
+배포 가이드: deploy/DEPLOY_GUIDE.md
+수동 배포:  deploy/VM_DEPLOYMENT_MANUAL.md
+체크리스트: deploy/DEPLOYMENT_CHECKLIST.md
+스크립트 도움말: deploy/deploy_to_vm.ps1 -Help
+
+================================================================================
