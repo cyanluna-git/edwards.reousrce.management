@@ -29,11 +29,9 @@ import {
     updateProjectRole,
     deleteProjectRole,
 } from '@/api/client';
-import type { JobPosition } from '@/types';
-import { usePermissions } from '@/hooks/usePermissions';
+import { JobPosition } from '@/types';
 
 export const PositionsTab: React.FC = () => {
-    const { canManageOrganization } = usePermissions();
     const [subTab, setSubTab] = useState<'functional' | 'project'>('functional');
 
     return (
