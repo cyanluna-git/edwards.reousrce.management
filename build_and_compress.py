@@ -190,6 +190,10 @@ def build_backend(project_dir):
         
     except subprocess.CalledProcessError as e:
         print_error(f"Backend build failed: {e}")
+        if e.stdout:
+            print_colored(f"STDOUT:\n{e.stdout.decode()}", Colors.YELLOW)
+        if e.stderr:
+            print_colored(f"STDERR:\n{e.stderr.decode()}", Colors.RED)
         return False
 
 
@@ -237,6 +241,10 @@ def build_frontend(project_dir):
         
     except subprocess.CalledProcessError as e:
         print_error(f"Frontend build failed: {e}")
+        if e.stdout:
+            print_colored(f"STDOUT:\n{e.stdout.decode()}", Colors.YELLOW)
+        if e.stderr:
+            print_colored(f"STDERR:\n{e.stderr.decode()}", Colors.RED)
         return False
 
 
@@ -275,6 +283,10 @@ def build_docker_images(project_dir):
         
     except subprocess.CalledProcessError as e:
         print_error(f"Docker build failed: {e}")
+        if e.stdout:
+            print_colored(f"STDOUT:\n{e.stdout.decode()}", Colors.YELLOW)
+        if e.stderr:
+            print_colored(f"STDERR:\n{e.stderr.decode()}", Colors.RED)
         return False
     finally:
         os.chdir('../..')
