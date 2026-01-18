@@ -58,6 +58,8 @@ pnpm build
 Set-Location ".." # edwards_project 폴더로 복귀
 ```
 
+**Tip:** 만약 빌드 중 `TS6133` (unused variable/import) 에러가 발생하면, 해당 파일에서 사용하지 않는 변수나 import를 삭제해야 빌드가 완료됩니다. (현재 주요 발생 지점은 `PositionsTab.tsx`이며 이미 수정되었습니다.)
+
 ## 4. Docker 이미지 빌드 (Build Images)
 
 도커 이미지를 로컬에서 빌드합니다. (Docker Desktop이 실행 중이어야 합니다.)
@@ -76,17 +78,16 @@ docker-compose build
 New-Item -ItemType Directory -Path "docker_images" -Force
 
 Write-Host "Exporting Backend Image..."
-docker save edwards_project-backend:latest | gzip > docker_images/edwards-backend.tar.gz
+docker save edwards_project-backend:latest -o docker_images/edwards-backend.tar
 
 Write-Host "Exporting Frontend Image..."
-docker save edwards_project-frontend:latest | gzip > docker_images/edwards-frontend.tar.gz
+docker save edwards_project-frontend:latest -o docker_images/edwards-frontend.tar
 
 Write-Host "Exporting Postgres Image..."
-docker save postgres:15 | gzip > docker_images/postgres-15.tar.gz
+docker save postgres:15 -o docker_images/postgres-15.tar
 ```
 
-**주의:** 만약 `gzip` 명령어를 찾을 수 없다면, `gzip` 없이 `.tar`로 저장하셔도 됩니다.
-`docker save edwards_project-backend:latest -o docker_images/edwards-backend.tar`
+**주의:** 만약 `gzip` 명령어를 찾을 수 있다면 `| gzip > ...tar.gz` 방식을 써도 되지만, 윈도우에서는 위와 같이 `-o ...tar` 옵션을 쓰는 것이 가장 확실합니다.
 
 ## 6. 배포 스크립트 생성 (Deployment Scripts)
 
@@ -100,9 +101,10 @@ $content = @"
 `$ScriptDir = Split-Path -Parent `$MyInvocation.MyCommand.Path
 Set-Location `$ScriptDir
 Write-Host "Loading Docker images..."
-if (Test-Path "postgres-15.tar.gz") { docker load -i postgres-15.tar.gz }
-if (Test-Path "edwards-backend.tar.gz") { docker load -i edwards-backend.tar.gz }
-if (Test-Path "edwards-frontend.tar.gz") { docker load -i edwards-frontend.tar.gz }
+# .tar.gz 또는 .tar 파일 모두 지원
+if (Test-Path "postgres-15.*") { docker load -i (Get-Item "postgres-15.*").FullName }
+if (Test-Path "edwards-backend.*") { docker load -i (Get-Item "edwards-backend.*").FullName }
+if (Test-Path "edwards-frontend.*") { docker load -i (Get-Item "edwards-frontend.*").FullName }
 Write-Host "Done!"
 "@
 $content | Out-File -FilePath "docker_images\load_images.ps1" -Encoding utf8
