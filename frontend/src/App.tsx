@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuth } from './hooks/useAuth';
 import { MainLayout } from './components/layout';
 import { DashboardPage, LoginPage, ProjectsPage, ProjectDetailPage, WorkLogsPage, WorkLogTablePage, ResourcePlansPage, OrganizationPage, ReportsPage, RequestBoardPage } from './pages';
+import { ResourceMatrixPage } from './pages/ResourceMatrixPage';
 
 import './App.css';
 
@@ -27,6 +28,7 @@ function App() {
             <Route path="/worklogs" element={<WorkLogsPage />} />
             <Route path="/worklogs-table" element={<WorkLogTablePage />} />
             <Route path="/resource-plans" element={<ResourcePlansPage />} />
+            <Route path="/resource-matrix" element={<ResourceMatrixPage />} />
             <Route path="/organization" element={<OrganizationPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/requests" element={<RequestBoardPage />} />

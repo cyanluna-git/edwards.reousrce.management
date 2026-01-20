@@ -15,11 +15,13 @@ import {
     Eye,
     PenSquare,
     MessageSquare,
+    Grid3x3,
 } from 'lucide-react'
 
 // Monitoring - View/Analysis
 const monitoringNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Resource Matrix', href: '/resource-matrix', icon: Grid3x3 },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
 ]
 

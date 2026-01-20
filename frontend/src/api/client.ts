@@ -764,4 +764,60 @@ export const fillHiringPlan = async (planId: string, userId: string): Promise<{ 
   return response.data;
 };
 
+// ============ Resource Matrix API ============
+
+export interface ResourceAllocationDetail {
+  user_id: string | null;
+  name: string;
+  role: string;
+  position: string;
+  fte: number;
+}
+
+export interface MonthlyAllocation {
+  month: string;
+  total_fte: number;
+  details: ResourceAllocationDetail[];
+}
+
+export interface ProjectAllocationRow {
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  category: string;
+  allocations: Record<string, MonthlyAllocation>;
+}
+
+export interface ProgramGroup {
+  program_id: string;
+  program_name: string;
+  projects: ProjectAllocationRow[];
+  total_by_month: Record<string, number>;
+}
+
+export interface ResourceAllocationMatrix {
+  start_month: string;
+  end_month: string;
+  months: string[];
+  programs: ProgramGroup[];
+  grand_total_by_month: Record<string, number>;
+}
+
+export const getResourceAllocationMatrix = async (
+  startMonth: string,
+  endMonth: string,
+  departmentId?: string,
+  programId?: string
+): Promise<ResourceAllocationMatrix> => {
+  const params = new URLSearchParams({
+    start_month: startMonth,
+    end_month: endMonth,
+  });
+  if (departmentId) params.append('department_id', departmentId);
+  if (programId) params.append('program_id', programId);
+
+  const response = await apiClient.get(`/resource-matrix/allocation?${params.toString()}`);
+  return response.data;
+};
+
 export default apiClient;
