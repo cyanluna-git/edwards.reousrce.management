@@ -99,6 +99,9 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const [sortColumn, setSortColumn] = useState<string>('code');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+    // Column visibility state for classification workflow
+    const [showClassificationColumns, setShowClassificationColumns] = useState(false);
+
     // Handle column header click for sorting
     const handleSort = (column: string) => {
         if (sortColumn === column) {
@@ -658,6 +661,15 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
                                 <span>All Projects ({allProjects.length} total)</span>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={showClassificationColumns ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setShowClassificationColumns(!showClassificationColumns)}
+                                    >
+                                        {showClassificationColumns ? 'Hide' : 'Show'} Classification Columns
+                                    </Button>
+                                </div>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -731,6 +743,21 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     )}
                                                 </span>
                                             </th>
+
+                                            {/* Classification Columns - shown when enabled */}
+                                            {showClassificationColumns && (
+                                                <>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Project Type</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Program</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Customer</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">PM</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Funding Entity</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Recharge Status</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">IO Category</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Capitalizable</th>
+                                                </>
+                                            )}
+
                                             <th className="text-left p-2 font-medium">Actions</th>
                                         </tr>
                                     </thead>
@@ -777,6 +804,21 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         {proj.status}
                                                     </span>
                                                 </td>
+
+                                                {/* Classification Columns - Read-only info + Financial fields */}
+                                                {showClassificationColumns && (
+                                                    <>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.project_type?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.program?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.customer || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.pm?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.funding_entity_id || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.recharge_status || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.io_category_code || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.is_capitalizable ? 'Yes' : 'No'}</td>
+                                                    </>
+                                                )}
+
                                                 <td className="p-2">
                                                     <div className="flex gap-1">
                                                         <Button

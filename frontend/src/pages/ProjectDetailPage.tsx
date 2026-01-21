@@ -35,7 +35,11 @@ import {
   Layers,
   FolderTree,
   LayoutGrid,
-  ArrowLeft
+  ArrowLeft,
+  DollarSign,
+  RefreshCw,
+  Folder,
+  TrendingUp
 } from 'lucide-react';
 
 // StatusBadge is now imported from @/components/ui
@@ -356,6 +360,56 @@ export const ProjectDetailPage: React.FC = () => {
                 </div>
               </PropertyRow>
             )}
+
+            {/* Financial Classification Fields */}
+            <div className="col-span-full pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex items-center text-sm font-semibold mb-3" style={{ color: '#000000' }}>
+                <DollarSign className="w-4 h-4 mr-2" style={{ color: '#64748b' }} />
+                <span>Financial Classification</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-8">
+                <PropertyRow icon={DollarSign} label="Funding Entity">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                    project.funding_entity_id
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'bg-gray-100 text-gray-500 border border-gray-200'
+                  }`}>
+                    {project.funding_entity_id || 'Not Set'}
+                  </span>
+                </PropertyRow>
+
+                <PropertyRow icon={RefreshCw} label="Recharge Status">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                    project.recharge_status === 'BILLABLE' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                    project.recharge_status === 'NON_BILLABLE' ? 'bg-gray-100 text-gray-700 border border-gray-200' :
+                    project.recharge_status === 'INTERNAL' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                    'bg-gray-100 text-gray-500 border border-gray-200'
+                  }`}>
+                    {project.recharge_status || 'Not Set'}
+                  </span>
+                </PropertyRow>
+
+                <PropertyRow icon={Folder} label="IO Category">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                    project.io_category_code
+                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                      : 'bg-gray-100 text-gray-500 border border-gray-200'
+                  }`}>
+                    {project.io_category_code || 'Not Set'}
+                  </span>
+                </PropertyRow>
+
+                <PropertyRow icon={TrendingUp} label="Capitalizable">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
+                    project.is_capitalizable
+                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      : 'bg-gray-100 text-gray-700 border border-gray-200'
+                  }`}>
+                    {project.is_capitalizable ? 'Yes (CAPEX)' : 'No (OPEX)'}
+                  </span>
+                </PropertyRow>
+              </div>
+            </div>
 
             <div className="col-span-full pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center text-sm font-semibold mb-3" style={{ color: '#000000' }}>

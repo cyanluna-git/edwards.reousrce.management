@@ -46,6 +46,28 @@ export const CATEGORY_OPTIONS: { value: 'PRODUCT' | 'FUNCTIONAL'; label: string;
     { value: 'FUNCTIONAL', label: 'Functional Project', color: 'bg-purple-500' },
 ];
 
+export const FUNDING_ENTITY_OPTIONS = [
+    { value: 'ENTITY_VSS', label: 'VSS Division' },
+    { value: 'ENTITY_SUN', label: 'SUN Division' },
+    { value: 'ENTITY_LOCAL_KR', label: 'Local Korea' },
+    { value: 'ENTITY_SHARED', label: 'Shared Services' },
+];
+
+export const RECHARGE_STATUS_OPTIONS = [
+    { value: 'BILLABLE', label: 'Billable' },
+    { value: 'NON_BILLABLE', label: 'Non-Billable' },
+    { value: 'INTERNAL', label: 'Internal' },
+];
+
+export const IO_CATEGORY_OPTIONS = [
+    { value: 'NPI', label: 'NPI (New Product Introduction)' },
+    { value: 'FIELD_FAILURE', label: 'Field Failure Escalation' },
+    { value: 'OPS_SUPPORT', label: 'Operations Support' },
+    { value: 'SUSTAINING', label: 'Sustaining Engineering' },
+    { value: 'CIP', label: 'CIP (Continuous Improvement)' },
+    { value: 'OTHER', label: 'Other (Miscellaneous)' },
+];
+
 // ============================================================
 // Types
 // ============================================================
@@ -86,6 +108,11 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 customer: project.customer || '',
                 product: project.product || '',
                 description: project.description || '',
+                // Financial fields
+                funding_entity_id: project.funding_entity_id || undefined,
+                recharge_status: project.recharge_status || undefined,
+                io_category_code: project.io_category_code || undefined,
+                is_capitalizable: project.is_capitalizable || false,
             };
         }
         return { status: 'Prospective', category: 'PRODUCT', ...initialValues };
@@ -463,6 +490,107 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                     placeholder="Enter project description..."
                     rows={4}
                 />
+            </div>
+
+            {/* Financial Classification Fields */}
+            <div className="border-t pt-4 mt-2">
+                <h3 className="text-sm font-semibold mb-4 text-gray-700">Financial Classification</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Funding Entity */}
+                    <div>
+                        <Label htmlFor="funding_entity_id">Funding Entity</Label>
+                        <Controller
+                            name="funding_entity_id"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Funding Entity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {FUNDING_ENTITY_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+
+                    {/* Recharge Status */}
+                    <div>
+                        <Label htmlFor="recharge_status">Recharge Status</Label>
+                        <Controller
+                            name="recharge_status"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Recharge Status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {RECHARGE_STATUS_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                    {/* IO Category */}
+                    <div>
+                        <Label htmlFor="io_category_code">IO Category</Label>
+                        <Controller
+                            name="io_category_code"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select IO Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {IO_CATEGORY_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+
+                    {/* Capitalizable */}
+                    <div>
+                        <Label htmlFor="is_capitalizable">Capitalizable (CAPEX vs OPEX)</Label>
+                        <Controller
+                            name="is_capitalizable"
+                            control={control}
+                            render={({ field }) => (
+                                <Select
+                                    onValueChange={(value) => field.onChange(value === 'true')}
+                                    value={field.value ? 'true' : 'false'}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select Capitalization" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="true">Yes (CAPEX)</SelectItem>
+                                        <SelectItem value="false">No (OPEX)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                </div>
             </div>
 
             {isError && <p className="text-red-500 text-sm">Error: {error?.message}</p>}
