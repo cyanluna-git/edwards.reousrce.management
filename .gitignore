@@ -64,3 +64,11 @@ alembic/versions/__pycache__/
 # Build/dist
 /build_output
 /ref_table
+
+# Backend reports and logs (generated files)
+backend/reports/*.csv
+backend/logs/*.log
+
+# VitePress cache
+workthrough/.vitepress/cache/
+workthrough/.vitepress/dist/
