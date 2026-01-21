@@ -18,7 +18,7 @@ import {
 import { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectScale } from '@/types';
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects';
 // Note: getPrograms and getProjectTypes are hidden from UI
-import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers, getBusinessUnits } from '@/api/client';
+import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers, getBusinessUnits, getDepartments, type Department } from '@/api/client';
 
 // ============================================================
 // Constants
@@ -113,6 +113,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 recharge_status: project.recharge_status || undefined,
                 io_category_code: project.io_category_code || undefined,
                 is_capitalizable: project.is_capitalizable || false,
+                owner_department_id: project.owner_department_id || undefined,
             };
         }
         return { status: 'Prospective', category: 'PRODUCT', ...initialValues };
@@ -139,6 +140,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     const { data: businessUnits } = useQuery({ queryKey: ['businessUnits'], queryFn: getBusinessUnits });
     const { data: productLines } = useQuery({ queryKey: ['productLines'], queryFn: getProductLines });
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers() });
+    const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: () => getDepartments() });
 
     // Filter users with PM position
     const pmUsers = users?.filter(u => u.position_id === 'JP_PM') || [];
@@ -414,6 +416,40 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                         )}
                     />
                 </div>
+            </div>
+            )}
+
+            {/* Row 3 alt: Owner Department (only for FUNCTIONAL projects) */}
+            {selectedCategory === 'FUNCTIONAL' && (
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <Label htmlFor="owner_department_id">Owner Department</Label>
+                    <Controller
+                        name="owner_department_id"
+                        control={control}
+                        render={({ field }) => (
+                            <Select
+                                onValueChange={field.onChange}
+                                value={field.value || ''}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select Owner Department" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {departments?.filter((d: Department) => d.is_active).map((dept: Department) => (
+                                        <SelectItem key={dept.id} value={dept.id}>
+                                            {dept.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                        Used to group functional projects by department
+                    </p>
+                </div>
+                <div /> {/* Empty space for alignment */}
             </div>
             )}
 

@@ -134,13 +134,21 @@ export interface ProjectUpdate {
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
+    category?: 'PRODUCT' | 'FUNCTIONAL'
     product_line_id?: string
+    owner_department_id?: string
     pm_id?: string
     start_month?: string
     end_month?: string
     customer?: string
     product?: string
     description?: string
+    // Financial Routing
+    funding_entity_id?: string
+    recharge_status?: 'BILLABLE' | 'NON_BILLABLE' | 'INTERNAL'
+    io_category_code?: string
+    is_capitalizable?: boolean
+    gl_account_code?: string
 }
 
 export interface Project extends ProjectBase {
