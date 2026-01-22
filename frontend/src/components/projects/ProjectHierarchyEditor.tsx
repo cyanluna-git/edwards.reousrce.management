@@ -2,7 +2,7 @@
  * ProjectHierarchyEditor - Hierarchical management of projects
  * Level 0 (Business Unit) > Level 1 (Product Line) > Level 2 (Project)
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Card,
@@ -84,10 +84,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
         queryFn: getBusinessUnits,
     });
 
-    // Fetch all projects for management tab
+    // Fetch all projects for management tab (increased limit to include matrix projects)
     const { data: allProjects = [] } = useQuery({
         queryKey: ['projects'],
-        queryFn: () => getProjects(),
+        queryFn: () => getProjects({ limit: 500 }),
     });
 
     // State
@@ -95,9 +95,34 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const returnTab = (location.state as any)?.activeTab;
     const [activeTab, setActiveTab] = useState(returnTab || 'product');
 
+    // Auto-expand all hierarchy items when data loads
+    useEffect(() => {
+        if (hierarchy) {
+            const allIds = new Set<string>();
+
+            // Collect all expandable IDs from product hierarchy (BU > PL)
+            productProjects.forEach((bu: any) => {
+                allIds.add(bu.id);
+                bu.children?.forEach((pl: any) => {
+                    allIds.add(pl.id);
+                });
+            });
+
+            // Collect all expandable IDs from functional hierarchy (Department)
+            functionalProjects.forEach((dept: any) => {
+                allIds.add(dept.id);
+            });
+
+            setExpandedIds(allIds);
+        }
+    }, [hierarchy, productProjects, functionalProjects]);
+
     // Sorting state for All Projects table
     const [sortColumn, setSortColumn] = useState<string>('code');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+    // Column visibility state for classification workflow
+    const [showClassificationColumns, setShowClassificationColumns] = useState(false);
 
     // Handle column header click for sorting
     const handleSort = (column: string) => {
@@ -107,6 +132,42 @@ export const ProjectHierarchyEditor: React.FC = () => {
             setSortColumn(column);
             setSortDirection('asc');
         }
+    };
+
+    // Filter sustaining matrix projects (VSS/SUN codes)
+    const sustainingProjects = useMemo(() => {
+        return allProjects.filter((p: Project) =>
+            p.project_type_id === 'SUSTAINING' ||
+            p.code?.startsWith('VSS') ||
+            p.code?.startsWith('SUN')
+        );
+    }, [allProjects]);
+
+    // Split sustaining projects into VSS and SUN groups
+    const vssProjects = useMemo(() => {
+        return sustainingProjects
+            .filter((p: Project) => p.funding_entity_id === 'ENTITY_VSS' || p.code?.startsWith('VSS'))
+            .sort((a: Project, b: Project) => (a.code || '').localeCompare(b.code || ''));
+    }, [sustainingProjects]);
+
+    const sunProjects = useMemo(() => {
+        return sustainingProjects
+            .filter((p: Project) => p.funding_entity_id === 'ENTITY_SUN' || p.code?.startsWith('SUN'))
+            .sort((a: Project, b: Project) => (a.code || '').localeCompare(b.code || ''));
+    }, [sustainingProjects]);
+
+    // Check if a project is a legacy candidate (for styling in All tab)
+    const isLegacyCandidate = (proj: Project) => {
+        const name = proj.name?.toLowerCase() || '';
+        const code = proj.code || '';
+        return (
+            !code.startsWith('VSS') &&
+            !code.startsWith('SUN') &&
+            (proj.project_type_id === 'SUSTAINING' ||
+             name.includes('support') ||
+             name.includes('general') ||
+             name.includes('admin'))
+        );
     };
 
     // Sort projects based on current sort state
@@ -375,9 +436,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="product">Product Projects</TabsTrigger>
-                    <TabsTrigger value="functional">Functional Projects</TabsTrigger>
-                    <TabsTrigger value="all">All Projects</TabsTrigger>
+                    <TabsTrigger value="product">Active Projects</TabsTrigger>
+                    <TabsTrigger value="sustaining">Standard IO Framework</TabsTrigger>
+                    <TabsTrigger value="functional">Functional</TabsTrigger>
+                    <TabsTrigger value="all">All / Legacy</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="product" className="mt-4">
@@ -579,6 +641,147 @@ export const ProjectHierarchyEditor: React.FC = () => {
                     </Card>
                 </TabsContent>
 
+                {/* Standard IO Framework Tab - Matrix Projects (VSS/SUN) */}
+                <TabsContent value="sustaining" className="mt-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* VSS (Integrated Systems) Card */}
+                        <Card className="border-blue-200">
+                            <CardHeader className="bg-blue-50 pb-2">
+                                <CardTitle className="text-blue-800 flex items-center gap-2">
+                                    <span>🔷 VSS (Integrated Systems)</span>
+                                    <span className="text-sm font-normal text-blue-600">({vssProjects.length} buckets)</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-3">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-slate-50">
+                                            <th className="text-left p-2 font-medium">Code</th>
+                                            <th className="text-left p-2 font-medium">Name</th>
+                                            <th className="text-left p-2 font-medium">IO Category</th>
+                                            <th className="text-left p-2 font-medium">Recharge</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {vssProjects.map((proj: Project) => (
+                                            <tr
+                                                key={proj.id}
+                                                className="border-b hover:bg-blue-50 cursor-pointer"
+                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
+                                            >
+                                                <td className="p-2 font-mono text-xs font-semibold text-blue-700">{proj.code}</td>
+                                                <td className="p-2">{proj.name?.replace('VSS - ', '')}</td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.io_category_code === 'FIELD_FAILURE' ? 'bg-red-100 text-red-700' :
+                                                        proj.io_category_code === 'SUSTAINING' ? 'bg-orange-100 text-orange-700' :
+                                                        proj.io_category_code === 'OPS_SUPPORT' ? 'bg-purple-100 text-purple-700' :
+                                                        proj.io_category_code === 'CIP' ? 'bg-green-100 text-green-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                        {proj.io_category_code || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.recharge_status === 'BILLABLE' ? 'bg-emerald-100 text-emerald-700' :
+                                                        proj.recharge_status === 'INTERNAL' ? 'bg-slate-100 text-slate-700' :
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                        {proj.recharge_status || '-'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {vssProjects.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                                                    No VSS matrix projects found
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </CardContent>
+                        </Card>
+
+                        {/* SUN (Abatement) Card */}
+                        <Card className="border-orange-200">
+                            <CardHeader className="bg-orange-50 pb-2">
+                                <CardTitle className="text-orange-800 flex items-center gap-2">
+                                    <span>🔶 SUN (Abatement)</span>
+                                    <span className="text-sm font-normal text-orange-600">({sunProjects.length} buckets)</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-3">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-slate-50">
+                                            <th className="text-left p-2 font-medium">Code</th>
+                                            <th className="text-left p-2 font-medium">Name</th>
+                                            <th className="text-left p-2 font-medium">IO Category</th>
+                                            <th className="text-left p-2 font-medium">Recharge</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sunProjects.map((proj: Project) => (
+                                            <tr
+                                                key={proj.id}
+                                                className="border-b hover:bg-orange-50 cursor-pointer"
+                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
+                                            >
+                                                <td className="p-2 font-mono text-xs font-semibold text-orange-700">{proj.code}</td>
+                                                <td className="p-2">{proj.name?.replace('SUN - ', '')}</td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.io_category_code === 'FIELD_FAILURE' ? 'bg-red-100 text-red-700' :
+                                                        proj.io_category_code === 'SUSTAINING' ? 'bg-orange-100 text-orange-700' :
+                                                        proj.io_category_code === 'OPS_SUPPORT' ? 'bg-purple-100 text-purple-700' :
+                                                        proj.io_category_code === 'CIP' ? 'bg-green-100 text-green-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                        {proj.io_category_code || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="p-2">
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                        proj.recharge_status === 'BILLABLE' ? 'bg-emerald-100 text-emerald-700' :
+                                                        proj.recharge_status === 'INTERNAL' ? 'bg-slate-100 text-slate-700' :
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
+                                                        {proj.recharge_status || '-'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {sunProjects.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="p-4 text-center text-muted-foreground">
+                                                    No SUN matrix projects found
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* IO Category Legend */}
+                    <Card className="mt-4">
+                        <CardContent className="pt-4">
+                            <div className="flex flex-wrap gap-4 text-xs">
+                                <span className="font-medium text-muted-foreground">IO Categories:</span>
+                                <span className="px-2 py-1 rounded bg-red-100 text-red-700">FIELD_FAILURE - L4 Escalations</span>
+                                <span className="px-2 py-1 rounded bg-orange-100 text-orange-700">SUSTAINING - Corrective Actions</span>
+                                <span className="px-2 py-1 rounded bg-purple-100 text-purple-700">OPS_SUPPORT - Factory/Ops</span>
+                                <span className="px-2 py-1 rounded bg-green-100 text-green-700">CIP - Improvements</span>
+                                <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">OTHER - Regulatory/Sales</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
                 <TabsContent value="functional" className="mt-4">
                     <Card>
                         <CardHeader>
@@ -658,6 +861,15 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center justify-between">
                                 <span>All Projects ({allProjects.length} total)</span>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant={showClassificationColumns ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setShowClassificationColumns(!showClassificationColumns)}
+                                    >
+                                        {showClassificationColumns ? 'Hide' : 'Show'} Classification Columns
+                                    </Button>
+                                </div>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -731,13 +943,36 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     )}
                                                 </span>
                                             </th>
+
+                                            {/* Classification Columns - shown when enabled */}
+                                            {showClassificationColumns && (
+                                                <>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Project Type</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Program</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">Customer</th>
+                                                    <th className="text-left p-2 font-medium bg-blue-50">PM</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Funding Entity</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Recharge Status</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">IO Category</th>
+                                                    <th className="text-left p-2 font-medium bg-green-50">Capitalizable</th>
+                                                </>
+                                            )}
+
                                             <th className="text-left p-2 font-medium">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {sortedProjects.map((proj: Project) => (
-                                            <tr key={proj.id} className="border-b hover:bg-slate-50">
-                                                <td className="p-2 font-mono text-xs">{proj.code}</td>
+                                            <tr
+                                                key={proj.id}
+                                                className={`border-b hover:bg-slate-50 ${isLegacyCandidate(proj) ? 'bg-amber-50/50' : ''}`}
+                                            >
+                                                <td className="p-2 font-mono text-xs">
+                                                    {proj.code}
+                                                    {(proj.code?.startsWith('VSS') || proj.code?.startsWith('SUN')) && (
+                                                        <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-blue-100 text-blue-600">Matrix</span>
+                                                    )}
+                                                </td>
                                                 <td className="p-2">
                                                     <span
                                                         className="cursor-pointer hover:text-blue-600"
@@ -745,6 +980,9 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     >
                                                         {proj.name}
                                                     </span>
+                                                    {isLegacyCandidate(proj) && (
+                                                        <span className="ml-2 text-[9px] px-1 py-0.5 rounded bg-amber-200 text-amber-700">Legacy</span>
+                                                    )}
                                                 </td>
                                                 <td className="p-2">
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -777,6 +1015,21 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         {proj.status}
                                                     </span>
                                                 </td>
+
+                                                {/* Classification Columns - Read-only info + Financial fields */}
+                                                {showClassificationColumns && (
+                                                    <>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.project_type?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.program?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.customer || '-'}</td>
+                                                        <td className="p-2 text-xs bg-blue-50">{proj.pm?.name || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.funding_entity_id || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.recharge_status || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.io_category_code || '-'}</td>
+                                                        <td className="p-2 text-xs bg-green-50">{proj.is_capitalizable ? 'Yes' : 'No'}</td>
+                                                    </>
+                                                )}
+
                                                 <td className="p-2">
                                                     <div className="flex gap-1">
                                                         <Button

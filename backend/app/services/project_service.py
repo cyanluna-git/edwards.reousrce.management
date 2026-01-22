@@ -424,8 +424,12 @@ class ProjectService:
             )
 
         # Build Functional Projects tree (filtered by department if provided)
+        # Exclude SUSTAINING projects (VSS/SUN Matrix IO buckets) as they have their own tab
         functional_query = self.db.query(Project).filter(
-            Project.category == "FUNCTIONAL"
+            Project.category == "FUNCTIONAL",
+            Project.project_type_id != "SUSTAINING",
+            ~Project.code.like("VSS%"),
+            ~Project.code.like("SUN%"),
         )
 
         if user_department_id:
@@ -437,6 +441,7 @@ class ProjectService:
 
         # Group by department
         dept_map: dict[str, Any] = {}
+        ungrouped_functional: list[dict] = []
         for p in functional_projects_db:
             if p.owner_department_id:
                 if p.owner_department_id not in dept_map:
@@ -460,8 +465,28 @@ class ProjectService:
                         "type": "project",
                     }
                 )
+            else:
+                # Collect functional projects without owner_department_id
+                ungrouped_functional.append(
+                    {
+                        "id": p.id,
+                        "code": p.code,
+                        "name": p.name,
+                        "status": p.status,
+                        "type": "project",
+                    }
+                )
 
         functional_projects = list(dept_map.values())
+
+        # Add ungrouped functional projects as a special group
+        if ungrouped_functional:
+            functional_projects.append({
+                "id": "ungrouped_functional",
+                "name": "Unassigned (No Department)",
+                "type": "department",
+                "children": ungrouped_functional,
+            })
 
         # Get ungrouped PRODUCT projects (no product_line_id assigned)
         ungrouped_product_projects = (
