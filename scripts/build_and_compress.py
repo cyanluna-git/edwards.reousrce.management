@@ -114,7 +114,7 @@ def copy_project_files(build_dir):
     """Copy project files excluding unnecessary ones"""
     print_step("Copying project files")
     
-    project_dir = build_dir / 'edwards_project'
+    project_dir = build_dir / 'eob-project'
     project_dir.mkdir(exist_ok=True)
     
     exclude_patterns = {
@@ -135,6 +135,12 @@ def copy_project_files(build_dir):
             shutil.copytree(item, dest, ignore=shutil.ignore_patterns(*exclude_patterns), dirs_exist_ok=True)
         else:
             shutil.copy2(item, project_dir / item.name)
+
+    # Special handling for production docker-compose
+    prod_compose = current_dir / 'docker-compose.prod.yml'
+    if prod_compose.exists():
+        print_info("Using docker-compose.prod.yml as main docker-compose.yml")
+        shutil.copy2(prod_compose, project_dir / 'docker-compose.yml')
     
     print_info(f"Copied base project structure")
     return project_dir
@@ -207,21 +213,27 @@ def build_docker_images(project_dir):
     print_step("Building Docker images")
     
     try:
+        # Use the main docker-compose.yml which has build sections
+        main_compose = Path('.') / 'docker-compose.yml'
+        if not main_compose.exists():
+            print_error("docker-compose.yml not found in project root")
+            return False
+        
         # Ensure .env exists to satisfy docker-compose interpolation
-        env_example = project_dir / '.env.example'
-        env_file = project_dir / '.env'
+        env_example = Path('.') / '.env.example'
+        env_file = Path('.') / '.env'
         if not env_file.exists() and env_example.exists():
             print_info("Creating temporary .env for Docker build...")
             shutil.copy2(env_example, env_file)
 
-        # Build backend image
+        # Build backend image with explicit tag
         print_info("Building backend Docker image...")
-        run_command(['docker-compose', 'build', 'backend'], cwd=project_dir)
+        run_command(['docker', 'build', '-t', 'eob-project-backend:latest', './backend'])
         print_colored("  * Backend image built", Colors.GREEN)
         
-        # Build frontend image
+        # Build frontend image with explicit tag
         print_info("Building frontend Docker image...")
-        run_command(['docker-compose', 'build', 'frontend'], cwd=project_dir)
+        run_command(['docker', 'build', '-t', 'eob-project-frontend:latest', '--target', 'production', './frontend'])
         print_colored("  * Frontend image built", Colors.GREEN)
         
         return True
@@ -238,8 +250,8 @@ def export_docker_images(project_dir):
     images_dir.mkdir(parents=True, exist_ok=True)
     
     images_to_export = [
-        ('edwards_project-backend:latest', 'edwards-backend.tar'),
-        ('edwards_project-frontend:latest', 'edwards-frontend.tar'),
+        ('eob-project-backend:latest', 'eob-backend.tar'),
+        ('eob-project-frontend:latest', 'eob-frontend.tar'),
         ('postgres:15', 'postgres-15.tar'),
     ]
     
@@ -268,7 +280,7 @@ def create_deployment_scripts(project_dir, images_dir):
 set -e
 echo "Loading Docker images..."
 cd "$(dirname "$0")"
-for f in postgres-15.* edwards-backend.* edwards-frontend.*; do
+for f in postgres-15.* eob-backend.* eob-frontend.*; do
     if [ -f "$f" ]; then
         echo "Loading $f..."
         docker load < "$f"
@@ -288,7 +300,7 @@ echo "Success!"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ScriptDir
 Write-Host "Loading Docker images..."
-Get-Item "postgres-15.*", "edwards-backend.*", "edwards-frontend.*" -ErrorAction SilentlyContinue | ForEach-Object {
+Get-Item "postgres-15.*", "eob-backend.*", "eob-frontend.*" -ErrorAction SilentlyContinue | ForEach-Object {
     Write-Host "Loading $($_.Name)..."
     docker load -i $_.FullName
 }
@@ -304,14 +316,14 @@ def create_archive(build_dir, project_dir):
     print_step("Creating compressed archive")
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    archive_name = f"edwards_project_{timestamp}.tar.gz"
+    archive_name = f"eob-project_{timestamp}.tar.gz"
     archive_path = build_dir / archive_name
     
     print_info(f"Compressing project to {archive_name}...")
     
     try:
         with tarfile.open(archive_path, 'w:gz') as tar:
-            tar.add(project_dir, arcname='edwards_project')
+            tar.add(project_dir, arcname='eob-project')
         
         size_mb = archive_path.stat().st_size / (1024 * 1024)
         print_info(f"Archive created! Size: {size_mb:.1f}MB")
@@ -344,7 +356,28 @@ def main():
         temp_env = project_dir / '.env'
         if temp_env.exists():
             temp_env.unlink()
-            
+
+        # CLEANUP: Remove node_modules and .venv before archiving
+        # We only need the Docker images and the source code (for reference/mounting), not the heavy dependencies.
+        print_step("Cleaning up build artifacts")
+        
+        # Remove frontend node_modules
+        frontend_node_modules = project_dir / 'frontend' / 'node_modules'
+        if frontend_node_modules.exists():
+            print_info("Removing frontend/node_modules...")
+            # Windows/cross-platform robust removal
+            if platform.system() == 'Windows':
+                # os.system is sometimes more reliable for deep node_modules paths on Windows than shutil
+                os.system(f'rmdir /s /q "{frontend_node_modules}"')
+            else:
+                shutil.rmtree(frontend_node_modules)
+                
+        # Remove backend .venv
+        backend_venv = project_dir / 'backend' / '.venv'
+        if backend_venv.exists():
+            print_info("Removing backend/.venv...")
+            shutil.rmtree(backend_venv)
+
         archive_path = create_archive(build_dir, project_dir)
         
         print_header("Build Successful!")

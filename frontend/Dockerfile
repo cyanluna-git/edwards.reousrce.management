@@ -11,7 +11,7 @@ COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies with explicit configuration for cross-OS compatibility
 RUN pnpm config set node-linker hoisted && \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 # Verify vite is installed
 RUN test -f node_modules/.bin/vite || { echo "ERROR: vite not found in node_modules"; ls -la node_modules/ | head -20; exit 1; }
@@ -34,7 +34,7 @@ RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm config set node-linker hoisted && \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 COPY . .
 

@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:15
+    container_name: edwards-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-edwards}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - edwards_net
+
+  backend:
+    image: eob-project-backend:latest
+    container_name: edwards-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-edwards}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # CORS: Allow the domain and localhost for testing
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://eob.10.182.252.32.sslip.io,http://localhost}
+    depends_on:
+      - db
+    networks:
+      - edwards_net
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.edwards-backend.rule=Host(`eob.10.182.252.32.sslip.io`) && PathPrefix(`/api`, `/docs`, `/openapi.json`)"
+      - "traefik.http.routers.edwards-backend.entrypoints=http"
+      - "traefik.http.services.edwards-backend.loadbalancer.server.port=8004"
+
+  frontend:
+    image: eob-project-frontend:latest
+    container_name: edwards-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - edwards_net
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.edwards-frontend.rule=Host(`eob.10.182.252.32.sslip.io`)"
+      - "traefik.http.routers.edwards-frontend.entrypoints=http"
+      - "traefik.http.services.edwards-frontend.loadbalancer.server.port=80"
+
+volumes:
+  db_data:
+
+networks:
+  edwards_net:
+  coolify:
+    external: true
