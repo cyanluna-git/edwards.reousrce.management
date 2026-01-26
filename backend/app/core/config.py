@@ -23,7 +23,12 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3004,http://localhost:5173"
-    
+
+    # Ollama (AI)
+    OLLAMA_URL: str = "http://ollama:11434"
+    OLLAMA_MODEL: str = "phi3:mini"
+    OLLAMA_TIMEOUT: int = 180  # 3 minutes for complex prompts
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

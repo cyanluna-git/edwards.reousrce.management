@@ -12,6 +12,7 @@ import { WeeklyCalendarGrid } from '@/components/worklogs/WeeklyCalendarGrid';
 import { WorkLogEntryModal } from '@/components/worklogs/WorkLogEntryModal';
 import { LeaveEntryModal } from '@/components/worklogs/LeaveEntryModal';
 import { WorkLogTableView } from '@/components/worklogs/WorkLogTableView';
+import { AIWorklogInput } from '@/components/worklogs/AIWorklogInput';
 import {
     useWorklogs,
     useCreateWorklog,
@@ -151,6 +152,7 @@ export function WorkLogsPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="entry">📅 Entry</TabsTrigger>
+                    <TabsTrigger value="ai">🤖 AI</TabsTrigger>
                     <TabsTrigger value="table">📊 Table</TabsTrigger>
                 </TabsList>
 
@@ -205,6 +207,14 @@ export function WorkLogsPage() {
                             onWorklogDelete={handleWorklogDelete}
                         />
                     )}
+                </TabsContent>
+
+                {/* AI Tab */}
+                <TabsContent value="ai" className="mt-4">
+                    <AIWorklogInput
+                        targetDate={weekStart}
+                        onComplete={refetch}
+                    />
                 </TabsContent>
 
                 {/* Table Tab */}

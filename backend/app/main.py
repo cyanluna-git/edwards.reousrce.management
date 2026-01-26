@@ -26,6 +26,7 @@ from app.api.endpoints import (
     work_types,
     divisions,
     resource_matrix,
+    ai_worklog,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -115,6 +116,9 @@ app.include_router(work_types.router, prefix="/api/work-types", tags=["Work Type
 app.include_router(divisions.router, prefix="/api/divisions", tags=["Divisions"])
 app.include_router(
     resource_matrix.router, prefix="/api", tags=["Resource Matrix"]
+)
+app.include_router(
+    ai_worklog.router, prefix="/api/ai", tags=["AI WorkLog"]
 )
 
 
