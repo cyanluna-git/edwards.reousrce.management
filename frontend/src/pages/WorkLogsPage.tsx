@@ -12,7 +12,7 @@ import { WeeklyCalendarGrid } from '@/components/worklogs/WeeklyCalendarGrid';
 import { WorkLogEntryModal } from '@/components/worklogs/WorkLogEntryModal';
 import { LeaveEntryModal } from '@/components/worklogs/LeaveEntryModal';
 import { WorkLogTableView } from '@/components/worklogs/WorkLogTableView';
-import { AIWorklogInput } from '@/components/worklogs/AIWorklogInput';
+import { AIWorklogModal } from '@/components/worklogs/AIWorklogModal';
 import {
     useWorklogs,
     useCreateWorklog,
@@ -20,6 +20,7 @@ import {
     useDeleteWorklog,
     useCopyWeek
 } from '@/hooks/useWorklogs';
+import { useAIHealth } from '@/hooks/useAIWorklog';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import type { WorkLog, WorkLogCreate, WorkLogUpdate } from '@/types';
@@ -34,6 +35,8 @@ export function WorkLogsPage() {
     const [editingWorklog, setEditingWorklog] = useState<WorkLog | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+    const [selectedDateForAI, setSelectedDateForAI] = useState<Date | null>(null);
 
     // Calculate week range for API query
     const weekRange = {
@@ -50,6 +53,10 @@ export function WorkLogsPage() {
 
     // Fetch projects for the modal
     const { data: projects = [] } = useProjects();
+
+    // Check AI health status
+    const { data: aiHealth } = useAIHealth();
+    const isAIHealthy = aiHealth?.status === 'healthy';
 
     // Mutations
     const createMutation = useCreateWorklog();
@@ -79,6 +86,11 @@ export function WorkLogsPage() {
         if (confirm('Are you sure you want to delete this worklog?')) {
             await deleteMutation.mutateAsync(worklogId);
         }
+    };
+
+    const handleAIInputClick = (date: string) => {
+        setSelectedDateForAI(new Date(date));
+        setIsAIModalOpen(true);
     };
 
     const handleModalSubmit = async (data: WorkLogCreate | WorkLogUpdate) => {
@@ -152,7 +164,6 @@ export function WorkLogsPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="entry">📅 Entry</TabsTrigger>
-                    <TabsTrigger value="ai">🤖 AI</TabsTrigger>
                     <TabsTrigger value="table">📊 Table</TabsTrigger>
                 </TabsList>
 
@@ -205,16 +216,9 @@ export function WorkLogsPage() {
                             onCellClick={handleCellClick}
                             onWorklogEdit={handleWorklogEdit}
                             onWorklogDelete={handleWorklogDelete}
+                            onAIInputClick={isAIHealthy ? handleAIInputClick : undefined}
                         />
                     )}
-                </TabsContent>
-
-                {/* AI Tab */}
-                <TabsContent value="ai" className="mt-4">
-                    <AIWorklogInput
-                        targetDate={weekStart}
-                        onComplete={refetch}
-                    />
                 </TabsContent>
 
                 {/* Table Tab */}
@@ -256,6 +260,19 @@ export function WorkLogsPage() {
                 defaultProjectId="8a45fd77-809a-442c-8000-f82a0597964d"
                 isLoading={createMutation.isPending}
             />
+
+            {/* AI Worklog Modal */}
+            {selectedDateForAI && (
+                <AIWorklogModal
+                    isOpen={isAIModalOpen}
+                    onClose={() => {
+                        setIsAIModalOpen(false);
+                        setSelectedDateForAI(null);
+                    }}
+                    targetDate={selectedDateForAI}
+                    onComplete={refetch}
+                />
+            )}
         </div>
     );
 }

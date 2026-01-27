@@ -14,6 +14,7 @@ interface WeeklyCalendarGridProps {
     onCellClick: (date: string) => void;
     onWorklogEdit: (worklog: WorkLog) => void;
     onWorklogDelete: (worklogId: number) => void;
+    onAIInputClick?: (date: string) => void;
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -24,6 +25,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
     onCellClick,
     onWorklogEdit,
     onWorklogDelete,
+    onAIInputClick,
 }) => {
     // Generate dates for the week (Monday to Sunday)
     const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -101,15 +103,27 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                 </div>
                             ))}
 
-                            {/* Add button */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full text-xs h-7 mt-1"
-                                onClick={() => onCellClick(dateStr)}
-                            >
-                                + Add
-                            </Button>
+                            {/* Add buttons */}
+                            <div className="flex gap-1 mt-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1 text-xs h-7"
+                                    onClick={() => onCellClick(dateStr)}
+                                >
+                                    + Add
+                                </Button>
+                                {onAIInputClick && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-xs h-7 px-2"
+                                        onClick={() => onAIInputClick(dateStr)}
+                                    >
+                                        AI
+                                    </Button>
+                                )}
+                            </div>
                         </CardContent>
 
                         {/* Daily total footer */}
