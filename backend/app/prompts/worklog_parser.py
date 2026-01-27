@@ -1,65 +1,83 @@
 """
 Worklog Parser Prompt Templates
 Dynamic prompt generation for AI worklog parsing
+
+Optimized for token efficiency with English system prompt.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 class WorklogParserPrompt:
     """Generates prompts for worklog parsing AI"""
 
-    SYSTEM_TEMPLATE = """당신은 업무 기록 파싱 전문가입니다. 사용자의 자연어 업무 설명을 분석하여 JSON 형식의 워크로그 항목으로 변환합니다.
+    # English system prompt for token efficiency (~40% savings vs Korean)
+    SYSTEM_TEMPLATE = """You are a worklog parsing expert. Analyze user's natural language work description and convert it to structured JSON worklog entries.
 
-## 시간 산정 규칙
-- "오전", "오전에", "아침에" = 4시간
-- "오후", "오후에" = 4시간
-- "하루 종일", "온종일" = 8시간
-- "잠깐", "잠시", "조금" = 0.5시간
-- "N시간", "N시간 동안" = N시간
-- 시간 언급 없음 = 1시간
+## Time Estimation Rules
+- Korean "오전"/"오전에"/"아침에" (morning) = 4 hours
+- Korean "오후"/"오후에" (afternoon) = 4 hours
+- Korean "하루 종일"/"온종일" (all day) = 8 hours
+- Korean "잠깐"/"잠시"/"조금" (briefly) = 0.5 hours
+- "N시간"/"N시간 동안" (N hours) = N hours
+- No time mentioned = 1 hour (default)
 
-## 한국어-업무유형 매핑
-- 미팅, 회의, 논의 → Meeting 관련 유형
-- 개발, 코딩, 구현 → Development 관련 유형
-- 설계, 디자인, 아키텍처 → Design 관련 유형
-- 문서, 작성, 리포트 → Documentation 관련 유형
-- 테스트, 검증, QA → Testing/Verification 관련 유형
-- 리뷰, 검토 → Review 관련 유형
-- 분석, 조사 → Analysis 관련 유형
+## Korean-WorkType Mapping Guide
+| Korean Keywords | Maps To |
+|-----------------|---------|
+| 미팅, 회의, 논의 | Meeting types (PRJ-MTG*) |
+| 개발, 코딩, 구현 | Development types (ENG-SW*) |
+| 설계, 디자인, 아키텍처 | Design types (ENG-DES*) |
+| 문서, 작성, 리포트 | Documentation types (KNW-DOC) |
+| 테스트, 검증, QA | Testing/Verification types (ENG-VV) |
+| 리뷰, 검토 | Review types (PRJ-REV, ENG-DES-REV) |
+| 분석, 조사, 시뮬레이션 | Analysis types (ENG-SIM) |
+| 교육, 세미나 | Training types (KNW-TRN) |
+| 출장, 현장 | Field service types (SUP-FLD) |
+| 실험, 랩 | Lab types (OPS-LAB) |
 
-## 사용 가능한 업무 유형 (work_type_id:이름)
+## Common Project Keyword Hints
+- OQC, 오큐씨 → OQC Digitalization project
+- GEN3, GEN3+, 젠3 → EUV Gen3 Plus project
+- GEN4, 젠4 → EUV Gen4 project
+- HRS → Hydrogen Recycling System project
+- PROTRON, 프로트론 → Protron Abatement project
+- TUMALO, 투말로 → Tumalo project
+- ACM → ACM NPI/ETO project
+
+## Available Work Types (id:code:name)
 {work_types}
 
-## 사용 가능한 프로젝트 (project_id:이름)
+## Available Projects (id:code:name)
 {projects}
 
-## 규칙
-1. 여러 업무는 각각 별도의 entry로 분리
-2. 프로젝트명/코드가 언급되면 위 목록에서 매칭
-3. 업무 유형은 위 목록에서 가장 적절한 것 선택
-4. description은 원본 내용을 바탕으로 **전문적이고 간결하게 다듬어서** 작성
-   - 구어체 → 문어체 변환
-   - 불필요한 조사/어미 제거
-   - 예: "OQC 인프라 DB 설계했고" → "OQC 인프라 데이터베이스 설계"
-   - 예: "Justin이랑 HRS 관련해서 잠깐 메일 주고받았음" → "HRS 프로젝트 메일 커뮤니케이션"
-   - 예: "오전에 미팅하고 오후에 문서 작성함" → "프로젝트 미팅 / 문서 작성"
-5. 매칭 불가시 id는 null, name만 기재
+## Rules
+1. Separate multiple tasks into individual entries
+2. Match project by name/code from the list above
+3. Select the most appropriate work_type from the list
+4. Polish the description - convert casual speech to professional summary
+   - Example: "OQC 인프라 DB 설계했고" → "OQC 인프라 데이터베이스 설계"
+   - Example: "Justin이랑 HRS 관련 미팅" → "HRS 프로젝트 미팅"
+5. If no exact match, set id to null and provide name only
+6. IMPORTANT: Return work_type_id as the actual ID from the list, not code
 
-## 출력 형식 (JSON만, 다른 설명 없이)
-{{"entries":[{{"project_id":"프로젝트ID 또는 null","project_name":"프로젝트명","work_type_id":업무유형ID,"work_type_name":"업무유형명","description":"폴리싱된 업무 설명","hours":시간,"confidence":신뢰도0~1}}]}}"""
+## Output Format (JSON only, no explanation)
+{{"entries":[{{"project_id":"project_id_or_null","project_name":"project_name","work_type_id":"work_type_id_or_null","work_type_name":"work_type_name","description":"polished_description","hours":hours_number,"confidence":0_to_1}}]}}
 
-    USER_TEMPLATE = """다음 업무 내용을 분석하여 JSON으로 변환하세요:
+{hints_section}"""
+
+    USER_TEMPLATE = """Parse the following work description to JSON:
 
 "{text}"
 
-JSON 형식으로만 응답하세요."""
+Respond with JSON only."""
 
     @classmethod
     def build_system_prompt(
         cls,
         projects: List[Dict[str, Any]],
         work_types: List[Dict[str, Any]],
+        hints: Optional[List[str]] = None,
     ) -> str:
         """
         Build the system prompt with project and work type lists.
@@ -67,31 +85,48 @@ JSON 형식으로만 응답하세요."""
         Args:
             projects: List of project dicts with id, code, name
             work_types: List of work type dicts with id, code, name
+            hints: Optional list of detected keyword hints
 
         Returns:
             Formatted system prompt string
         """
-        # Format projects (limit to 15 for token efficiency)
+        # Format projects with full id:code:name (limit to 20 for token efficiency)
         if projects:
             projects_str = "\n".join(
-                f'  - {p["id"][:8]}:{p["name"]}'
-                for p in projects[:15]
+                f'  - {p["id"]}:{p.get("code", "")}:{p["name"]}'
+                for p in projects[:20]
             )
         else:
-            projects_str = "  (프로젝트 없음)"
+            projects_str = "  (No projects available)"
 
-        # Format work types (limit to 12)
+        # Format work types with id:code:name (limit to 15)
         if work_types:
             work_types_str = "\n".join(
-                f'  - {w["id"]}:{w["name"]}'
-                for w in work_types[:12]
+                f'  - {w["id"]}:{w.get("code", "")}:{w["name"]}'
+                for w in work_types[:15]
             )
         else:
-            work_types_str = "  (업무유형 없음)"
+            work_types_str = "  (No work types available)"
+
+        # Build hints section if hints are provided
+        hints_section = ""
+        if hints:
+            project_hints = [h.replace("project:", "") for h in hints if h.startswith("project:")]
+            worktype_hints = [h.replace("worktype:", "") for h in hints if h.startswith("worktype:")]
+
+            hint_parts = []
+            if project_hints:
+                hint_parts.append(f"Detected project keywords: {', '.join(project_hints[:5])}")
+            if worktype_hints:
+                hint_parts.append(f"Detected worktype keywords: {', '.join(worktype_hints[:5])}")
+
+            if hint_parts:
+                hints_section = "## Detected Hints\n" + "\n".join(hint_parts)
 
         return cls.SYSTEM_TEMPLATE.format(
             projects=projects_str,
             work_types=work_types_str,
+            hints_section=hints_section,
         )
 
     @classmethod

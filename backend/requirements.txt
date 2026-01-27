@@ -34,3 +34,6 @@ pytest-asyncio==0.24.0
 # pyadomd>=0.1.3  # Requires ADOMD.NET, Windows only
 # pbi-local-connector>=0.1.0  # Alternative connector
 pandas>=2.0.0  # For DataFrame handling in Power BI sync
+
+# AI Worklog Parsing - String similarity
+jellyfish>=1.0.0  # Jaro-Winkler, Levenshtein similarity algorithms
