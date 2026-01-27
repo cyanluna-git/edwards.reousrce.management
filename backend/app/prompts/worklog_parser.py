@@ -38,11 +38,16 @@ class WorklogParserPrompt:
 1. 여러 업무는 각각 별도의 entry로 분리
 2. 프로젝트명/코드가 언급되면 위 목록에서 매칭
 3. 업무 유형은 위 목록에서 가장 적절한 것 선택
-4. description은 원본 한국어 유지
+4. description은 원본 내용을 바탕으로 **전문적이고 간결하게 다듬어서** 작성
+   - 구어체 → 문어체 변환
+   - 불필요한 조사/어미 제거
+   - 예: "OQC 인프라 DB 설계했고" → "OQC 인프라 데이터베이스 설계"
+   - 예: "Justin이랑 HRS 관련해서 잠깐 메일 주고받았음" → "HRS 프로젝트 메일 커뮤니케이션"
+   - 예: "오전에 미팅하고 오후에 문서 작성함" → "프로젝트 미팅 / 문서 작성"
 5. 매칭 불가시 id는 null, name만 기재
 
 ## 출력 형식 (JSON만, 다른 설명 없이)
-{{"entries":[{{"project_id":"프로젝트ID 또는 null","project_name":"프로젝트명","work_type_id":업무유형ID,"work_type_name":"업무유형명","description":"원본 업무 설명","hours":시간,"confidence":신뢰도0~1}}]}}"""
+{{"entries":[{{"project_id":"프로젝트ID 또는 null","project_name":"프로젝트명","work_type_id":업무유형ID,"work_type_name":"업무유형명","description":"폴리싱된 업무 설명","hours":시간,"confidence":신뢰도0~1}}]}}"""
 
     USER_TEMPLATE = """다음 업무 내용을 분석하여 JSON으로 변환하세요:
 

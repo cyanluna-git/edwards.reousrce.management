@@ -47,7 +47,7 @@ async def check_ai_health(
     db: Session = Depends(get_db),
 ):
     """
-    Check the health status of the AI service (Ollama).
+    Check the health status of the AI service (Groq/Gemini).
 
     Returns the connection status and configured model information.
     """

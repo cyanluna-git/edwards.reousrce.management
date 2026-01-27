@@ -13,21 +13,29 @@ class Settings(BaseSettings):
     SQL_ECHO: bool = False  # SQLAlchemy 쿼리 로깅 (True면 모든 SQL 출력)
 
     # Database
-    DATABASE_URL: str = "postgresql://postgres:password@localhost:5432/edwards"
+    DATABASE_URL: str = ""
 
     # JWT
-    SECRET_KEY: str = "your-super-secret-key-change-in-production"
+    SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
+
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3004,http://localhost:5173"
 
-    # Ollama (AI)
-    OLLAMA_URL: str = "http://ollama:11434"
-    OLLAMA_MODEL: str = "phi3:mini"
-    OLLAMA_TIMEOUT: int = 180  # 3 minutes for complex prompts
+    # AI Provider: "groq" or "gemini"
+    AI_PROVIDER: str = "groq"
+
+    # Groq (AI) - Primary (very fast inference)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_TIMEOUT: int = 30
+
+    # Gemini (AI) - Alternative
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
+    GEMINI_TIMEOUT: int = 30
 
     @property
     def cors_origins_list(self) -> list[str]:

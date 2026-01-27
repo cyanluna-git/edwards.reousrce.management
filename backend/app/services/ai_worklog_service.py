@@ -4,28 +4,44 @@ Business logic for AI-assisted worklog parsing
 """
 
 import logging
-from typing import List, Dict, Any, Optional
+from datetime import date, timedelta
+from typing import List, Dict, Any, Optional, Union
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
 from app.models.project import Project
 from app.models.work_type import WorkTypeCategory
-from app.services.ollama_client import OllamaClient, ollama_client
+from app.models.resource import WorkLog
+from app.models.user import User
+from app.services.gemini_client import GeminiClient, gemini_client
+from app.services.groq_client import GroqClient, groq_client
 from app.prompts.worklog_parser import WorklogParserPrompt
 from app.schemas.ai_worklog import (
     AIWorklogParseRequest,
     AIWorklogParseResponse,
     AIWorklogEntry,
 )
+from app.core.config import settings
 
 
 class AIWorklogService:
     """Service for AI-assisted worklog parsing"""
 
-    def __init__(self, db: Session, client: Optional[OllamaClient] = None):
+    def __init__(
+        self,
+        db: Session,
+        client: Optional[Union[GeminiClient, GroqClient]] = None,
+    ):
         self.db = db
-        self.client = client or ollama_client
+        # Select AI provider based on config
+        if client:
+            self.client = client
+        elif settings.AI_PROVIDER == "gemini":
+            self.client = gemini_client
+        else:
+            self.client = groq_client
         self._projects_cache: Optional[List[Dict[str, Any]]] = None
         self._work_types_cache: Optional[List[Dict[str, Any]]] = None
 
@@ -74,10 +90,131 @@ class AIWorklogService:
         ]
         return self._work_types_cache
 
-    def _build_system_prompt(self) -> str:
-        """Build the system prompt with current projects and work types"""
-        projects = self._load_projects()
-        work_types = self._load_work_types()
+    def _load_user_recent_projects(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        사용자가 최근 3개월간 입력한 프로젝트 (빈도순)
+
+        Args:
+            user_id: 사용자 ID
+
+        Returns:
+            최근 사용 프로젝트 목록 (빈도순 정렬, 최대 10개)
+        """
+        three_months_ago = date.today() - timedelta(days=90)
+
+        # 최근 3개월 워크로그에서 프로젝트별 사용 빈도 집계
+        project_stats = (
+            self.db.query(
+                WorkLog.project_id,
+                func.count(WorkLog.id).label('usage_count')
+            )
+            .filter(
+                WorkLog.user_id == user_id,
+                WorkLog.date >= three_months_ago,
+                WorkLog.project_id.isnot(None)
+            )
+            .group_by(WorkLog.project_id)
+            .order_by(func.count(WorkLog.id).desc())
+            .limit(10)
+            .all()
+        )
+
+        if not project_stats:
+            # 최근 기록이 없으면 전체 활성 프로젝트 반환
+            return self._load_projects()
+
+        # 프로젝트 정보 조회 (빈도순 유지)
+        project_ids = [ps.project_id for ps in project_stats]
+        projects = self.db.query(Project).filter(Project.id.in_(project_ids)).all()
+
+        # 빈도순으로 정렬하기 위해 맵 사용
+        projects_map = {p.id: p for p in projects}
+
+        return [
+            {"id": p_id, "code": projects_map[p_id].code, "name": projects_map[p_id].name}
+            for p_id in project_ids
+            if p_id in projects_map
+        ]
+
+    def _load_user_work_types(self, user_id: str) -> List[Dict[str, Any]]:
+        """
+        직책에 맞는 업무유형 + 자주 사용한 업무유형 (상위 10개)
+
+        Args:
+            user_id: 사용자 ID
+
+        Returns:
+            사용자 맞춤 업무유형 목록 (빈도순 + 직책별 필터, 최대 10개)
+        """
+        # 1. 사용자의 직책 조회
+        user = self.db.query(User).filter(User.id == user_id).first()
+        position_id = user.position_id if user else None
+
+        # 2. 최근 3개월 자주 사용한 업무유형 (시간 합계순)
+        three_months_ago = date.today() - timedelta(days=90)
+
+        work_type_stats = (
+            self.db.query(
+                WorkLog.work_type_category_id,
+                func.sum(WorkLog.hours).label('total_hours')
+            )
+            .filter(
+                WorkLog.user_id == user_id,
+                WorkLog.date >= three_months_ago
+            )
+            .group_by(WorkLog.work_type_category_id)
+            .order_by(func.sum(WorkLog.hours).desc())
+            .limit(10)
+            .all()
+        )
+
+        frequent_ids = {wt.work_type_category_id for wt in work_type_stats}
+
+        # 3. 모든 활성 업무유형 조회
+        all_work_types = (
+            self.db.query(WorkTypeCategory)
+            .filter(WorkTypeCategory.level >= 1, WorkTypeCategory.is_active == True)
+            .all()
+        )
+
+        result = []
+        for wt in all_work_types:
+            # 자주 사용한 것 우선 (priority 1)
+            if wt.id in frequent_ids:
+                result.append({"id": wt.id, "code": wt.code, "name": wt.name, "priority": 1})
+            # 직책에 맞는 것 (priority 2)
+            elif position_id and wt.applicable_roles:
+                # applicable_roles는 콤마로 구분된 문자열
+                applicable_list = [r.strip() for r in wt.applicable_roles.split(',')]
+                if position_id in applicable_list:
+                    result.append({"id": wt.id, "code": wt.code, "name": wt.name, "priority": 2})
+
+        # 결과가 없으면 기본 업무유형 반환
+        if not result:
+            return self._load_work_types()
+
+        # 우선순위로 정렬, 상위 10개
+        result.sort(key=lambda x: x["priority"])
+        return [{"id": r["id"], "code": r["code"], "name": r["name"]} for r in result[:10]]
+
+    def _build_system_prompt(self, user_id: Optional[str] = None) -> str:
+        """
+        사용자 맞춤형 시스템 프롬프트 생성
+
+        Args:
+            user_id: 사용자 ID (제공시 개인화된 프로젝트/업무유형 사용)
+
+        Returns:
+            시스템 프롬프트 문자열
+        """
+        if user_id:
+            # 개인화된 데이터 로드
+            projects = self._load_user_recent_projects(user_id)
+            work_types = self._load_user_work_types(user_id)
+        else:
+            # 기존 전체 데이터 로드
+            projects = self._load_projects()
+            work_types = self._load_work_types()
         return WorklogParserPrompt.build_system_prompt(projects, work_types)
 
     def _validate_and_map_entry(
@@ -187,18 +324,18 @@ class AIWorklogService:
         """
         warnings: List[str] = []
 
-        # Build prompts
-        system_prompt = self._build_system_prompt()
+        # Build prompts (개인화된 프롬프트 사용)
+        system_prompt = self._build_system_prompt(request.user_id)
         user_prompt = WorklogParserPrompt.build_user_prompt(
             request.text,
             request.target_date,
         )
 
-        # Call AI
+        # Call AI (Groq or Gemini)
         try:
             result = await self.client.generate_json(
                 prompt=user_prompt,
-                system=system_prompt,
+                system_prompt=system_prompt,
             )
         except Exception as e:
             logger.error(f"AI parsing failed: {str(e)}")
@@ -261,9 +398,19 @@ class AIWorklogService:
         Returns:
             Dict with status, model, and message
         """
-        is_healthy = await self.client.check_health()
-        return {
-            "status": "healthy" if is_healthy else "unhealthy",
-            "model": self.client.model,
-            "message": "Ollama 서비스 연결됨" if is_healthy else "Ollama 서비스 연결 실패",
-        }
+        if isinstance(self.client, GroqClient):
+            result = await self.client.health_check()
+            return {
+                "status": "healthy" if result["available"] else "unhealthy",
+                "model": result.get("model", settings.GROQ_MODEL),
+                "provider": "groq",
+                "message": "Groq API 연결됨" if result["available"] else f"Groq API 연결 실패: {result.get('error', 'Unknown')}",
+            }
+        else:
+            result = await self.client.health_check()
+            return {
+                "status": "healthy" if result["available"] else "unhealthy",
+                "model": result.get("model", settings.GEMINI_MODEL),
+                "provider": "gemini",
+                "message": "Gemini API 연결됨" if result["available"] else f"Gemini API 연결 실패: {result.get('error', 'Unknown')}",
+            }
