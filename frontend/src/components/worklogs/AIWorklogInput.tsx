@@ -102,17 +102,34 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        {/* 입력 가이드 */}
+                        <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
+                            <p className="font-medium text-foreground mb-2">💡 이렇게 입력해보세요</p>
+                            <ul className="space-y-1 text-xs">
+                                <li>• OQC 킥오프 미팅 준비하고 계획서 메일 배포 <span className="text-primary font-medium">2시간</span></li>
+                                <li>• 팀원과 1:1 미팅 <span className="text-primary font-medium">1시간</span></li>
+                                <li>• GEN3 프로젝트 코드 리뷰하고 머지함 <span className="text-primary font-medium">1시간</span></li>
+                                <li>• Innovation 활동으로 Dashboard 개발 <span className="text-primary font-medium">4시간</span></li>
+                            </ul>
+                        </div>
+
                         <div className="space-y-2">
                             <Textarea
-                                placeholder={`예시: "오전에 OQC 인프라 DB 설계했고, 오후에 Justin이랑 HRS 관련해서 잠깐 미팅했음"`}
+                                placeholder={`오늘 한 일을 자유롭게 적어주세요...
+
+예: HRS 설계 리뷰 미팅 2시간, OQC 인프라 DB 설계 오전에 함, 오후에 문서 작성`}
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
-                                className="min-h-[120px] resize-none"
+                                className="min-h-[140px] resize-none"
                                 disabled={!isAIHealthy || parseMutation.isPending}
                             />
-                            <p className="text-xs text-muted-foreground">
-                                시간 표현: "오전에"(4h), "오후에"(4h), "잠깐"(0.5h), "하루종일"(8h)
-                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                                <span className="bg-muted px-2 py-0.5 rounded">오전에 = 4h</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">오후에 = 4h</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">잠깐 = 0.5h</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">하루종일 = 8h</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">N시간 = N</span>
+                            </div>
                         </div>
 
                         <div className="flex justify-end gap-2">
