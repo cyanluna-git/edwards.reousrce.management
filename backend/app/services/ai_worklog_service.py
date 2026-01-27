@@ -450,9 +450,21 @@ class AIWorklogService:
         if isinstance(result.get("warnings"), list):
             warnings.extend(result["warnings"])
 
-        # Build lookup maps (use full project list for validation)
-        projects = self._load_projects()
+        # Build lookup maps with user activity prioritization
+        # User's recent projects come first (higher matching priority)
+        all_projects = self._load_projects()
         work_types = self._load_work_types()
+
+        if request.user_id:
+            # Get user's recent projects (sorted by usage frequency)
+            user_recent = self._load_user_recent_projects(request.user_id)
+            user_recent_ids = {p["id"] for p in user_recent}
+
+            # Merge: user recent first, then remaining projects
+            projects = user_recent + [p for p in all_projects if p["id"] not in user_recent_ids]
+        else:
+            projects = all_projects
+
         projects_map = {p["id"]: p for p in projects}
         work_types_map = {w["id"]: w for w in work_types}
 
