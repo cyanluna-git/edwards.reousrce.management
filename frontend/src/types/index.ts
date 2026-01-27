@@ -455,3 +455,33 @@ export interface CopyScenarioRequest {
     new_name: string
     date_offset_days?: number
 }
+
+// ============ AI WorkLog Types ============
+
+export interface AIWorklogParseRequest {
+    text: string
+    user_id: string
+    target_date: string
+}
+
+export interface AIWorklogEntry {
+    project_id: string | null
+    project_name: string | null
+    work_type_category_id: number | null
+    work_type_name: string | null
+    description: string
+    hours: number
+    confidence: number
+}
+
+export interface AIWorklogParseResponse {
+    entries: AIWorklogEntry[]
+    total_hours: number
+    warnings: string[]
+}
+
+export interface AIHealthResponse {
+    status: 'healthy' | 'unhealthy'
+    model: string
+    message?: string
+}

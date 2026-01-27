@@ -36,3 +36,6 @@ export {
 } from './select'
 export * from './tabs';
 export { StatusBadge } from './status-badge';
+export { Textarea } from './textarea';
+export { Alert, AlertTitle, AlertDescription } from './alert';
+export { Badge, badgeVariants } from './badge';
