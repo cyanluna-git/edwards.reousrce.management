@@ -7,7 +7,7 @@ import logging
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional, Union
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case, desc
 
 logger = logging.getLogger(__name__)
 
@@ -60,14 +60,26 @@ class AIWorklogService:
         self._worktype_code_map: Optional[Dict[str, Dict[str, Any]]] = None
 
     def _load_projects(self) -> List[Dict[str, Any]]:
-        """Load active projects from database"""
+        """
+        Load active projects from database.
+
+        Excludes Completed/Closed projects.
+        Sorts by: InProgress first, then by created_at (newest first).
+        This ensures that when multiple projects match the same keyword (e.g., GEN3),
+        the most recent active project is prioritized.
+        """
         if self._projects_cache is not None:
             return self._projects_cache
 
         projects = (
             self.db.query(Project)
             .filter(Project.status.in_(["Planned", "InProgress"]))
-            .order_by(Project.name)
+            .order_by(
+                # InProgress projects come first (0), then Planned (1)
+                case((Project.status == "InProgress", 0), else_=1),
+                # Within same status, newest projects first
+                desc(Project.created_at),
+            )
             .all()
         )
 
