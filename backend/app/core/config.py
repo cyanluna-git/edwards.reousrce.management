@@ -2,6 +2,7 @@
 Application configuration and settings
 """
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -10,7 +11,7 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Edwards Project Operation Board"
     DEBUG: bool = True
-    SQL_ECHO: bool = False  # SQLAlchemy 쿼리 로깅 (True면 모든 SQL 출력)
+    SQL_ECHO: bool = False  # SQLAlchemy query logging (set True to log all SQL)
 
     # Database
     DATABASE_URL: str = ""
@@ -40,6 +41,19 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+    @model_validator(mode="after")
+    def validate_required(self) -> "Settings":
+        if not self.DATABASE_URL or not self.DATABASE_URL.strip():
+            raise ValueError(
+                "DATABASE_URL is required. Set it in .env or environment "
+                "(e.g. postgresql://user:pass@localhost:5434/edwards)."
+            )
+        if not self.SECRET_KEY or not self.SECRET_KEY.strip():
+            raise ValueError(
+                "SECRET_KEY is required for JWT. Set it in .env or environment."
+            )
+        return self
 
     class Config:
         env_file = ".env"

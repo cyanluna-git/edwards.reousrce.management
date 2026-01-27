@@ -30,6 +30,9 @@ services:
       GROQ_MODEL: "${GROQ_MODEL:-llama-3.3-70b-versatile}"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
       GEMINI_MODEL: "${GEMINI_MODEL:-gemini-2.0-flash}"
+      # SSL Cert for Zscaler
+      SSL_CERT_FILE: "/usr/local/share/ca-certificates/zscaler.crt"
+      REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/zscaler.crt"
     depends_on:
       - db
     volumes:
@@ -38,6 +41,8 @@ services:
       - ./backend/scripts:/app/scripts
       - ./backend/alembic.ini:/app/alembic.ini
       - ./backend/requirements.txt:/app/requirements.txt
+      # Mount Zscaler cert from project folder (relative path)
+      - ./backend/certs/zscaler.crt:/usr/local/share/ca-certificates/zscaler.crt:ro
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload", "--log-level", "debug", "--access-log"]
     restart: unless-stopped
 
@@ -51,7 +56,8 @@ services:
       - "${FRONTEND_PORT:-3004}:3004"
     environment:
       VITE_API_URL: "${VITE_API_URL:-/api}"
-      VITE_DEV_PROXY_TARGET: "${VITE_DEV_PROXY_TARGET:-http://backend:8004}"
+      # When frontend runs in Docker, it must proxy to backend by service name (not localhost).
+      VITE_DEV_PROXY_TARGET: "http://backend:8004"
       CHOKIDAR_USEPOLLING: "true"
       DEBUG: "vite:*"
     depends_on:

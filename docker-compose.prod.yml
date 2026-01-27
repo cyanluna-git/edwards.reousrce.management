@@ -23,6 +23,12 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # CORS: Allow the domain and localhost for testing
       CORS_ORIGINS: ${CORS_ORIGINS:-http://eob.10.182.252.32.sslip.io,http://localhost}
+      # SSL Cert for Zscaler
+      SSL_CERT_FILE: "/usr/local/share/ca-certificates/zscaler.crt"
+      REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/zscaler.crt"
+    volumes:
+      # Mount Zscaler cert from project folder
+      - ./backend/certs/zscaler.crt:/usr/local/share/ca-certificates/zscaler.crt:ro
     depends_on:
       - db
     networks:

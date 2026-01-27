@@ -45,6 +45,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Custom Certificates (Zscaler) if present
+COPY certs/zscaler.crt /usr/local/share/ca-certificates/zscaler.crt
+RUN if [ -f /usr/local/share/ca-certificates/zscaler.crt ]; then \
+        update-ca-certificates; \
+    fi
+
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin

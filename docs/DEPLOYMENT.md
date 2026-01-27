@@ -94,6 +94,47 @@ docker-compose up -d
 
 ---
 
+## 🏢 기업망 환경 설정 (Proxy & SSL)
+
+사내망 VM이나 보안이 강화된 환경(Zscaler 등)에서는 외부 AI 서비스(Groq/Gemini) 접속을 위한 추가 설정이 필요할 수 있습니다.
+
+### 1. SSL 인증서 설정 (기본 적용됨)
+
+본 프로젝트는 도커 빌드 시점에 인증서를 포함하지 않고, 실행 시점에 볼륨 마운트로 인증서를 주입하는 방식을 사용합니다.
+`docker-compose.yml` 등에서 아래와 같이 프로젝트 내부의 `backend/certs/zscaler.crt` 파일을 컨테이너의 신뢰할 수 있는 인증서 저장소로 마운트합니다.
+
+```yaml
+services:
+  backend:
+    environment:
+      SSL_CERT_FILE: "/usr/local/share/ca-certificates/zscaler.crt"
+      REQUESTS_CA_BUNDLE: "/usr/local/share/ca-certificates/zscaler.crt"
+    volumes:
+      - ./backend/certs/zscaler.crt:/usr/local/share/ca-certificates/zscaler.crt:ro
+```
+*VM에 배포 시 `backend/certs/` 폴더 내에 해당 인증서가 존재하는지 확인하십시오.*
+
+### 2. 프록시 서버 설정 (필요시)
+
+VM이 외부 인터넷 접속 시 프록시 서버를 경유해야 한다면, `docker-compose.prod.yml` 파일의 `backend` 서비스에 아래 환경 변수를 추가해야 합니다.
+
+```yaml
+services:
+  backend:
+    environment:
+      # ... 기존 변수 ...
+      HTTP_PROXY: "http://your-proxy-server:8080"
+      HTTPS_PROXY: "http://your-proxy-server:8080"
+      NO_PROXY: "localhost,127.0.0.1,edwards-postgres"
+```
+
+### 3. 폐쇄망 (Air-gapped) 환경
+
+외부 인터넷 접속이 완전히 차단된 경우, 클라우드 기반 AI(Groq/Gemini) 대신 **로컬 LLM (Ollama)** 도입을 고려해야 합니다.
+이 경우 추가적인 하드웨어 리소스(GPU/RAM)와 별도의 설정이 필요합니다. (추후 지원 예정)
+
+---
+
 ## 🔄 롤백 (이전 버전으로 복구)
 
 ### 1. 백업에서 복원

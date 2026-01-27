@@ -2,6 +2,8 @@
 Authentication endpoints
 """
 
+import logging
+import traceback
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -20,6 +22,7 @@ from app.schemas.auth import Token, UserResponse
 from app.models.user import User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/login", response_model=Token)
@@ -35,19 +38,28 @@ async def login(
 
     Returns JWT access token on successful authentication.
     """
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    try:
+        user = authenticate_user(db, form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    access_token = create_access_token(
-        data={"sub": user.id, "role": user.role},
-        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
-    )
-    return Token(access_token=access_token, token_type="bearer")
+        access_token = create_access_token(
+            data={"sub": user.id, "role": user.role},
+            expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        return Token(access_token=access_token, token_type="bearer")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Login failed: %s", e)
+        detail = "Internal server error during login."
+        if settings.DEBUG:
+            detail += f" Debug: {type(e).__name__}: {e}"
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 
 @router.post("/refresh", response_model=Token)

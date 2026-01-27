@@ -22,10 +22,13 @@ export function LoginPage() {
     } catch (err: any) {
       console.error(err);
       if (err.response) {
+        const detail = err.response?.data?.detail;
         if (err.response.status === 401) {
           setError('Incorrect email or password.');
         } else if (err.response.status === 422) {
           setError('Invalid data format. Please check your input.');
+        } else if (typeof detail === 'string') {
+          setError(detail);
         } else {
           setError(`An unexpected server error occurred: ${err.response.status}`);
         }

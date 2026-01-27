@@ -2,12 +2,17 @@
 Edwards Project Operation Board - FastAPI Backend
 """
 
+import logging
 from contextlib import closing
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.core.database import Base, get_engine, get_db  # Import get_db
 from app.api.endpoints import (
     auth,
@@ -51,6 +56,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Log all unhandled exceptions and return 500. HTTPException is passed through as-is."""
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    logger.exception("Unhandled exception: %s", exc)
+    detail = "Internal server error."
+    if settings.DEBUG:
+        detail += f" {type(exc).__name__}: {exc}"
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 
 # Startup event to create tables and seed initial data
