@@ -1,27 +1,19 @@
 """
-Sync from Power BI Desktop (or CSV) to PostgreSQL
+Sync from CSV to PostgreSQL
 
 Main synchronization script that:
-1. Connects to Power BI Desktop (must be running with .pbix loaded)
-   - Or falls back to CSV mode on macOS/Linux
-2. Executes DAX queries to extract data from Power BI tables
-3. Transforms data to PostgreSQL format
-4. INSERT ONLY - 기존 데이터 절대 삭제/수정 안함, 새 데이터만 추가
+1. Reads CSV files exported from Power BI
+2. Transforms data to PostgreSQL format
+3. INSERT ONLY - 기존 데이터 절대 삭제/수정 안함, 새 데이터만 추가
 
 Usage:
     cd backend
-    # Power BI mode (Windows)
-    python -m scripts.sync_from_pbi --test              # Test Power BI connection
-    python -m scripts.sync_from_pbi --worklogs -0       # 오늘 워크로그만 동기화
-
-    # CSV mode (macOS/Linux or --csv flag)
     python -m scripts.sync_from_pbi --csv --worklogs -0       # CSV에서 오늘 워크로그
     python -m scripts.sync_from_pbi --csv --worklogs -7d      # CSV에서 최근 7일
     python -m scripts.sync_from_pbi --csv --worklogs --from 2025-01-20 --to 2025-01-27
 
 Requirements:
-    - Power BI Desktop running with .pbix file loaded (Windows)
-    - Or CSV files in ref_table/ directory (macOS/Linux)
+    - CSV files in ref_table/ directory
     - PostgreSQL database accessible
 
 CSV Files (in ref_table/):
@@ -154,29 +146,10 @@ class PowerBISynchronizer:
         self.default_project_id: Optional[str] = None    # General/Non-Project
 
     def connect_pbi(self) -> bool:
-        """Connect to Power BI Desktop."""
-        if self.csv_mode:
-            print("CSV mode enabled - skipping Power BI connection")
-            return False
-
-        if not IS_WINDOWS:
-            print("Warning: Power BI connector requires Windows.")
-            print("Using CSV fallback mode...")
-            self.csv_mode = True
-            return False
-
-        try:
-            from scripts.pbi_connector import PowerBIConnector
-
-            self.connector = PowerBIConnector()
-            if self.connector.connect():
-                print(f"Connected to Power BI Desktop on port {self.connector.port}")
-                return True
-            return False
-        except ImportError as e:
-            print(f"Power BI connector not available: {e}")
-            self.csv_mode = True
-            return False
+        """Connect to Power BI - deprecated, always use CSV mode."""
+        print("Power BI connector removed. Using CSV mode.")
+        self.csv_mode = True
+        return False
 
     def read_csv(self, filename: str) -> List[Dict[str, Any]]:
         """Read CSV file from ref_table directory."""
@@ -1016,11 +989,6 @@ CSV Files (in ref_table/):
         """
     )
     parser.add_argument(
-        "--test",
-        action="store_true",
-        help="Test Power BI connection only"
-    )
-    parser.add_argument(
         "--csv",
         action="store_true",
         help="Use CSV files instead of Power BI Desktop (macOS/Linux compatible)"
@@ -1082,12 +1050,6 @@ CSV Files (in ref_table/):
 
     args = parser.parse_args()
 
-    # Test mode
-    if args.test:
-        from scripts.pbi_connector import test_connection
-        test_connection()
-        return
-
     # Parse date range
     date_range = None
 
@@ -1105,16 +1067,8 @@ CSV Files (in ref_table/):
             print("Use YYYY-MM-DD format (e.g., 2025-01-20)")
             return
 
-    # Initialize synchronizer
-    sync = PowerBISynchronizer(dry_run=args.dry_run, verbose=args.verbose, csv_mode=args.csv)
-
-    # Connect to Power BI (or use CSV mode)
-    pbi_connected = sync.connect_pbi()
-
-    if not pbi_connected and not sync.csv_mode:
-        print("\nCould not connect to Power BI Desktop.")
-        print("Use --csv flag to use CSV files instead.")
-        return
+    # Initialize synchronizer (always use CSV mode)
+    sync = PowerBISynchronizer(dry_run=args.dry_run, verbose=args.verbose, csv_mode=True)
 
     # Connect to database
     if not sync.connect_db():
