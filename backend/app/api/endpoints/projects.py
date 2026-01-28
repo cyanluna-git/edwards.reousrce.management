@@ -242,6 +242,23 @@ async def get_project_worklog_stats(project_id: str, db: Session = Depends(get_d
     return service.get_worklog_stats(project_id)
 
 
+@router.get("/{project_id}/dashboard")
+async def get_project_dashboard(project_id: str, db: Session = Depends(get_db)):
+    """
+    Get comprehensive dashboard data for a project.
+    Includes: basic info, milestone stats, resource allocation, worklog trends.
+    """
+    service = ProjectService(db)
+
+    dashboard_data = service.get_project_dashboard(project_id)
+    if not dashboard_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    return dashboard_data
+
+
 # ============ Milestone Endpoints ============
 
 

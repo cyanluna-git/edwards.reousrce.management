@@ -323,6 +323,14 @@ export interface TeamDashboardData {
     hours: number;
     percentage: number;
   }>;
+  sub_org_contributions: Array<{
+    org_id: string;
+    org_name: string;
+    org_code: string;
+    member_count: number;
+    hours: number;
+    percentage: number;
+  }>;
   resource_allocation: {
     current_month: string;
     total_planned_fte: number;

@@ -178,371 +178,339 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     };
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-            {/* Project Code - Only show in create mode, optional since backend can auto-generate */}
-            {!isEditMode && (
-                <div>
-                    <Label htmlFor="code">Project Code (optional)</Label>
-                    <Input id="code" {...register('code')} placeholder="Auto-generated if empty" />
-                    {errors.code && <p className="text-red-500 text-sm">{errors.code.message}</p>}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 1: Basic Info
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="space-y-3">
+                {/* Row 1: Project Name (+ Code in create mode) */}
+                <div className={`grid gap-3 ${!isEditMode ? 'grid-cols-[1fr_150px]' : 'grid-cols-1'}`}>
+                    <div>
+                        <Label htmlFor="name" className="text-xs">Project Name</Label>
+                        <Input id="name" {...register('name', { required: 'Project Name is required' })} className="h-8" />
+                        {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
+                    </div>
+                    {!isEditMode && (
+                        <div>
+                            <Label htmlFor="code" className="text-xs">Code (optional)</Label>
+                            <Input id="code" {...register('code')} placeholder="Auto" className="h-8" />
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* Project Name - Full width */}
-            <div>
-                <Label htmlFor="name">Project Name</Label>
-                <Input id="name" {...register('name', { required: 'Project Name is required' })} />
-                {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+                {/* Row 2: Category, Status, Scale */}
+                <div className="grid grid-cols-3 gap-3">
+                    {/* Category */}
+                    <div>
+                        <Label className="text-xs">Category</Label>
+                        <Controller
+                            name="category"
+                            control={control}
+                            render={({ field }) => {
+                                const selectedCat = CATEGORY_OPTIONS.find(opt => opt.value === field.value);
+                                return (
+                                    <Select
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            if (value === 'FUNCTIONAL') {
+                                                setValue('business_unit_id', '');
+                                                setValue('product_line_id', '');
+                                            }
+                                        }}
+                                        value={field.value || 'PRODUCT'}
+                                    >
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue>
+                                                {selectedCat && (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <span className={`w-2 h-2 rounded-full ${selectedCat.color}`} />
+                                                        <span className="text-xs">{selectedCat.label}</span>
+                                                    </span>
+                                                )}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {CATEGORY_OPTIONS.map((opt) => (
+                                                <SelectItem key={opt.value} value={opt.value}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${opt.color}`} />
+                                                        {opt.label}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                );
+                            }}
+                        />
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                        <Label className="text-xs">Status</Label>
+                        <Controller
+                            name="status"
+                            control={control}
+                            rules={{ required: 'Status is required' }}
+                            render={({ field }) => {
+                                const selectedStatus = STATUS_OPTIONS.find(opt => opt.value === field.value);
+                                return (
+                                    <Select onValueChange={field.onChange} value={field.value || 'Prospective'}>
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue>
+                                                {selectedStatus && (
+                                                    <span className="flex items-center gap-1.5">
+                                                        <span className={`w-2 h-2 rounded-full ${selectedStatus.color}`} />
+                                                        <span className="text-xs">{selectedStatus.label}</span>
+                                                    </span>
+                                                )}
+                                            </SelectValue>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {STATUS_OPTIONS.map((opt) => (
+                                                <SelectItem key={opt.value} value={opt.value}>
+                                                    <span className="flex items-center gap-2">
+                                                        <span className={`w-2 h-2 rounded-full ${opt.color}`} />
+                                                        {opt.label}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                );
+                            }}
+                        />
+                    </div>
+
+                    {/* Scale */}
+                    <div>
+                        <Label className="text-xs">Scale</Label>
+                        <Controller
+                            name="scale"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value || ''}>
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {SCALE_OPTIONS.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+                </div>
             </div>
 
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 2: Organization (conditional based on category)
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="border-t pt-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Organization</h4>
 
-            {/* Program - Hidden: now using Product Line (Family) for grouping */}
-            {/* <div>
-                <Label htmlFor="program_id">Program</Label>
-                <Controller
-                    name="program_id"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Program" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {programs?.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-            </div> */}
-
-
-            {/* Project Type - Hidden: Scale field covers this functionality */}
-            {/* <div>
-                <Label htmlFor="project_type_id">Project Type</Label>
-                <Controller
-                    name="project_type_id"
-                    control={control}
-                    render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select Project Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {projectTypes?.map((pt) => (
-                                    <SelectItem key={pt.id} value={pt.id}>
-                                        {pt.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-            </div> */}
-
-            {/* Row 1: Category & Status */}
-            <div className="grid grid-cols-2 gap-4">
-                {/* Category */}
-                <div>
-                    <Label htmlFor="category">Project Category</Label>
-                    <Controller
-                        name="category"
-                        control={control}
-                        render={({ field }) => {
-                            const selectedCat = CATEGORY_OPTIONS.find(opt => opt.value === field.value);
-                            return (
-                                <Select
-                                    onValueChange={(value) => {
-                                        field.onChange(value);
-                                        // Clear Business Unit and Family when switching to FUNCTIONAL
-                                        if (value === 'FUNCTIONAL') {
-                                            setValue('business_unit_id', '');
+                {selectedCategory === 'PRODUCT' ? (
+                    <div className="grid grid-cols-3 gap-3">
+                        {/* Business Unit */}
+                        <div>
+                            <Label className="text-xs">Business Unit</Label>
+                            <Controller
+                                name="business_unit_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
                                             setValue('product_line_id', '');
-                                        }
-                                    }}
-                                    value={field.value || 'PRODUCT'}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Category">
-                                            {selectedCat && (
-                                                <span className="flex items-center gap-2">
-                                                    <span className={`w-3 h-3 rounded-full ${selectedCat.color}`} />
-                                                    {selectedCat.label}
-                                                </span>
-                                            )}
-                                        </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {CATEGORY_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                <span className="flex items-center gap-2">
-                                                    <span className={`w-3 h-3 rounded-full ${opt.color}`} />
-                                                    {opt.label}
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            );
-                        }}
-                    />
-                </div>
+                                        }}
+                                        value={field.value || ''}
+                                    >
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {businessUnits?.map((bu) => (
+                                                <SelectItem key={bu.id} value={bu.id}>
+                                                    {bu.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
 
-                {/* Status */}
-                <div>
-                    <Label htmlFor="status">Status</Label>
-                    <Controller
-                        name="status"
-                        control={control}
-                        rules={{ required: 'Status is required' }}
-                        render={({ field }) => {
-                            const selectedStatus = STATUS_OPTIONS.find(opt => opt.value === field.value);
-                            return (
-                                <Select onValueChange={field.onChange} value={field.value || (isEditMode ? '' : 'Prospective')}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Status">
-                                            {selectedStatus && (
-                                                <span className="flex items-center gap-2">
-                                                    <span className={`w-3 h-3 rounded-full ${selectedStatus.color}`} />
-                                                    {selectedStatus.label}
-                                                </span>
-                                            )}
-                                        </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {STATUS_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                <span className="flex items-center gap-2">
-                                                    <span className={`w-3 h-3 rounded-full ${opt.color}`} />
-                                                    {opt.label}
-                                                </span>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            );
-                        }}
-                    />
-                    {errors.status && <p className="text-red-500 text-sm">{errors.status.message}</p>}
-                </div>
+                        {/* Family */}
+                        <div>
+                            <Label className="text-xs">Family</Label>
+                            <Controller
+                                name="product_line_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value || ''}
+                                        disabled={!selectedBusinessUnitId}
+                                    >
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder={selectedBusinessUnitId ? "Select" : "Select BU first"} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {filteredProductLines.map((pl) => (
+                                                <SelectItem key={pl.id} value={pl.id}>
+                                                    {pl.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        {/* PM */}
+                        <div>
+                            <Label className="text-xs">Project Manager</Label>
+                            <Controller
+                                name="pm_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Select PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {pmUsers.map((u) => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-3 gap-3">
+                        {/* Owner Department */}
+                        <div>
+                            <Label className="text-xs">Owner Department</Label>
+                            <Controller
+                                name="owner_department_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Select" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {departments?.filter((d: Department) => d.is_active).map((dept: Department) => (
+                                                <SelectItem key={dept.id} value={dept.id}>
+                                                    {dept.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+
+                        {/* PM */}
+                        <div>
+                            <Label className="text-xs">Project Manager</Label>
+                            <Controller
+                                name="pm_id"
+                                control={control}
+                                render={({ field }) => (
+                                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                                        <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="Select PM" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {pmUsers.map((u) => (
+                                                <SelectItem key={u.id} value={u.id}>
+                                                    {u.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            />
+                        </div>
+                        <div /> {/* Empty for alignment */}
+                    </div>
+                )}
             </div>
 
-            {/* Row 2: Scale */}
-            <div className="grid grid-cols-2 gap-4">
-                {/* Scale */}
-                <div>
-                    <Label htmlFor="scale">Scale</Label>
-                    <Controller
-                        name="scale"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Scale" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {SCALE_OPTIONS.map((opt) => (
-                                        <SelectItem key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                </div>
-                <div /> {/* Empty space for alignment */}
-            </div>
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 3: Details (Customer, Product, Period)
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="border-t pt-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Details</h4>
 
-            {/* Row 3: Business Unit & Family (only for PRODUCT projects) */}
-            {selectedCategory === 'PRODUCT' && (
-            <div className="grid grid-cols-2 gap-4">
-                {/* Business Unit */}
-                <div>
-                    <Label htmlFor="business_unit_id">Business Unit</Label>
-                    <Controller
-                        name="business_unit_id"
-                        control={control}
-                        render={({ field }) => (
-                            <Select
-                                onValueChange={(value) => {
-                                    field.onChange(value);
-                                    // Clear product_line_id when business unit changes
-                                    setValue('product_line_id', '');
-                                }}
-                                value={field.value || ''}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Business Unit" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {businessUnits?.map((bu) => (
-                                        <SelectItem key={bu.id} value={bu.id}>
-                                            {bu.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
+                <div className="grid grid-cols-4 gap-3">
+                    <div>
+                        <Label className="text-xs">Customer</Label>
+                        <Input id="customer" {...register('customer')} className="h-8" />
+                    </div>
+                    <div>
+                        <Label className="text-xs">Product</Label>
+                        <Input id="product" {...register('product')} className="h-8" />
+                    </div>
+                    <div>
+                        <Label className="text-xs">Start</Label>
+                        <input
+                            id="start_month"
+                            type="month"
+                            {...register('start_month')}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-xs">End</Label>
+                        <input
+                            id="end_month"
+                            type="month"
+                            {...register('end_month')}
+                            className="flex h-8 w-full rounded-md border border-input bg-transparent px-2 py-1 text-xs shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer"
+                        />
+                    </div>
                 </div>
 
-                {/* Family (formerly Product Line) */}
-                <div>
-                    <Label htmlFor="product_line_id">Family</Label>
-                    <Controller
-                        name="product_line_id"
-                        control={control}
-                        render={({ field }) => (
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value || ''}
-                                disabled={!selectedBusinessUnitId}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder={selectedBusinessUnitId ? "Select Family" : "Select Business Unit first"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {filteredProductLines.map((pl) => (
-                                        <SelectItem key={pl.id} value={pl.id}>
-                                            {pl.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                </div>
-            </div>
-            )}
-
-            {/* Row 3 alt: Owner Department (only for FUNCTIONAL projects) */}
-            {selectedCategory === 'FUNCTIONAL' && (
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="owner_department_id">Owner Department</Label>
-                    <Controller
-                        name="owner_department_id"
-                        control={control}
-                        render={({ field }) => (
-                            <Select
-                                onValueChange={field.onChange}
-                                value={field.value || ''}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Owner Department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {departments?.filter((d: Department) => d.is_active).map((dept: Department) => (
-                                        <SelectItem key={dept.id} value={dept.id}>
-                                            {dept.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Used to group functional projects by department
-                    </p>
-                </div>
-                <div /> {/* Empty space for alignment */}
-            </div>
-            )}
-
-            {/* Row 4: Project Manager */}
-            <div className="grid grid-cols-2 gap-4">
-                {/* Project Manager */}
-                <div>
-                    <Label htmlFor="pm_id">Project Manager</Label>
-                    <Controller
-                        name="pm_id"
-                        control={control}
-                        render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value || ''}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select PM" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {pmUsers.map((u) => (
-                                        <SelectItem key={u.id} value={u.id}>
-                                            {u.name} ({u.korean_name || u.email})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        )}
-                    />
-                </div>
-                <div /> {/* Empty space for alignment */}
-            </div>
-
-            {/* Row 4: Customer & Product */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="customer">Customer</Label>
-                    <Input id="customer" {...register('customer')} />
-                </div>
-                <div>
-                    <Label htmlFor="product">Product</Label>
-                    <Input id="product" {...register('product')} />
-                </div>
-            </div>
-
-            {/* Row 5: Start & End Month - Side by side with native date picker */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <Label htmlFor="start_month">Start Month</Label>
-                    <input
-                        id="start_month"
-                        type="month"
-                        {...register('start_month')}
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                        placeholder="YYYY-MM"
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="end_month">End Month</Label>
-                    <input
-                        id="end_month"
-                        type="month"
-                        {...register('end_month')}
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-                        placeholder="YYYY-MM"
+                {/* Description - compact */}
+                <div className="mt-2">
+                    <Label className="text-xs">Description</Label>
+                    <textarea
+                        id="description"
+                        {...register('description')}
+                        className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                        placeholder="Brief description..."
+                        rows={2}
                     />
                 </div>
             </div>
 
-            {/* Description - Full width textarea */}
-            <div>
-                <Label htmlFor="description">Description</Label>
-                <textarea
-                    id="description"
-                    {...register('description')}
-                    className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                    placeholder="Enter project description..."
-                    rows={4}
-                />
-            </div>
+            {/* ═══════════════════════════════════════════════════════════════
+                SECTION 4: Financial Classification
+            ═══════════════════════════════════════════════════════════════ */}
+            <div className="border-t pt-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Classification</h4>
 
-            {/* Financial Classification Fields */}
-            <div className="border-t pt-4 mt-2">
-                <h3 className="text-sm font-semibold mb-4 text-gray-700">Financial Classification</h3>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-4 gap-3">
                     {/* Funding Entity */}
                     <div>
-                        <Label htmlFor="funding_entity_id">Funding Entity</Label>
+                        <Label className="text-xs">Funding Entity</Label>
                         <Controller
                             name="funding_entity_id"
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Funding Entity" />
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {FUNDING_ENTITY_OPTIONS.map((opt) => (
@@ -558,14 +526,14 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
 
                     {/* Recharge Status */}
                     <div>
-                        <Label htmlFor="recharge_status">Recharge Status</Label>
+                        <Label className="text-xs">Recharge</Label>
                         <Controller
                             name="recharge_status"
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Recharge Status" />
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RECHARGE_STATUS_OPTIONS.map((opt) => (
@@ -578,19 +546,17 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                             )}
                         />
                     </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
                     {/* IO Category */}
                     <div>
-                        <Label htmlFor="io_category_code">IO Category</Label>
+                        <Label className="text-xs">IO Category</Label>
                         <Controller
                             name="io_category_code"
                             control={control}
                             render={({ field }) => (
                                 <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select IO Category" />
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {IO_CATEGORY_OPTIONS.map((opt) => (
@@ -606,7 +572,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
 
                     {/* Capitalizable */}
                     <div>
-                        <Label htmlFor="is_capitalizable">Capitalizable (CAPEX vs OPEX)</Label>
+                        <Label className="text-xs">Capitalizable</Label>
                         <Controller
                             name="is_capitalizable"
                             control={control}
@@ -615,8 +581,8 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                                     onValueChange={(value) => field.onChange(value === 'true')}
                                     value={field.value ? 'true' : 'false'}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Capitalization" />
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="true">Yes (CAPEX)</SelectItem>
@@ -629,12 +595,13 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 </div>
             </div>
 
-            {isError && <p className="text-red-500 text-sm">Error: {error?.message}</p>}
+            {isError && <p className="text-red-500 text-xs mt-2">Error: {error?.message}</p>}
 
-            <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-white">
-                {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>}
+            <div className="flex justify-end gap-2 pt-3 border-t mt-3">
+                {onCancel && <Button type="button" variant="outline" size="sm" onClick={onCancel}>Cancel</Button>}
                 <Button
                     type="submit"
+                    size="sm"
                     disabled={isPending}
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                 >

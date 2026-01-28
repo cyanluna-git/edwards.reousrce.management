@@ -22,6 +22,7 @@ import {
   StatusBadge,
 } from '@/components/ui';
 import { ProjectForm } from '@/components/forms/ProjectForm';
+import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 import {
   Briefcase,
@@ -39,7 +40,9 @@ import {
   DollarSign,
   RefreshCw,
   Folder,
-  TrendingUp
+  TrendingUp,
+  BarChart3,
+  Info
 } from 'lucide-react';
 
 // StatusBadge is now imported from @/components/ui
@@ -98,6 +101,7 @@ export const ProjectDetailPage: React.FC = () => {
   const { data: worklogStats = [], isLoading: statsLoading } = useProjectWorklogStats(id || '');
 
   // State
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'detail'>('dashboard');
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isMilestoneModalOpen, setIsMilestoneModalOpen] = useState(false);
@@ -229,67 +233,105 @@ export const ProjectDetailPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => {
-          if (returnTab) {
-            navigate('/projects', { state: { activeTab: returnTab } });
-          } else {
-            navigate(-1);
-          }
-        }}
-        className="flex items-center gap-1 text-muted-foreground hover:text-foreground -ml-2"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back
-      </Button>
+      {/* Header: Back Button + Tabs + Actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              if (returnTab) {
+                navigate('/projects', { state: { activeTab: returnTab } });
+              } else {
+                navigate(-1);
+              }
+            }}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground -ml-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
 
+          {/* Tab Navigation */}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'dashboard'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('detail')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                activeTab === 'detail'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Info className="w-4 h-4" />
+              Details
+            </button>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex space-x-2">
+          <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">Edit</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Project</DialogTitle>
+              </DialogHeader>
+              <ProjectForm
+                project={project}
+                onSuccess={() => setIsUpdateModalOpen(false)}
+                onCancel={() => setIsUpdateModalOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm">Delete</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Confirm Deletion</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete project "{project.name}"? This action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Dashboard Tab */}
+      {activeTab === 'dashboard' && (
+        <ProjectDashboard projectId={id || ''} />
+      )}
+
+      {/* Details Tab */}
+      {activeTab === 'detail' && (
+        <>
       {/* Project Details Card */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
           <CardTitle className="text-2xl font-bold">{project.name} ({project.code})</CardTitle>
-          <div className="flex space-x-2">
-            <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline">Edit</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Edit Project</DialogTitle>
-                </DialogHeader>
-                <ProjectForm
-                  project={project}
-                  onSuccess={() => setIsUpdateModalOpen(false)}
-                  onCancel={() => setIsUpdateModalOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-              <DialogTrigger asChild>
-                <Button variant="destructive">Delete</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Confirm Deletion</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to delete project "{project.name}"? This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
-                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                    {isDeleting ? 'Deleting...' : 'Delete'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
         </CardHeader>
-
-
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
             <PropertyRow icon={Briefcase} label="Program">
@@ -546,6 +588,8 @@ export const ProjectDetailPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+        </>
+      )}
 
       {/* Milestone Add/Edit Modal */}
       <Dialog open={isMilestoneModalOpen} onOpenChange={setIsMilestoneModalOpen}>

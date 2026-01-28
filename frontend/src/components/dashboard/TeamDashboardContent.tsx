@@ -40,7 +40,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
         return <div className="text-center py-12 text-red-500">팀 대시보드를 불러오는데 실패했습니다.</div>;
     }
 
-    const { team_info, date_range, team_worklogs, member_contributions, resource_allocation, org_context } = teamData;
+    const { team_info, date_range, team_worklogs, member_contributions, sub_org_contributions, resource_allocation, org_context } = teamData;
     const projectVsFunctionalTotal = team_worklogs.project_vs_functional.Project + team_worklogs.project_vs_functional.Functional;
     const projectPercent = projectVsFunctionalTotal > 0
         ? Math.round((team_worklogs.project_vs_functional.Project / projectVsFunctionalTotal) * 100)
@@ -174,8 +174,8 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                                     : 0;
                                 return (
                                     <div key={p.project_id} className="flex items-center gap-2">
-                                        <div className="w-24 truncate text-sm font-medium" title={p.project_name}>
-                                            {p.project_code}
+                                        <div className="w-40 truncate text-sm font-medium" title={`${p.project_code} - ${p.project_name}`}>
+                                            {p.project_name || p.project_code}
                                         </div>
                                         <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden">
                                             <div
@@ -192,6 +192,45 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                     )}
                 </CardContent>
             </Card>
+
+            {/* Sub-Organization Contributions (for department/business_unit scopes) */}
+            {sub_org_contributions && sub_org_contributions.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-sm font-medium">
+                            {teamScope === 'department' ? '소그룹별 기여도' : teamScope === 'business_unit' ? '부서별 기여도' : '하위 조직 기여도'}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {sub_org_contributions.map(org => (
+                                <div key={org.org_id} className="flex items-center gap-3">
+                                    <div className="w-32 truncate">
+                                        <span className="text-sm font-medium">{org.org_name}</span>
+                                        <span className="text-xs text-muted-foreground ml-1">({org.member_count}명)</span>
+                                    </div>
+                                    <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
+                                        <div
+                                            className="bg-indigo-500 h-full rounded-full flex items-center justify-end pr-2"
+                                            style={{ width: `${Math.max(org.percentage, 5)}%` }}
+                                        >
+                                            {org.percentage >= 15 && (
+                                                <span className="text-[10px] text-white font-medium">{org.percentage}%</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="w-16 text-right text-sm font-medium">{org.hours.toFixed(0)}h</div>
+                                    <div className="w-12 text-right">
+                                        <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-xs">
+                                            {org.percentage}%
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Member Contributions */}
             <Card>
