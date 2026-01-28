@@ -293,7 +293,7 @@ export function WorkLogTableView() {
                                         <th className="text-center p-2 whitespace-nowrap">Flags</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="virtualized">
                                     {worklogs.map((wl) => (
                                         <tr key={wl.id} className="border-t hover:bg-muted/30">
                                             <td className="p-2 whitespace-nowrap">{String(wl.date)}</td>

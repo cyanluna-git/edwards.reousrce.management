@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { useResourcePlans } from '@/hooks/useResourcePlans';
 import { Button } from '@/components/ui';
 
@@ -20,7 +20,8 @@ interface ProjectResourceTableProps {
     onDeleteRow: (row: ResourceRow) => void;
 }
 
-export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = ({
+// Memoized to prevent re-renders when parent state changes but props are same
+export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
     projectId,
     months,
     onAddMember,
@@ -169,4 +170,4 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = ({
             </table>
         </div>
     );
-};
+});
