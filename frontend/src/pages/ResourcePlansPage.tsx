@@ -26,6 +26,7 @@ import {
 import { ProjectResourceTable, type ResourceRow } from '@/components/resource-plans/ProjectResourceTable';
 import { ProjectSummaryTab } from '@/components/resource-plans/ProjectSummaryTab';
 import { RoleSummaryTab } from '@/components/resource-plans/RoleSummaryTab';
+import { TbdAssignmentModal } from '@/components/resource-plans/TbdAssignmentModal';
 import { UserHierarchySelect } from '@/components/UserHierarchySelect';
 
 // StatusBadge is now imported from @/components/ui
@@ -94,6 +95,7 @@ export const ResourcePlansPage: React.FC = () => {
     const [monthlyValues, setMonthlyValues] = useState<Record<string, number>>({});
     const [editingPlanIds, setEditingPlanIds] = useState<Record<string, number>>({}); // Store plan IDs for editing
     const [showCompleted, setShowCompleted] = useState(false); // Filter completed projects
+    const [isTbdModalOpen, setIsTbdModalOpen] = useState(false); // TBD assignment modal
 
     // Data fetching
     const { data: projects = [] } = useProjects();
@@ -351,6 +353,13 @@ export const ResourcePlansPage: React.FC = () => {
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">리소스 계획</h1>
+                <Button
+                    onClick={() => setIsTbdModalOpen(true)}
+                    variant="outline"
+                    title="TBD(미할당) 포지션에 실제 담당자를 배정합니다"
+                >
+                    TBD 할당
+                </Button>
             </div>
 
             {/* Tabs and Calendar Navigation */}
@@ -642,6 +651,12 @@ export const ResourcePlansPage: React.FC = () => {
                     worklogRoleSummary={worklogRoleSummary}
                 />
             )}
+
+            {/* TBD Assignment Modal */}
+            <TbdAssignmentModal
+                open={isTbdModalOpen}
+                onOpenChange={setIsTbdModalOpen}
+            />
         </div >
     );
 };

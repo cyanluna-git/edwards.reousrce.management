@@ -29,3 +29,78 @@ export function useProjectWorklogStats(id: string) {
     enabled: !!id,
   });
 }
+
+// ============ Project Dashboard ============
+
+export interface ProjectDashboardData {
+  project: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    category: string;
+    scale: string | null;
+    customer: string | null;
+    product: string | null;
+    start_month: string | null;
+    end_month: string | null;
+    pm: {
+      id: string;
+      name: string;
+      korean_name: string | null;
+    } | null;
+    business_unit: string | null;
+    product_line: string | null;
+  };
+  milestone_stats: {
+    total: number;
+    completed: number;
+    delayed: number;
+    pending: number;
+    completion_rate: number;
+    upcoming: Array<{
+      id: number;
+      name: string;
+      target_date: string;
+      days_until: number;
+      is_key_gate: boolean;
+    }>;
+    overdue: Array<{
+      id: number;
+      name: string;
+      target_date: string;
+      days_overdue: number;
+      is_key_gate: boolean;
+    }>;
+  };
+  resource_summary: Array<{
+    month: string;
+    total_hours: number;
+    assigned_count: number;
+    tbd_count: number;
+  }>;
+  worklog_trends: Array<{
+    week_start: string;
+    total_hours: number;
+    unique_users: number;
+  }>;
+  team_members: Array<{
+    user_id: string;
+    name: string;
+    korean_name: string | null;
+    total_hours: number;
+  }>;
+}
+
+async function fetchProjectDashboard(id: string): Promise<ProjectDashboardData> {
+  const { data } = await apiClient.get(`/projects/${id}/dashboard`);
+  return data;
+}
+
+export function useProjectDashboard(id: string) {
+  return useQuery<ProjectDashboardData, Error>({
+    queryKey: ['project-dashboard', id],
+    queryFn: () => fetchProjectDashboard(id),
+    enabled: !!id,
+  });
+}

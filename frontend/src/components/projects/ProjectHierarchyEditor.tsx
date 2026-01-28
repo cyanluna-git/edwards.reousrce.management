@@ -1162,7 +1162,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
             {/* Project Modal */}
             <Dialog open={projectModalOpen} onOpenChange={setProjectModalOpen}>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>
                             {editingProject ? 'Edit Project' : 'Add New Project'}

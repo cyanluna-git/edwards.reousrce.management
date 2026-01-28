@@ -29,8 +29,7 @@ import {
     updateProjectRole,
     deleteProjectRole,
 } from '@/api/client';
-import { JobPosition } from '@/types';
-
+import type { JobPosition } from '@/types';
 export const PositionsTab: React.FC = () => {
     const [subTab, setSubTab] = useState<'functional' | 'project'>('functional');
 

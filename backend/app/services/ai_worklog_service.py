@@ -7,7 +7,7 @@ import logging
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional, Union
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case, desc
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,12 @@ from app.models.resource import WorkLog
 from app.models.user import User
 from app.services.gemini_client import GeminiClient, gemini_client
 from app.services.groq_client import GroqClient, groq_client
+from app.services.matching_service import FuzzyMatcher
+from app.services.text_preprocessor import KoreanTextPreprocessor
+from app.services.keyword_mappings import (
+    get_project_code_by_keyword,
+    get_worktype_code_by_keyword,
+)
 from app.prompts.worklog_parser import WorklogParserPrompt
 from app.schemas.ai_worklog import (
     AIWorklogParseRequest,
@@ -42,18 +48,38 @@ class AIWorklogService:
             self.client = gemini_client
         else:
             self.client = groq_client
+
+        # Initialize matching services
+        self.matcher = FuzzyMatcher()
+        self.preprocessor = KoreanTextPreprocessor()
+
+        # Caches
         self._projects_cache: Optional[List[Dict[str, Any]]] = None
         self._work_types_cache: Optional[List[Dict[str, Any]]] = None
+        self._project_code_map: Optional[Dict[str, Dict[str, Any]]] = None
+        self._worktype_code_map: Optional[Dict[str, Dict[str, Any]]] = None
 
     def _load_projects(self) -> List[Dict[str, Any]]:
-        """Load active projects from database"""
+        """
+        Load active projects from database.
+
+        Excludes Completed/Closed projects.
+        Sorts by: InProgress first, then by created_at (newest first).
+        This ensures that when multiple projects match the same keyword (e.g., GEN3),
+        the most recent active project is prioritized.
+        """
         if self._projects_cache is not None:
             return self._projects_cache
 
         projects = (
             self.db.query(Project)
             .filter(Project.status.in_(["Planned", "InProgress"]))
-            .order_by(Project.name)
+            .order_by(
+                # InProgress projects come first (0), then Planned (1)
+                case((Project.status == "InProgress", 0), else_=1),
+                # Within same status, newest projects first
+                desc(Project.created_at),
+            )
             .all()
         )
 
@@ -65,6 +91,12 @@ class AIWorklogService:
             }
             for p in projects
         ]
+
+        # Build code map for quick lookups
+        self._project_code_map = {
+            p["code"]: p for p in self._projects_cache if p.get("code")
+        }
+
         return self._projects_cache
 
     def _load_work_types(self) -> List[Dict[str, Any]]:
@@ -88,7 +120,25 @@ class AIWorklogService:
             }
             for w in work_types
         ]
+
+        # Build code map for quick lookups
+        self._worktype_code_map = {
+            w["code"]: w for w in self._work_types_cache if w.get("code")
+        }
+
         return self._work_types_cache
+
+    def _get_project_by_code(self, code: str) -> Optional[Dict[str, Any]]:
+        """Get project by code from cache."""
+        if self._project_code_map is None:
+            self._load_projects()
+        return self._project_code_map.get(code) if self._project_code_map else None
+
+    def _get_worktype_by_code(self, code: str) -> Optional[Dict[str, Any]]:
+        """Get work type by code from cache."""
+        if self._worktype_code_map is None:
+            self._load_work_types()
+        return self._worktype_code_map.get(code) if self._worktype_code_map else None
 
     def _load_user_recent_projects(self, user_id: str) -> List[Dict[str, Any]]:
         """
@@ -197,12 +247,17 @@ class AIWorklogService:
         result.sort(key=lambda x: x["priority"])
         return [{"id": r["id"], "code": r["code"], "name": r["name"]} for r in result[:10]]
 
-    def _build_system_prompt(self, user_id: Optional[str] = None) -> str:
+    def _build_system_prompt(
+        self,
+        user_id: Optional[str] = None,
+        hints: Optional[List[str]] = None,
+    ) -> str:
         """
         사용자 맞춤형 시스템 프롬프트 생성
 
         Args:
             user_id: 사용자 ID (제공시 개인화된 프로젝트/업무유형 사용)
+            hints: 텍스트에서 감지된 키워드 힌트 목록
 
         Returns:
             시스템 프롬프트 문자열
@@ -215,53 +270,103 @@ class AIWorklogService:
             # 기존 전체 데이터 로드
             projects = self._load_projects()
             work_types = self._load_work_types()
-        return WorklogParserPrompt.build_system_prompt(projects, work_types)
+
+        return WorklogParserPrompt.build_system_prompt(projects, work_types, hints)
 
     def _validate_and_map_entry(
         self,
         entry: Dict[str, Any],
         projects_map: Dict[str, Dict[str, Any]],
-        work_types_map: Dict[int, Dict[str, Any]],
+        work_types_map: Dict[str, Dict[str, Any]],
+        original_text: str = "",
     ) -> AIWorklogEntry:
         """
-        Validate and map a single parsed entry.
+        Validate and map a single parsed entry with fuzzy matching.
 
         Ensures project_id and work_type_category_id exist in the database.
+        Uses multi-stage matching for better accuracy.
         """
         project_id = entry.get("project_id")
         project_name = entry.get("project_name")
         # Handle both field names from AI response
         work_type_id = entry.get("work_type_category_id") or entry.get("work_type_id")
         work_type_name = entry.get("work_type_name")
+        description = entry.get("description") or ""
 
-        # Validate project
+        matched_project = None
+        matched_work_type = None
+        confidence_boost = 0.0
+
+        # === Project Matching ===
+        # Stage 1: Direct ID match
         if project_id and project_id in projects_map:
-            project_name = projects_map[project_id]["name"]
-        elif project_id:
-            # Try to find by prefix match (AI returns truncated IDs)
-            matched = None
-            for pid, proj in projects_map.items():
-                if pid.startswith(project_id) or project_id.startswith(pid[:8]):
-                    matched = proj
-                    break
+            matched_project = projects_map[project_id]
 
-            # If no prefix match, try fuzzy name match
-            if not matched:
-                matched = self._fuzzy_match_project(project_id, projects_map)
+        # Stage 2: Fuzzy matching if no direct match
+        if not matched_project:
+            search_term = project_id or project_name or ""
 
-            if matched:
-                project_id = matched["id"]
-                project_name = matched["name"]
-            else:
-                project_id = None
-                project_name = entry.get("project_name")
+            if search_term:
+                # Try fuzzy matcher
+                result = self.matcher.match_project(
+                    search_term, list(projects_map.values()), threshold=0.6
+                )
+                if result:
+                    matched_project, conf = result
+                    confidence_boost = conf - 0.5  # Adjust confidence based on match quality
 
-        # Validate work type
+            # Stage 3: Keyword-based matching from description
+            if not matched_project and description:
+                project_code = get_project_code_by_keyword(description)
+                if project_code:
+                    code_match = self._get_project_by_code(project_code)
+                    if code_match and code_match["id"] in projects_map:
+                        matched_project = code_match
+                        confidence_boost = 0.1
+
+        if matched_project:
+            project_id = matched_project["id"]
+            project_name = matched_project["name"]
+        else:
+            project_id = None
+
+        # === Work Type Matching ===
+        # Stage 1: Direct ID match
         if work_type_id and work_type_id in work_types_map:
-            work_type_name = work_types_map[work_type_id]["name"]
-        elif work_type_id:
+            matched_work_type = work_types_map[work_type_id]
+
+        # Stage 2: Code match (AI sometimes returns code instead of ID)
+        if not matched_work_type and work_type_id:
+            code_match = self._get_worktype_by_code(str(work_type_id))
+            if code_match:
+                matched_work_type = code_match
+
+        # Stage 3: Fuzzy matching by name
+        if not matched_work_type:
+            search_term = work_type_id or work_type_name or ""
+
+            if search_term:
+                result = self.matcher.match_work_type(
+                    search_term, list(work_types_map.values()), threshold=0.5
+                )
+                if result:
+                    matched_work_type, conf = result
+
+            # Stage 4: Keyword-based matching from description
+            if not matched_work_type and description:
+                worktype_code = get_worktype_code_by_keyword(description)
+                if worktype_code:
+                    code_match = self._get_worktype_by_code(worktype_code)
+                    if code_match and code_match["id"] in work_types_map:
+                        matched_work_type = code_match
+
+        if matched_work_type:
+            work_type_id = matched_work_type["id"]
+            work_type_name = matched_work_type["name"]
+        else:
             work_type_id = None
-            work_type_name = entry.get("work_type_name")
+            # Keep the original name if provided
+            work_type_name = work_type_name or entry.get("work_type_name")
 
         # Ensure hours is within bounds
         hours = entry.get("hours", 1.0)
@@ -269,14 +374,21 @@ class AIWorklogService:
             hours = 1.0
         hours = max(0.5, min(24.0, float(hours)))
 
-        # Ensure confidence is within bounds
-        confidence = entry.get("confidence", 0.5)
-        if not isinstance(confidence, (int, float)):
-            confidence = 0.5
-        confidence = max(0.0, min(1.0, float(confidence)))
+        # Calculate final confidence
+        base_confidence = entry.get("confidence", 0.5)
+        if not isinstance(base_confidence, (int, float)):
+            base_confidence = 0.5
+
+        # Adjust confidence based on matching results
+        final_confidence = base_confidence
+        if matched_project:
+            final_confidence += 0.1
+        if matched_work_type:
+            final_confidence += 0.1
+        final_confidence += confidence_boost
+        final_confidence = max(0.0, min(1.0, float(final_confidence)))
 
         # Ensure description is a string
-        description = entry.get("description") or ""
         if not isinstance(description, str):
             description = str(description)
 
@@ -287,27 +399,8 @@ class AIWorklogService:
             work_type_name=work_type_name,
             description=description,
             hours=hours,
-            confidence=confidence,
+            confidence=final_confidence,
         )
-
-    def _fuzzy_match_project(
-        self,
-        search_term: str,
-        projects_map: Dict[str, Dict[str, Any]],
-    ) -> Optional[Dict[str, Any]]:
-        """
-        Try to fuzzy match a project by name or code.
-        """
-        search_lower = search_term.lower()
-
-        for proj in projects_map.values():
-            if (
-                search_lower in proj["name"].lower()
-                or search_lower in proj.get("code", "").lower()
-            ):
-                return proj
-
-        return None
 
     async def parse_worklog(
         self,
@@ -324,14 +417,21 @@ class AIWorklogService:
         """
         warnings: List[str] = []
 
-        # Build prompts (개인화된 프롬프트 사용)
-        system_prompt = self._build_system_prompt(request.user_id)
+        # Step 1: Text preprocessing
+        normalized_text = self.preprocessor.normalize(request.text)
+        hints = self.preprocessor.extract_hints(normalized_text)
+
+        logger.debug(f"Normalized text: {normalized_text}")
+        logger.debug(f"Detected hints: {hints}")
+
+        # Step 2: Build prompts (개인화된 프롬프트 + 힌트)
+        system_prompt = self._build_system_prompt(request.user_id, hints)
         user_prompt = WorklogParserPrompt.build_user_prompt(
-            request.text,
+            normalized_text,  # Use normalized text
             request.target_date,
         )
 
-        # Call AI (Groq or Gemini)
+        # Step 3: Call AI (Groq or Gemini)
         try:
             result = await self.client.generate_json(
                 prompt=user_prompt,
@@ -345,18 +445,30 @@ class AIWorklogService:
                 warnings=[f"AI 파싱 실패: {str(e)}"],
             )
 
-        # Parse and validate entries
+        # Step 4: Parse and validate entries
         raw_entries = result.get("entries", [])
         if isinstance(result.get("warnings"), list):
             warnings.extend(result["warnings"])
 
-        # Build lookup maps
-        projects = self._load_projects()
+        # Build lookup maps with user activity prioritization
+        # User's recent projects come first (higher matching priority)
+        all_projects = self._load_projects()
         work_types = self._load_work_types()
+
+        if request.user_id:
+            # Get user's recent projects (sorted by usage frequency)
+            user_recent = self._load_user_recent_projects(request.user_id)
+            user_recent_ids = {p["id"] for p in user_recent}
+
+            # Merge: user recent first, then remaining projects
+            projects = user_recent + [p for p in all_projects if p["id"] not in user_recent_ids]
+        else:
+            projects = all_projects
+
         projects_map = {p["id"]: p for p in projects}
         work_types_map = {w["id"]: w for w in work_types}
 
-        # Validate and map entries
+        # Step 5: Validate and map entries with fuzzy matching
         entries: List[AIWorklogEntry] = []
         for raw_entry in raw_entries:
             try:
@@ -364,9 +476,11 @@ class AIWorklogService:
                     raw_entry,
                     projects_map,
                     work_types_map,
+                    original_text=normalized_text,
                 )
                 entries.append(entry)
             except Exception as e:
+                logger.warning(f"Entry validation failed: {str(e)}")
                 warnings.append(f"항목 파싱 실패: {str(e)}")
 
         # Calculate total hours

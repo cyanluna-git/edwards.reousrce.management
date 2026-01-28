@@ -335,6 +335,68 @@ class DashboardService:
             )
         member_contributions.sort(key=lambda x: x["hours"], reverse=True)
 
+        # Sub-organization contributions (for department/business_unit scopes)
+        sub_org_contributions = []
+        if scope == "department" and user_department_id:
+            # Show sub_team breakdown for department scope
+            sub_teams = (
+                self.db.query(SubTeam)
+                .filter(SubTeam.department_id == user_department_id)
+                .all()
+            )
+            for st in sub_teams:
+                st_member_ids = [m.id for m in team_members if m.sub_team_id == st.id]
+                st_hours = sum(member_hours.get(mid, 0) for mid in st_member_ids)
+                sub_org_contributions.append(
+                    {
+                        "org_id": st.id,
+                        "org_name": st.name,
+                        "org_code": st.code,
+                        "member_count": len(st_member_ids),
+                        "hours": float(st_hours),
+                        "percentage": (
+                            round((st_hours / total_team_hours) * 100, 1)
+                            if total_team_hours > 0
+                            else 0
+                        ),
+                    }
+                )
+            sub_org_contributions.sort(key=lambda x: x["hours"], reverse=True)
+        elif scope == "business_unit" and user_department:
+            # Show department breakdown for business_unit scope
+            departments = (
+                self.db.query(Department)
+                .filter(Department.division_id == user_department.division_id)
+                .all()
+            )
+            for dept in departments:
+                # Get sub_teams for this department
+                dept_sub_team_ids = [
+                    st.id
+                    for st in self.db.query(SubTeam)
+                    .filter(SubTeam.department_id == dept.id)
+                    .all()
+                ]
+                dept_member_ids = [
+                    m.id for m in team_members if m.sub_team_id in dept_sub_team_ids
+                ]
+                dept_hours = sum(member_hours.get(mid, 0) for mid in dept_member_ids)
+                sub_org_contributions.append(
+                    {
+                        "org_id": dept.id,
+                        "org_name": dept.name,
+                        "org_code": dept.code,
+                        "member_count": len(dept_member_ids),
+                        "hours": float(dept_hours),
+                        "percentage": (
+                            round((dept_hours / total_team_hours) * 100, 1)
+                            if total_team_hours > 0
+                            else 0
+                        ),
+                    }
+                )
+            sub_org_contributions.sort(key=lambda x: x["hours"], reverse=True)
+
         # Team resource allocation (current month)
         current_month = today.month
         current_year = today.year
@@ -396,6 +458,7 @@ class DashboardService:
                 "project_vs_functional": project_func_ratio,
             },
             "member_contributions": member_contributions,
+            "sub_org_contributions": sub_org_contributions,
             "resource_allocation": {
                 "current_month": f"{current_year}-{current_month:02d}",
                 "total_planned_fte": total_planned_fte,

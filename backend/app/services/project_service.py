@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 import uuid
 from datetime import datetime, timedelta
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, tuple_
 
 from app.models.project import (
     Project,
@@ -16,7 +16,8 @@ from app.models.project import (
     ProjectType as ProjectTypeModel,
     ProductLine as ProductLineModel,
 )
-from app.models.resource import WorkLog
+from app.models.resource import WorkLog, ResourcePlan
+from app.models.user import User
 from app.models.organization import BusinessUnit as BusinessUnitModel
 from app.schemas.project import (
     MilestoneCreate,
@@ -561,3 +562,205 @@ class ProjectService:
                 )
 
         return hierarchy
+
+    # ============ Project Dashboard Methods ============
+
+    def get_project_dashboard(self, project_id: str) -> dict:
+        """
+        Get comprehensive dashboard data for a single project.
+        Includes: basic info, milestone stats, resource allocation, worklog trends.
+        """
+        # Get project with relationships
+        project = (
+            self.db.query(Project)
+            .options(
+                joinedload(Project.milestones),
+                joinedload(Project.pm),
+                joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
+            )
+            .filter(Project.id == project_id)
+            .first()
+        )
+
+        if not project:
+            return None
+
+        today = datetime.now().date()
+        current_year = today.year
+        current_month = today.month
+
+        # ─── Milestone Statistics ───
+        milestones = project.milestones or []
+        milestone_stats = {
+            "total": len(milestones),
+            "completed": sum(1 for m in milestones if m.status == "Completed"),
+            "delayed": sum(1 for m in milestones if m.status == "Delayed"),
+            "pending": sum(1 for m in milestones if m.status == "Pending"),
+            "completion_rate": 0,
+            "upcoming": [],
+            "overdue": [],
+        }
+
+        if milestone_stats["total"] > 0:
+            milestone_stats["completion_rate"] = round(
+                (milestone_stats["completed"] / milestone_stats["total"]) * 100, 1
+            )
+
+        # Upcoming milestones (next 30 days)
+        for m in milestones:
+            if m.status == "Pending" and m.target_date:
+                days_until = (m.target_date.date() - today).days
+                if 0 <= days_until <= 30:
+                    milestone_stats["upcoming"].append({
+                        "id": m.id,
+                        "name": m.name,
+                        "target_date": str(m.target_date.date()),
+                        "days_until": days_until,
+                        "is_key_gate": m.is_key_gate,
+                    })
+                elif days_until < 0:
+                    milestone_stats["overdue"].append({
+                        "id": m.id,
+                        "name": m.name,
+                        "target_date": str(m.target_date.date()),
+                        "days_overdue": abs(days_until),
+                        "is_key_gate": m.is_key_gate,
+                    })
+
+        milestone_stats["upcoming"].sort(key=lambda x: x["days_until"])
+        milestone_stats["overdue"].sort(key=lambda x: x["days_overdue"], reverse=True)
+
+        # ─── Resource Allocation (current & next 3 months) ───
+        months_to_check = []
+        for i in range(4):  # Current + next 3 months
+            m = current_month + i
+            y = current_year
+            if m > 12:
+                m -= 12
+                y += 1
+            months_to_check.append((y, m))
+
+        resource_plans = (
+            self.db.query(
+                ResourcePlan.year,
+                ResourcePlan.month,
+                ResourcePlan.user_id,
+                func.sum(ResourcePlan.planned_hours).label("total_hours"),
+            )
+            .filter(
+                ResourcePlan.project_id == project_id,
+                tuple_(ResourcePlan.year, ResourcePlan.month).in_(months_to_check),
+            )
+            .group_by(ResourcePlan.year, ResourcePlan.month, ResourcePlan.user_id)
+            .all()
+        )
+
+        # Aggregate by month
+        monthly_resources = {}
+        for rp in resource_plans:
+            key = f"{rp.year}-{rp.month:02d}"
+            if key not in monthly_resources:
+                monthly_resources[key] = {
+                    "month": key,
+                    "total_hours": 0,
+                    "assigned_count": 0,
+                    "tbd_count": 0,
+                }
+            monthly_resources[key]["total_hours"] += float(rp.total_hours or 0)
+            if rp.user_id:
+                monthly_resources[key]["assigned_count"] += 1
+            else:
+                monthly_resources[key]["tbd_count"] += 1
+
+        resource_summary = [
+            monthly_resources.get(f"{y}-{m:02d}", {
+                "month": f"{y}-{m:02d}",
+                "total_hours": 0,
+                "assigned_count": 0,
+                "tbd_count": 0,
+            })
+            for y, m in months_to_check
+        ]
+
+        # ─── Worklog Trends (last 4 weeks) ───
+        four_weeks_ago = today - timedelta(days=28)
+        weekly_worklogs = (
+            self.db.query(
+                func.date_trunc("week", WorkLog.date).label("week_start"),
+                func.sum(WorkLog.hours).label("total_hours"),
+                func.count(func.distinct(WorkLog.user_id)).label("unique_users"),
+            )
+            .filter(
+                WorkLog.project_id == project_id,
+                WorkLog.date >= four_weeks_ago,
+            )
+            .group_by(func.date_trunc("week", WorkLog.date))
+            .order_by(func.date_trunc("week", WorkLog.date))
+            .all()
+        )
+
+        worklog_trends = [
+            {
+                "week_start": str(wl.week_start.date()) if wl.week_start else None,
+                "total_hours": float(wl.total_hours) if wl.total_hours else 0,
+                "unique_users": int(wl.unique_users),
+            }
+            for wl in weekly_worklogs
+        ]
+
+        # ─── Team Members (users who logged work in last 90 days) ───
+        ninety_days_ago = today - timedelta(days=90)
+        active_members = (
+            self.db.query(
+                User.id,
+                User.name,
+                User.korean_name,
+                func.sum(WorkLog.hours).label("total_hours"),
+            )
+            .join(WorkLog, WorkLog.user_id == User.id)
+            .filter(
+                WorkLog.project_id == project_id,
+                WorkLog.date >= ninety_days_ago,
+            )
+            .group_by(User.id, User.name, User.korean_name)
+            .order_by(func.sum(WorkLog.hours).desc())
+            .limit(10)
+            .all()
+        )
+
+        team_members = [
+            {
+                "user_id": m.id,
+                "name": m.name,
+                "korean_name": m.korean_name,
+                "total_hours": float(m.total_hours) if m.total_hours else 0,
+            }
+            for m in active_members
+        ]
+
+        # ─── Build Response ───
+        return {
+            "project": {
+                "id": project.id,
+                "code": project.code,
+                "name": project.name,
+                "status": project.status,
+                "category": project.category,
+                "scale": project.scale,
+                "customer": project.customer,
+                "product": project.product,
+                "start_month": project.start_month,
+                "end_month": project.end_month,
+                "pm": {
+                    "id": project.pm.id,
+                    "name": project.pm.name,
+                    "korean_name": project.pm.korean_name,
+                } if project.pm else None,
+                "business_unit": project.product_line.business_unit.name if project.product_line and project.product_line.business_unit else None,
+                "product_line": project.product_line.name if project.product_line else None,
+            },
+            "milestone_stats": milestone_stats,
+            "resource_summary": resource_summary,
+            "worklog_trends": worklog_trends,
+            "team_members": team_members,
+        }
