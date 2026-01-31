@@ -9,6 +9,7 @@ from sqlalchemy import func, and_, extract
 
 from app.models.resource import ResourcePlan, WorkLog
 from app.models.project import Project
+from app.models.internal_io import InternalIO
 from app.models.organization import JobPosition
 
 
@@ -51,13 +52,14 @@ class ReportService:
         # By project aggregation
         by_project = (
             self.db.query(
-                Project.code,
+                InternalIO.io_number,
                 Project.name,
                 func.sum(ResourcePlan.planned_hours).label("total_fte"),
             )
             .join(Project, ResourcePlan.project_id == Project.id)
+            .outerjoin(InternalIO, Project.internal_io_id == InternalIO.id)
             .filter(ResourcePlan.year == year)
-            .group_by(Project.code, Project.name)
+            .group_by(InternalIO.io_number, Project.name)
             .order_by(func.sum(ResourcePlan.planned_hours).desc())
             .limit(10)
             .all()
@@ -79,7 +81,7 @@ class ReportService:
             ],
             "by_project": [
                 {
-                    "code": p.code,
+                    "code": p.io_number,
                     "name": p.name,
                     "total_fte": float(p.total_fte) if p.total_fte else 0,
                 }
@@ -125,13 +127,14 @@ class ReportService:
         # By project (top 10)
         by_project = (
             self.db.query(
-                Project.code,
+                InternalIO.io_number,
                 Project.name,
                 func.sum(WorkLog.hours).label("total_hours"),
             )
             .join(Project, WorkLog.project_id == Project.id)
+            .outerjoin(InternalIO, Project.internal_io_id == InternalIO.id)
             .filter(extract("year", WorkLog.date) == year)
-            .group_by(Project.code, Project.name)
+            .group_by(InternalIO.io_number, Project.name)
             .order_by(func.sum(WorkLog.hours).desc())
             .limit(10)
             .all()
@@ -156,7 +159,7 @@ class ReportService:
             ],
             "by_project": [
                 {
-                    "code": p.code,
+                    "code": p.io_number,
                     "name": p.name,
                     "total_hours": float(p.total_hours) if p.total_hours else 0,
                 }
@@ -173,16 +176,17 @@ class ReportService:
         results = (
             self.db.query(
                 WorkLog.project_id,
-                Project.code.label("project_code"),
+                InternalIO.io_number.label("project_code"),
                 Project.name.label("project_name"),
                 extract("year", WorkLog.date).label("year"),
                 extract("month", WorkLog.date).label("month"),
                 func.sum(WorkLog.hours).label("total_hours"),
             )
             .join(Project, WorkLog.project_id == Project.id)
+            .outerjoin(InternalIO, Project.internal_io_id == InternalIO.id)
             .group_by(
                 WorkLog.project_id,
-                Project.code,
+                InternalIO.io_number,
                 Project.name,
                 extract("year", WorkLog.date),
                 extract("month", WorkLog.date),

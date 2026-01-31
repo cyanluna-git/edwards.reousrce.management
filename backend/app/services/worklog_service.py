@@ -9,6 +9,7 @@ from sqlalchemy import func, cast, Date
 
 from app.models.resource import WorkLog
 from app.models.project import Project
+from app.utils import get_io_number
 from app.schemas.worklog import (
     WorkLogCreate,
     WorkLogUpdate,
@@ -251,7 +252,7 @@ class WorkLogService:
             if pid not in project_hours:
                 project_hours[pid] = {
                     "project_id": pid,
-                    "project_code": wl.project.code if wl.project else "N/A",
+                    "project_code": get_io_number(wl.project) if wl.project else "N/A",
                     "project_name": wl.project.name if wl.project else "Unknown",
                     "hours": 0.0,
                 }

@@ -11,6 +11,7 @@ from app.models.project import Project, Program
 from app.models.organization import JobPosition, ProjectRole
 from app.models.user import User
 from app.schemas.resource_plan import ResourcePlanCreate, ResourcePlanUpdate
+from app.utils import get_io_number
 
 
 class ResourcePlanService:
@@ -40,7 +41,7 @@ class ResourcePlanService:
             "created_at": plan.created_at,
             "updated_at": plan.updated_at,
             "project_name": plan.project.name if plan.project else None,
-            "project_code": plan.project.code if plan.project else None,
+            "project_code": get_io_number(plan.project) if plan.project else None,
             "position_name": plan.position.name if plan.position else None,
             "project_role_name": project_role_name,
             "user_name": plan.user.name if plan.user else None,
@@ -272,12 +273,15 @@ class ResourcePlanService:
         for r in results:
             if r.project_id not in project_map:
                 project = (
-                    self.db.query(Project).filter(Project.id == r.project_id).first()
+                    self.db.query(Project)
+                    .options(joinedload(Project.internal_io))
+                    .filter(Project.id == r.project_id)
+                    .first()
                 )
                 if project:
                     project_map[r.project_id] = {
                         "id": project.id,
-                        "code": project.code,
+                        "code": get_io_number(project),
                         "name": project.name,
                     }
 

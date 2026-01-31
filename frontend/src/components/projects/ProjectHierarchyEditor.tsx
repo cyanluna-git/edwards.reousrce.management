@@ -136,22 +136,22 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const sustainingProjects = useMemo(() => {
         return allProjects.filter((p: Project) =>
             p.project_type_id === 'SUSTAINING' ||
-            p.code?.startsWith('VSS') ||
-            p.code?.startsWith('SUN')
+            p.internal_io?.io_number?.startsWith('VSS') ||
+            p.internal_io?.io_number?.startsWith('SUN')
         );
     }, [allProjects]);
 
     // Split sustaining projects into VSS and SUN groups
     const vssProjects = useMemo(() => {
         return sustainingProjects
-            .filter((p: Project) => p.funding_entity_id === 'ENTITY_VSS' || p.code?.startsWith('VSS'))
-            .sort((a: Project, b: Project) => (a.code || '').localeCompare(b.code || ''));
+            .filter((p: Project) => p.funding_entity_id === 'ENTITY_VSS' || p.internal_io?.io_number?.startsWith('VSS'))
+            .sort((a: Project, b: Project) => (a.internal_io?.io_number || '').localeCompare(b.internal_io?.io_number || ''));
     }, [sustainingProjects]);
 
     const sunProjects = useMemo(() => {
         return sustainingProjects
-            .filter((p: Project) => p.funding_entity_id === 'ENTITY_SUN' || p.code?.startsWith('SUN'))
-            .sort((a: Project, b: Project) => (a.code || '').localeCompare(b.code || ''));
+            .filter((p: Project) => p.funding_entity_id === 'ENTITY_SUN' || p.internal_io?.io_number?.startsWith('SUN'))
+            .sort((a: Project, b: Project) => (a.internal_io?.io_number || '').localeCompare(b.internal_io?.io_number || ''));
     }, [sustainingProjects]);
 
     // Sorting and filtering are now handled by ProjectInlineTable component
@@ -404,7 +404,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}>
                                                 <span>⚠️</span>
                                                 <span>{proj.name}</span>
-                                                <span className="text-xs text-muted-foreground">{proj.code}</span>
+                                                <span className="text-xs text-muted-foreground">{proj.internal_io?.io_number || '-'}</span>
                                                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                                                     proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
                                                     proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
@@ -539,7 +539,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}>
                                                                             <span>🔹</span>
                                                                             <span>{proj.name}</span>
-                                                                            <span className="text-xs text-muted-foreground">{proj.code}</span>
+                                                                            <span className="text-xs text-muted-foreground">{proj.internal_io?.io_number || '-'}</span>
                                                                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
                                                                                 proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
                                                                                     'bg-yellow-100 text-yellow-700'
@@ -614,7 +614,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 className="border-b hover:bg-blue-50 cursor-pointer"
                                                 onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
                                             >
-                                                <td className="p-2 font-mono text-xs font-semibold text-blue-700">{proj.code}</td>
+                                                <td className="p-2 font-mono text-xs font-semibold text-blue-700">{proj.internal_io?.io_number || '-'}</td>
                                                 <td className="p-2">{proj.name?.replace('VSS - ', '')}</td>
                                                 <td className="p-2">
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -675,7 +675,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 className="border-b hover:bg-orange-50 cursor-pointer"
                                                 onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
                                             >
-                                                <td className="p-2 font-mono text-xs font-semibold text-orange-700">{proj.code}</td>
+                                                <td className="p-2 font-mono text-xs font-semibold text-orange-700">{proj.internal_io?.io_number || '-'}</td>
                                                 <td className="p-2">{proj.name?.replace('SUN - ', '')}</td>
                                                 <td className="p-2">
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded ${
@@ -765,7 +765,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'functional' } })}>
                                                             <span>🔹</span>
                                                             <span>{proj.name}</span>
-                                                            <span className="text-xs text-muted-foreground">{proj.code}</span>
+                                                            <span className="text-xs text-muted-foreground">{proj.internal_io?.io_number || '-'}</span>
                                                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
                                                                 proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
                                                                     'bg-yellow-100 text-yellow-700'

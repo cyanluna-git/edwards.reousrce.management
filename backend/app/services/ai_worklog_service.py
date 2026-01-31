@@ -12,7 +12,10 @@ from sqlalchemy import func, case, desc
 logger = logging.getLogger(__name__)
 
 from app.models.project import Project
+from app.models.internal_io import InternalIO
 from app.models.work_type import WorkTypeCategory
+from sqlalchemy.orm import joinedload
+from app.utils import get_io_number
 from app.models.resource import WorkLog
 from app.models.user import User
 from app.services.gemini_client import GeminiClient, gemini_client
@@ -73,6 +76,7 @@ class AIWorklogService:
 
         projects = (
             self.db.query(Project)
+            .options(joinedload(Project.internal_io))
             .filter(Project.status.in_(["Planned", "InProgress"]))
             .order_by(
                 # InProgress projects come first (0), then Planned (1)
@@ -86,7 +90,7 @@ class AIWorklogService:
         self._projects_cache = [
             {
                 "id": p.id,
-                "code": p.code,
+                "code": get_io_number(p),
                 "name": p.name,
             }
             for p in projects
@@ -175,13 +179,18 @@ class AIWorklogService:
 
         # 프로젝트 정보 조회 (빈도순 유지)
         project_ids = [ps.project_id for ps in project_stats]
-        projects = self.db.query(Project).filter(Project.id.in_(project_ids)).all()
+        projects = (
+            self.db.query(Project)
+            .options(joinedload(Project.internal_io))
+            .filter(Project.id.in_(project_ids))
+            .all()
+        )
 
         # 빈도순으로 정렬하기 위해 맵 사용
         projects_map = {p.id: p for p in projects}
 
         return [
-            {"id": p_id, "code": projects_map[p_id].code, "name": projects_map[p_id].name}
+            {"id": p_id, "code": get_io_number(projects_map[p_id]), "name": projects_map[p_id].name}
             for p_id in project_ids
             if p_id in projects_map
         ]

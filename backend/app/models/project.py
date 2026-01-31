@@ -104,7 +104,10 @@ class Project(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     program_id = Column(String(50), ForeignKey("programs.id"), nullable=False)
     project_type_id = Column(String(20), ForeignKey("project_types.id"), nullable=False)
-    code = Column(String(50), unique=True, nullable=False)  # IO Code
+
+    # Internal IO relationship (replaces old 'code' column)
+    internal_io_id = Column(String(36), ForeignKey("internal_ios.id"), nullable=True)
+
     name = Column(String(300), nullable=False)  # NVARCHAR
     status = Column(
         String(20), default="Prospective"
@@ -141,6 +144,7 @@ class Project(Base):
     program = relationship("Program", back_populates="projects")
     project_type = relationship("ProjectType", back_populates="projects")
     product_line = relationship("ProductLine", back_populates="projects")
+    internal_io = relationship("InternalIO", back_populates="projects")
 
     # 다대다 관계: 여러 제품군에 걸치는 프로젝트 지원 (NEW)
     product_lines = relationship(

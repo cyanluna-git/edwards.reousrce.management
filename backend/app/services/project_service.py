@@ -16,8 +16,10 @@ from app.models.project import (
     ProjectType as ProjectTypeModel,
     ProductLine as ProductLineModel,
 )
+from app.models.internal_io import InternalIO
 from app.models.resource import WorkLog, ResourcePlan
 from app.models.user import User
+from app.utils import project_to_hierarchy_dict
 from app.models.organization import BusinessUnit as BusinessUnitModel
 from app.schemas.project import (
     MilestoneCreate,
@@ -97,7 +99,7 @@ class ProjectService:
         if sort_by == "activity":
             query = query.order_by(desc("recent_activity_score"))
         else:
-            query = query.order_by(Project.code)
+            query = query.order_by(Project.name)
 
         results = query.offset(skip).limit(limit).all()
 
@@ -112,25 +114,6 @@ class ProjectService:
     def create_project(self, project_in: ProjectCreate) -> Project:
         """Create a new project."""
         project_data = project_in.model_dump()
-
-        # Auto-generate code if not provided
-        if not project_data.get("code"):
-            # Get the max existing PRJ-XXX code and increment
-            max_code_result = (
-                self.db.query(Project.code)
-                .filter(Project.code.like("PRJ-%"))
-                .order_by(Project.code.desc())
-                .first()
-            )
-            if max_code_result and max_code_result[0]:
-                try:
-                    # Extract number from PRJ-XXX format
-                    last_num = int(max_code_result[0].replace("PRJ-", ""))
-                    project_data["code"] = f"PRJ-{last_num + 1}"
-                except ValueError:
-                    project_data["code"] = f"PRJ-{uuid.uuid4().hex[:8].upper()}"
-            else:
-                project_data["code"] = "PRJ-1"
 
         db_project = Project(id=str(uuid.uuid4()), **project_data)
         self.db.add(db_project)
@@ -383,24 +366,16 @@ class ProjectService:
                 # Get projects for this product line
                 projects = (
                     self.db.query(Project)
+                    .options(joinedload(Project.internal_io))
                     .filter(
                         Project.product_line_id == pl.id, Project.category == "PRODUCT"
                     )
-                    .order_by(Project.code)
+                    .order_by(Project.name)
                     .all()
                 )
 
                 # Always include Product Line, even if no projects (so it can be managed in UI)
-                pl_children = [
-                    {
-                        "id": p.id,
-                        "code": p.code,
-                        "name": p.name,
-                        "status": p.status,
-                        "type": "project",
-                    }
-                    for p in projects
-                ]
+                pl_children = [project_to_hierarchy_dict(p) for p in projects]
                 bu_children.append(
                     {
                         "id": pl.id,
@@ -426,11 +401,14 @@ class ProjectService:
 
         # Build Functional Projects tree (filtered by department if provided)
         # Exclude SUSTAINING projects (VSS/SUN Matrix IO buckets) as they have their own tab
-        functional_query = self.db.query(Project).filter(
-            Project.category == "FUNCTIONAL",
-            Project.project_type_id != "SUSTAINING",
-            ~Project.code.like("VSS%"),
-            ~Project.code.like("SUN%"),
+        functional_query = (
+            self.db.query(Project)
+            .outerjoin(InternalIO, Project.internal_io_id == InternalIO.id)
+            .options(joinedload(Project.internal_io))
+            .filter(
+                Project.category == "FUNCTIONAL",
+                Project.project_type_id != "SUSTAINING",
+            )
         )
 
         if user_department_id:
@@ -438,7 +416,7 @@ class ProjectService:
                 Project.owner_department_id == user_department_id
             )
 
-        functional_projects_db = functional_query.order_by(Project.code).all()
+        functional_projects_db = functional_query.order_by(Project.name).all()
 
         # Group by department
         dept_map: dict[str, Any] = {}
@@ -458,25 +436,11 @@ class ProjectService:
                         "children": [],
                     }
                 dept_map[p.owner_department_id]["children"].append(
-                    {
-                        "id": p.id,
-                        "code": p.code,
-                        "name": p.name,
-                        "status": p.status,
-                        "type": "project",
-                    }
+                    project_to_hierarchy_dict(p)
                 )
             else:
                 # Collect functional projects without owner_department_id
-                ungrouped_functional.append(
-                    {
-                        "id": p.id,
-                        "code": p.code,
-                        "name": p.name,
-                        "status": p.status,
-                        "type": "project",
-                    }
-                )
+                ungrouped_functional.append(project_to_hierarchy_dict(p))
 
         functional_projects = list(dept_map.values())
 
@@ -492,23 +456,17 @@ class ProjectService:
         # Get ungrouped PRODUCT projects (no product_line_id assigned)
         ungrouped_product_projects = (
             self.db.query(Project)
+            .options(joinedload(Project.internal_io))
             .filter(
                 Project.category == "PRODUCT",
                 Project.product_line_id == None,
             )
-            .order_by(Project.code)
+            .order_by(Project.name)
             .all()
         )
 
         ungrouped_projects = [
-            {
-                "id": p.id,
-                "code": p.code,
-                "name": p.name,
-                "status": p.status,
-                "type": "project",
-            }
-            for p in ungrouped_product_projects
+            project_to_hierarchy_dict(p) for p in ungrouped_product_projects
         ]
 
         return {
@@ -742,7 +700,7 @@ class ProjectService:
         return {
             "project": {
                 "id": project.id,
-                "code": project.code,
+                "internal_io": {"io_number": project.internal_io.io_number, "name": project.internal_io.name} if project.internal_io else None,
                 "name": project.name,
                 "status": project.status,
                 "category": project.category,

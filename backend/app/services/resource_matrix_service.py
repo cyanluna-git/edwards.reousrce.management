@@ -5,11 +5,13 @@ Service for Resource Allocation Matrix
 from datetime import datetime
 from typing import Optional, Dict, List
 from collections import defaultdict
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 
 from app.models.resource import ResourcePlan
 from app.models.project import Program, Project
+from app.models.internal_io import InternalIO
+from app.utils import get_io_number
 from app.schemas.resource_matrix import (
     ResourceAllocationDetail,
     MonthlyAllocation,
@@ -73,11 +75,20 @@ def get_resource_allocation_matrix(
     start_dt = datetime.strptime(start_month, "%Y-%m")
     end_dt = datetime.strptime(end_month, "%Y-%m")
 
-    # Query all resource plans in the date range
-    query = db.query(ResourcePlan).filter(
-        and_(
-            ResourcePlan.year >= start_dt.year,
-            ResourcePlan.year <= end_dt.year,
+    # Query all resource plans in the date range with eager loading to prevent N+1
+    query = (
+        db.query(ResourcePlan)
+        .options(
+            joinedload(ResourcePlan.project).joinedload(Project.internal_io),
+            joinedload(ResourcePlan.user),
+            joinedload(ResourcePlan.project_role),
+            joinedload(ResourcePlan.position),
+        )
+        .filter(
+            and_(
+                ResourcePlan.year >= start_dt.year,
+                ResourcePlan.year <= end_dt.year,
+            )
         )
     )
 
@@ -119,8 +130,12 @@ def get_resource_allocation_matrix(
     programs: List[ProgramGroup] = []
     grand_total_by_month: Dict[str, float] = {month: 0.0 for month in months}
 
-    # Query all programs (or filtered)
-    programs_query = db.query(Program).filter(Program.is_active == True)
+    # Query all programs (or filtered), including internal_io for projects
+    programs_query = (
+        db.query(Program)
+        .options(joinedload(Program.projects).joinedload(Project.internal_io))
+        .filter(Program.is_active == True)
+    )
     if program_id:
         programs_query = programs_query.filter(Program.id == program_id)
 
@@ -153,7 +168,7 @@ def get_resource_allocation_matrix(
                 projects.append(
                     ProjectAllocationRow(
                         project_id=project.id,
-                        project_code=project.code,
+                        project_code=get_io_number(project),
                         project_name=project.name,
                         category=project.category,
                         allocations=allocations,

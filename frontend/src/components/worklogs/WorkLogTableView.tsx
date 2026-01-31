@@ -202,7 +202,7 @@ export function WorkLogTableView() {
                         >
                             <option value="">All Projects</option>
                             {filteredProjects.map(p => (
-                                <option key={p.id} value={p.id}>{p.code} - {p.name}</option>
+                                <option key={p.id} value={p.id}>{p.internal_io?.io_number || p.id.slice(0, 8)} - {p.name}</option>
                             ))}
                         </select>
                     </div>

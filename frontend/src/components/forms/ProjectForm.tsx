@@ -95,7 +95,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             return {
                 program_id: project.program_id || undefined,
                 project_type_id: project.project_type_id || undefined,
-                code: project.code || '',
+                internal_io_id: project.internal_io_id || undefined,
                 name: project.name || '',
                 status: project.status || 'Prospective',
                 scale: project.scale || undefined,
@@ -183,19 +183,13 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 SECTION 1: Basic Info
             ═══════════════════════════════════════════════════════════════ */}
             <div className="space-y-3">
-                {/* Row 1: Project Name (+ Code in create mode) */}
-                <div className={`grid gap-3 ${!isEditMode ? 'grid-cols-[1fr_150px]' : 'grid-cols-1'}`}>
+                {/* Row 1: Project Name */}
+                <div className="grid gap-3 grid-cols-1">
                     <div>
                         <Label htmlFor="name" className="text-xs">Project Name</Label>
                         <Input id="name" {...register('name', { required: 'Project Name is required' })} className="h-8" />
                         {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
                     </div>
-                    {!isEditMode && (
-                        <div>
-                            <Label htmlFor="code" className="text-xs">Code (optional)</Label>
-                            <Input id="code" {...register('code')} placeholder="Auto" className="h-8" />
-                        </div>
-                    )}
                 </div>
 
                 {/* Row 2: Category, Status, Scale */}

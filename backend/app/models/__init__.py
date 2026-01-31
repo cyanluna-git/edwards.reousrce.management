@@ -10,6 +10,7 @@ from app.models.organization import (
     ProjectRole,
 )
 from app.models.user import User, UserHistory
+from app.models.internal_io import InternalIO
 from app.models.project import (
     Program,
     ProjectType,
@@ -35,6 +36,8 @@ __all__ = [
     # User
     "User",
     "UserHistory",
+    # Internal IO
+    "InternalIO",
     # Project
     "Program",
     "ProjectType",

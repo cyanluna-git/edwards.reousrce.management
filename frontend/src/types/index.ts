@@ -100,10 +100,32 @@ export interface ProductLine {
 export type ProjectStatus = 'Prospective' | 'Planned' | 'InProgress' | 'OnHold' | 'Cancelled' | 'Completed'
 export type ProjectScale = 'CIP' | 'A&D' | 'Simple' | 'Complex' | 'Platform'
 
+// Internal IO (Internal Order) - for financial tracking
+export interface InternalIO {
+    id: string
+    io_number: string
+    name?: string
+    description?: string
+    is_active: boolean
+}
+
+export interface InternalIOCreate {
+    io_number: string
+    name?: string
+    description?: string
+}
+
+export interface InternalIOUpdate {
+    io_number?: string
+    name?: string
+    description?: string
+    is_active?: boolean
+}
+
 export interface ProjectBase {
     program_id: string
     project_type_id: string
-    code: string
+    internal_io_id?: string  // FK to internal_ios table
     name: string
     status: ProjectStatus
     scale?: ProjectScale
@@ -130,7 +152,7 @@ export interface ProjectCreate extends ProjectBase { }
 export interface ProjectUpdate {
     program_id?: string
     project_type_id?: string
-    code?: string
+    internal_io_id?: string
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
@@ -156,6 +178,7 @@ export interface Project extends ProjectBase {
     program?: Program
     project_type?: ProjectType
     product_line?: ProductLine
+    internal_io?: InternalIO  // Nested IO info
     pm?: User
     recent_activity_score?: number;
 }

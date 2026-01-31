@@ -330,7 +330,7 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Project Details Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">{project.name} ({project.code})</CardTitle>
+          <CardTitle className="text-2xl font-bold">{project.name} {project.internal_io?.io_number && `(${project.internal_io.io_number})`}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">

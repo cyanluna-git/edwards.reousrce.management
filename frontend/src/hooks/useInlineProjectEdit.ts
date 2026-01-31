@@ -27,7 +27,7 @@ export function useInlineProjectEdit() {
     setEditState({
       projectId: project.id,
       fields: {
-        code: project.code,
+        internal_io_id: project.internal_io_id,
         name: project.name,
         category: project.category,
         status: project.status,

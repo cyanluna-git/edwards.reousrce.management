@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.organization import Department, SubTeam
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
+from app.utils import get_io_number
 
 
 class DashboardService:
@@ -52,9 +53,12 @@ class DashboardService:
         projects_map = {}
         if worklog_project_ids:
             projects = (
-                self.db.query(Project).filter(Project.id.in_(worklog_project_ids)).all()
+                self.db.query(Project)
+                .options(joinedload(Project.internal_io))
+                .filter(Project.id.in_(worklog_project_ids))
+                .all()
             )
-            projects_map = {p.id: {"code": p.code, "name": p.name} for p in projects}
+            projects_map = {p.id: {"code": get_io_number(p), "name": p.name} for p in projects}
 
         weekly_summary = {
             "week_start": str(week_start),
@@ -120,7 +124,7 @@ class DashboardService:
                 my_projects.append(
                     {
                         "id": project.id,
-                        "code": project.code,
+                        "code": get_io_number(project),
                         "name": project.name,
                         "status": project.status,
                         "milestones": key_milestones,
@@ -275,9 +279,14 @@ class DashboardService:
         project_ids = list(project_hours.keys())
         projects_map = {}
         if project_ids:
-            projects = self.db.query(Project).filter(Project.id.in_(project_ids)).all()
+            projects = (
+                self.db.query(Project)
+                .options(joinedload(Project.internal_io))
+                .filter(Project.id.in_(project_ids))
+                .all()
+            )
             projects_map = {
-                p.id: {"code": p.code, "name": p.name, "category": p.category}
+                p.id: {"code": get_io_number(p), "name": p.name, "category": p.category}
                 for p in projects
             }
 

@@ -40,12 +40,12 @@ const SortIconDefault = <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
 const SortIconAsc = <ArrowUp className="h-3 w-3 ml-1 text-gray-700" />;
 const SortIconDesc = <ArrowDown className="h-3 w-3 ml-1 text-gray-700" />;
 
-type SortField = 'code' | 'name' | 'category' | 'status' | 'start_month' | 'end_month';
+type SortField = 'name' | 'category' | 'status' | 'start_month' | 'end_month';
 type SortDirection = 'asc' | 'desc' | null;
 
 // Column definitions with default widths
 const COLUMN_CONFIG = {
-  code: { label: 'Code', minWidth: 80, defaultWidth: 100, sortable: true },
+  internal_io: { label: 'Internal IO', minWidth: 80, defaultWidth: 100, sortable: false },
   name: { label: 'Name', minWidth: 120, defaultWidth: 180, sortable: true },
   category: { label: 'Category', minWidth: 80, defaultWidth: 100, sortable: true },
   status: { label: 'Status', minWidth: 80, defaultWidth: 100, sortable: true },
@@ -292,7 +292,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
           <Table className="w-full" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
             <TableHeader className="bg-slate-100">
               <TableRow>
-                {renderResizableHeader('code', 'code')}
+                {renderResizableHeader('internal_io')}
                 {renderResizableHeader('name', 'name')}
                 {renderResizableHeader('category', 'category')}
                 {renderResizableHeader('status', 'status')}

@@ -36,7 +36,7 @@ const FUNDING_ENTITY_MAP = new Map(
 
 // Column width type matching COLUMN_CONFIG keys
 type ColumnWidths = {
-  code: number;
+  internal_io: number;
   name: number;
   category: number;
   status: number;
@@ -119,15 +119,11 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   if (isEditing) {
     return (
       <TableRow className="bg-blue-50 border-l-4 border-blue-500">
-        {/* Code */}
-        <TableCell style={{ width: columnWidths.code }}>
-          <TextCell
-            value={editState.fields.code}
-            onChange={(value) => updateField('code', value)}
-            error={editState.errors.code}
-            placeholder="Code"
-            className="font-mono w-full"
-          />
+        {/* Internal IO */}
+        <TableCell style={{ width: columnWidths.internal_io }}>
+          <span className="font-mono text-xs text-gray-500">
+            {project.internal_io?.io_number || '-'}
+          </span>
         </TableCell>
 
         {/* Name */}
@@ -295,9 +291,9 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   // View Mode
   return (
     <TableRow className="bg-white hover:bg-slate-50">
-      {/* Code */}
-      <TableCell className="font-mono text-xs text-gray-900 truncate" style={{ width: columnWidths.code }}>
-        {project.code}
+      {/* Internal IO */}
+      <TableCell className="font-mono text-xs text-gray-900 truncate" style={{ width: columnWidths.internal_io }}>
+        {project.internal_io?.io_number || '-'}
       </TableCell>
 
       {/* Name */}
