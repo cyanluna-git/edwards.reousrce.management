@@ -2,7 +2,7 @@
  * ProjectInlineTable - Excel-style inline editable table for projects
  * Main table component with sorting, filtering, and inline editing
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   Table,
   TableHeader,
@@ -31,6 +31,26 @@ import { InlineEditableRow } from './InlineEditableRow';
 
 type SortField = 'code' | 'name' | 'category' | 'status' | 'start_month' | 'end_month';
 type SortDirection = 'asc' | 'desc' | null;
+
+// Column definitions with default widths
+const COLUMN_CONFIG = {
+  code: { label: 'Code', minWidth: 80, defaultWidth: 100, sortable: true },
+  name: { label: 'Name', minWidth: 120, defaultWidth: 180, sortable: true },
+  category: { label: 'Category', minWidth: 80, defaultWidth: 100, sortable: true },
+  status: { label: 'Status', minWidth: 80, defaultWidth: 100, sortable: true },
+  business_unit: { label: 'Business Unit', minWidth: 100, defaultWidth: 150, sortable: false },
+  product_line: { label: 'Product Line', minWidth: 100, defaultWidth: 150, sortable: false },
+  pm: { label: 'PM', minWidth: 80, defaultWidth: 120, sortable: false },
+  scale: { label: 'Scale', minWidth: 60, defaultWidth: 80, sortable: false },
+  customer: { label: 'Customer', minWidth: 80, defaultWidth: 100, sortable: false },
+  product: { label: 'Product', minWidth: 80, defaultWidth: 120, sortable: false },
+  start_month: { label: 'Start Month', minWidth: 100, defaultWidth: 120, sortable: true },
+  end_month: { label: 'End Month', minWidth: 100, defaultWidth: 120, sortable: true },
+  funding_entity: { label: 'Funding Entity', minWidth: 100, defaultWidth: 140, sortable: false },
+  recharge_status: { label: 'Recharge Status', minWidth: 80, defaultWidth: 120, sortable: false },
+} as const;
+
+type ColumnKey = keyof typeof COLUMN_CONFIG;
 
 interface ProjectInlineTableProps {
   projects: Project[];
@@ -62,6 +82,52 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
     open: false,
     project: null,
   });
+
+  // Column resize state
+  const [columnWidths, setColumnWidths] = useState<Record<ColumnKey, number>>(() => {
+    const initial: Record<string, number> = {};
+    Object.entries(COLUMN_CONFIG).forEach(([key, config]) => {
+      initial[key] = config.defaultWidth;
+    });
+    return initial as Record<ColumnKey, number>;
+  });
+
+  // Resize refs
+  const resizingRef = useRef<{ column: ColumnKey; startX: number; startWidth: number } | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Handle column resize start
+  const handleResizeStart = useCallback((e: React.MouseEvent, column: ColumnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingRef.current = {
+      column,
+      startX: e.clientX,
+      startWidth: columnWidths[column],
+    };
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [columnWidths]);
+
+  // Handle column resize move
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!resizingRef.current) return;
+    const { column, startX, startWidth } = resizingRef.current;
+    const diff = e.clientX - startX;
+    const newWidth = Math.max(COLUMN_CONFIG[column].minWidth, startWidth + diff);
+    setColumnWidths(prev => ({ ...prev, [column]: newWidth }));
+  }, []);
+
+  // Handle column resize end
+  const handleResizeEnd = useCallback(() => {
+    resizingRef.current = null;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, [handleResizeMove]);
 
   // Hooks
   const {
@@ -146,6 +212,37 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
     return <ArrowDown className="h-3 w-3 ml-1 text-gray-700" />;
   };
 
+  // Render resizable header
+  const renderResizableHeader = (
+    column: ColumnKey,
+    sortField?: SortField,
+    showResize: boolean = true
+  ) => {
+    const config = COLUMN_CONFIG[column];
+    const isSortable = config.sortable && sortField;
+
+    return (
+      <TableHead
+        className={`relative select-none text-gray-900 font-semibold ${isSortable ? 'cursor-pointer' : ''}`}
+        style={{ width: columnWidths[column], minWidth: config.minWidth }}
+        onClick={isSortable ? () => handleSort(sortField) : undefined}
+      >
+        <div className="flex items-center pr-2">
+          {config.label}
+          {isSortable && renderSortIcon(sortField)}
+        </div>
+        {showResize && (
+          <div
+            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-400 active:bg-blue-500 group"
+            onMouseDown={(e) => handleResizeStart(e, column)}
+          >
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-gray-300 group-hover:bg-blue-400" />
+          </div>
+        )}
+      </TableHead>
+    );
+  };
+
   // Handle delete
   const handleDeleteConfirm = async () => {
     if (!deleteConfirm.project) return;
@@ -186,74 +283,26 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
         )}
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="overflow-x-auto" ref={tableRef}>
+          <Table style={{ tableLayout: 'fixed' }}>
             <TableHeader className="bg-slate-100">
               <TableRow>
-                <TableHead
-                  className="cursor-pointer select-none w-32 text-gray-900 font-semibold"
-                  onClick={() => handleSort('code')}
-                >
-                  <div className="flex items-center">
-                    Code
-                    {renderSortIcon('code')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none min-w-[200px] text-gray-900 font-semibold"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center">
-                    Name
-                    {renderSortIcon('name')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none w-32 text-gray-900 font-semibold"
-                  onClick={() => handleSort('category')}
-                >
-                  <div className="flex items-center">
-                    Category
-                    {renderSortIcon('category')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none w-32 text-gray-900 font-semibold"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center">
-                    Status
-                    {renderSortIcon('status')}
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[150px] text-gray-900 font-semibold">Business Unit</TableHead>
-                <TableHead className="min-w-[150px] text-gray-900 font-semibold">Product Line</TableHead>
-                <TableHead className="min-w-[120px] text-gray-900 font-semibold">PM</TableHead>
-                <TableHead className="w-24 text-gray-900 font-semibold">Scale</TableHead>
-                <TableHead className="min-w-[120px] text-gray-900 font-semibold">Customer</TableHead>
-                <TableHead className="min-w-[120px] text-gray-900 font-semibold">Product</TableHead>
-                <TableHead
-                  className="cursor-pointer select-none w-32 text-gray-900 font-semibold"
-                  onClick={() => handleSort('start_month')}
-                >
-                  <div className="flex items-center">
-                    Start Month
-                    {renderSortIcon('start_month')}
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer select-none w-32 text-gray-900 font-semibold"
-                  onClick={() => handleSort('end_month')}
-                >
-                  <div className="flex items-center">
-                    End Month
-                    {renderSortIcon('end_month')}
-                  </div>
-                </TableHead>
+                {renderResizableHeader('code', 'code')}
+                {renderResizableHeader('name', 'name')}
+                {renderResizableHeader('category', 'category')}
+                {renderResizableHeader('status', 'status')}
+                {renderResizableHeader('business_unit')}
+                {renderResizableHeader('product_line')}
+                {renderResizableHeader('pm')}
+                {renderResizableHeader('scale')}
+                {renderResizableHeader('customer')}
+                {renderResizableHeader('product')}
+                {renderResizableHeader('start_month', 'start_month')}
+                {renderResizableHeader('end_month', 'end_month')}
                 {showFinancialColumns && (
                   <>
-                    <TableHead className="min-w-[140px] text-gray-900 font-semibold">Funding Entity</TableHead>
-                    <TableHead className="w-32 text-gray-900 font-semibold">Recharge Status</TableHead>
+                    {renderResizableHeader('funding_entity')}
+                    {renderResizableHeader('recharge_status')}
                   </>
                 )}
                 <TableHead className="w-40 sticky right-0 bg-slate-100 text-gray-900 font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>
@@ -287,6 +336,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                     businessUnits={businessUnits}
                     productLines={productLines}
                     users={users}
+                    columnWidths={columnWidths}
                   />
                 ))
               )}

@@ -21,6 +21,24 @@ import {
   RECHARGE_STATUS_OPTIONS,
 } from './EditableCell';
 
+// Column width type matching COLUMN_CONFIG keys
+type ColumnWidths = {
+  code: number;
+  name: number;
+  category: number;
+  status: number;
+  business_unit: number;
+  product_line: number;
+  pm: number;
+  scale: number;
+  customer: number;
+  product: number;
+  start_month: number;
+  end_month: number;
+  funding_entity: number;
+  recharge_status: number;
+};
+
 interface InlineEditableRowProps {
   project: Project;
   isEditing: boolean;
@@ -40,6 +58,8 @@ interface InlineEditableRowProps {
   businessUnits: Array<{ id: string; name: string }>;
   productLines: Array<{ id: string; name: string; business_unit_id?: string }>;
   users: Array<{ id: string; name: string }>;
+  // Column widths for resizing
+  columnWidths: ColumnWidths;
 }
 
 export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
@@ -57,6 +77,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
   businessUnits,
   productLines,
   users,
+  columnWidths,
 }) => {
   const [selectedBU, setSelectedBU] = useState<string>(
     editState.fields.program_id || project.program?.business_unit_id || ''
@@ -84,29 +105,30 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
     return (
       <TableRow className="bg-blue-50 border-l-4 border-blue-500">
         {/* Code */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.code }}>
           <TextCell
             value={editState.fields.code}
             onChange={(value) => updateField('code', value)}
             error={editState.errors.code}
-            placeholder="Project code"
-            className="font-mono"
+            placeholder="Code"
+            className="font-mono w-full"
           />
         </TableCell>
 
         {/* Name */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.name }}>
           <TextCell
             value={editState.fields.name}
             onChange={(value) => updateField('name', value)}
             error={editState.errors.name}
             required
             placeholder="Project name"
+            className="w-full"
           />
         </TableCell>
 
         {/* Category */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.category }}>
           <SelectCell
             value={editState.fields.category}
             onChange={(value) => updateField('category', value)}
@@ -116,7 +138,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* Status */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.status }}>
           <SelectCell
             value={editState.fields.status}
             onChange={(value) => updateField('status', value)}
@@ -126,7 +148,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* Business Unit */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.business_unit }}>
           <BusinessUnitSelectCell
             value={selectedBU}
             onChange={(value) => handleBusinessUnitChange(value)}
@@ -136,7 +158,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* Product Line */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.product_line }}>
           <ProductLineSelectCell
             value={editState.fields.product_line_id}
             onChange={(value) => updateField('product_line_id', value)}
@@ -147,7 +169,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* PM */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.pm }}>
           <UserSelectCell
             value={editState.fields.pm_id}
             onChange={(value) => updateField('pm_id', value)}
@@ -157,7 +179,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* Scale */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.scale }}>
           <SelectCell
             value={editState.fields.scale}
             onChange={(value) => updateField('scale', value)}
@@ -168,25 +190,27 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* Customer */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.customer }}>
           <TextCell
             value={editState.fields.customer}
             onChange={(value) => updateField('customer', value)}
-            placeholder="Customer name"
+            placeholder="Customer"
+            className="w-full"
           />
         </TableCell>
 
         {/* Product */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.product }}>
           <TextCell
             value={editState.fields.product}
             onChange={(value) => updateField('product', value)}
-            placeholder="Product name"
+            placeholder="Product"
+            className="w-full"
           />
         </TableCell>
 
         {/* Start Month */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.start_month }}>
           <MonthCell
             value={editState.fields.start_month}
             onChange={(value) => updateField('start_month', value)}
@@ -195,7 +219,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         </TableCell>
 
         {/* End Month */}
-        <TableCell>
+        <TableCell style={{ width: columnWidths.end_month }}>
           <MonthCell
             value={editState.fields.end_month}
             onChange={(value) => updateField('end_month', value)}
@@ -206,7 +230,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
         {/* Financial Columns (conditional) */}
         {showFinancialColumns && (
           <>
-            <TableCell>
+            <TableCell style={{ width: columnWidths.funding_entity }}>
               <SelectCell
                 value={editState.fields.funding_entity_id}
                 onChange={(value) => updateField('funding_entity_id', value)}
@@ -214,7 +238,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
                 placeholder="Select entity"
               />
             </TableCell>
-            <TableCell>
+            <TableCell style={{ width: columnWidths.recharge_status }}>
               <SelectCell
                 value={editState.fields.recharge_status}
                 onChange={(value) => updateField('recharge_status', value)}
@@ -257,15 +281,17 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
   return (
     <TableRow className="bg-white hover:bg-slate-50">
       {/* Code */}
-      <TableCell className="font-mono text-xs text-gray-900">
+      <TableCell className="font-mono text-xs text-gray-900 truncate" style={{ width: columnWidths.code }}>
         {project.code}
       </TableCell>
 
       {/* Name */}
-      <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
+      <TableCell className="font-medium text-gray-900 truncate" style={{ width: columnWidths.name }}>
+        {project.name}
+      </TableCell>
 
       {/* Category */}
-      <TableCell>
+      <TableCell style={{ width: columnWidths.category }}>
         <span
           className={cn(
             'inline-flex px-2 py-0.5 rounded text-xs font-semibold',
@@ -279,7 +305,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
       </TableCell>
 
       {/* Status */}
-      <TableCell>
+      <TableCell style={{ width: columnWidths.status }}>
         <span
           className={cn(
             'inline-flex px-2 py-0.5 rounded text-xs font-semibold',
@@ -296,52 +322,52 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
       </TableCell>
 
       {/* Business Unit */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.business_unit }}>
         {project.program?.business_unit?.name || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Product Line */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.product_line }}>
         {project.product_line?.name || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* PM */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.pm }}>
         {project.pm?.name || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Scale */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.scale }}>
         {project.scale || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Customer */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.customer }}>
         {project.customer || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Product */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.product }}>
         {project.product || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Start Month */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.start_month }}>
         {project.start_month || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* End Month */}
-      <TableCell className="text-sm text-gray-900">
+      <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.end_month }}>
         {project.end_month || <span className="text-gray-400">-</span>}
       </TableCell>
 
       {/* Financial Columns (conditional) */}
       {showFinancialColumns && (
         <>
-          <TableCell className="text-sm text-gray-900">
+          <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.funding_entity }}>
             {FUNDING_ENTITY_OPTIONS.find(o => o.value === project.funding_entity_id)?.label || <span className="text-gray-400">-</span>}
           </TableCell>
-          <TableCell className="text-sm text-gray-900">
+          <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.recharge_status }}>
             {project.recharge_status || <span className="text-gray-400">-</span>}
           </TableCell>
         </>
