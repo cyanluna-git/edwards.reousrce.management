@@ -143,9 +143,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     </div>
                 ) : (
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-3">
-                        <p className="text-sm font-medium text-white/90">안녕하세요,</p>
+                        <p className="text-sm font-medium text-white/90 flex items-center gap-1">
+                            <span>👋</span> Welcome,
+                        </p>
                         <p className="text-base font-bold text-white truncate">
-                            {user?.korean_name || user?.name || 'Guest'}님!
+                            {user?.name || user?.korean_name || 'Guest'}!
                         </p>
                     </div>
                 )}
