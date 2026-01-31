@@ -1,8 +1,13 @@
 /**
  * InlineEditableRow - Row component with View/Edit mode toggling
  * Displays project data with inline editing capabilities
+ *
+ * Optimizations applied:
+ * - rerender-memo: Wrapped with React.memo
+ * - rendering-hoist-jsx: Static JSX hoisted outside
+ * - js-index-maps: Map for O(1) lookups
  */
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { TableRow, TableCell, Button } from '@/components/ui';
 import { Edit2, Save, X, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,6 +25,14 @@ import {
   FUNDING_ENTITY_OPTIONS,
   RECHARGE_STATUS_OPTIONS,
 } from './EditableCell';
+
+// [rendering-hoist-jsx] Static placeholder JSX
+const EmptyPlaceholder = <span className="text-gray-400">-</span>;
+
+// [js-index-maps] Build Map for O(1) lookups instead of .find() each render
+const FUNDING_ENTITY_MAP = new Map(
+  FUNDING_ENTITY_OPTIONS.map(o => [o.value, o.label])
+);
 
 // Column width type matching COLUMN_CONFIG keys
 type ColumnWidths = {
@@ -62,7 +75,8 @@ interface InlineEditableRowProps {
   columnWidths: ColumnWidths;
 }
 
-export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
+// [rerender-memo] Memoized row component to prevent unnecessary re-renders
+const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   project,
   isEditing,
   onStartEdit,
@@ -83,15 +97,16 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
     editState.fields.program_id || project.program?.business_unit_id || ''
   );
 
-  const handleSave = async () => {
+  // [rerender-functional-setstate] Memoized handlers
+  const handleSave = useCallback(async () => {
     const success = await onSave();
     if (!success) {
       // Stay in edit mode if save failed
       return;
     }
-  };
+  }, [onSave]);
 
-  const handleBusinessUnitChange = (buId: string) => {
+  const handleBusinessUnitChange = useCallback((buId: string) => {
     setSelectedBU(buId);
     // Find program for this BU (simplified - in real app, fetch programs by BU)
     const bu = businessUnits.find(b => b.id === buId);
@@ -99,7 +114,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
       // Note: This is simplified. In production, you'd need to fetch/filter programs by BU
       updateField('program_id', project.program_id); // Keep existing for now
     }
-  };
+  }, [businessUnits, updateField, project.program_id]);
 
   if (isEditing) {
     return (
@@ -323,52 +338,53 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
 
       {/* Business Unit */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.business_unit }}>
-        {project.program?.business_unit?.name || <span className="text-gray-400">-</span>}
+        {project.program?.business_unit?.name || EmptyPlaceholder}
       </TableCell>
 
       {/* Product Line */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.product_line }}>
-        {project.product_line?.name || <span className="text-gray-400">-</span>}
+        {project.product_line?.name || EmptyPlaceholder}
       </TableCell>
 
       {/* PM */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.pm }}>
-        {project.pm?.name || <span className="text-gray-400">-</span>}
+        {project.pm?.name || EmptyPlaceholder}
       </TableCell>
 
       {/* Scale */}
       <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.scale }}>
-        {project.scale || <span className="text-gray-400">-</span>}
+        {project.scale || EmptyPlaceholder}
       </TableCell>
 
       {/* Customer */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.customer }}>
-        {project.customer || <span className="text-gray-400">-</span>}
+        {project.customer || EmptyPlaceholder}
       </TableCell>
 
       {/* Product */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.product }}>
-        {project.product || <span className="text-gray-400">-</span>}
+        {project.product || EmptyPlaceholder}
       </TableCell>
 
       {/* Start Month */}
       <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.start_month }}>
-        {project.start_month || <span className="text-gray-400">-</span>}
+        {project.start_month || EmptyPlaceholder}
       </TableCell>
 
       {/* End Month */}
       <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.end_month }}>
-        {project.end_month || <span className="text-gray-400">-</span>}
+        {project.end_month || EmptyPlaceholder}
       </TableCell>
 
       {/* Financial Columns (conditional) */}
       {showFinancialColumns && (
         <>
           <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.funding_entity }}>
-            {FUNDING_ENTITY_OPTIONS.find(o => o.value === project.funding_entity_id)?.label || <span className="text-gray-400">-</span>}
+            {/* [js-index-maps] O(1) lookup instead of .find() */}
+            {FUNDING_ENTITY_MAP.get(project.funding_entity_id ?? '') || EmptyPlaceholder}
           </TableCell>
           <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.recharge_status }}>
-            {project.recharge_status || <span className="text-gray-400">-</span>}
+            {project.recharge_status || EmptyPlaceholder}
           </TableCell>
         </>
       )}
@@ -400,3 +416,7 @@ export const InlineEditableRow: React.FC<InlineEditableRowProps> = ({
     </TableRow>
   );
 };
+
+// [rerender-memo] Export memoized component
+// Only re-renders when props actually change
+export const InlineEditableRow = memo(InlineEditableRowInner);

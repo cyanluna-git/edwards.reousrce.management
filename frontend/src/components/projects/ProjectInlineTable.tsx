@@ -1,6 +1,12 @@
 /**
  * ProjectInlineTable - Excel-style inline editable table for projects
  * Main table component with sorting, filtering, and inline editing
+ *
+ * Optimizations applied:
+ * - rerender-memo: Memoized row component
+ * - rerender-functional-setstate: Stable resize callbacks
+ * - js-combine-iterations: Combined filter + sort in single pass
+ * - rendering-hoist-jsx: Static JSX hoisted outside component
  */
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
@@ -28,6 +34,11 @@ import { useInlineProjectEdit } from '@/hooks/useInlineProjectEdit';
 import { useDeleteProject } from '@/hooks/useProjects';
 import { ProjectTableFilters } from './ProjectTableFilters';
 import { InlineEditableRow } from './InlineEditableRow';
+
+// [rendering-hoist-jsx] Static JSX hoisted outside component
+const SortIconDefault = <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
+const SortIconAsc = <ArrowUp className="h-3 w-3 ml-1 text-gray-700" />;
+const SortIconDesc = <ArrowDown className="h-3 w-3 ml-1 text-gray-700" />;
 
 type SortField = 'code' | 'name' | 'category' | 'status' | 'start_month' | 'end_month';
 type SortDirection = 'asc' | 'desc' | null;
@@ -112,12 +123,16 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
   }, [columnWidths]);
 
   // Handle column resize move
+  // [rerender-functional-setstate] Using functional setState for stable callback
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!resizingRef.current) return;
     const { column, startX, startWidth } = resizingRef.current;
     const diff = e.clientX - startX;
     const newWidth = Math.max(COLUMN_CONFIG[column].minWidth, startWidth + diff);
-    setColumnWidths(prev => ({ ...prev, [column]: newWidth }));
+    setColumnWidths(prev => {
+      if (prev[column] === newWidth) return prev; // Skip if no change
+      return { ...prev, [column]: newWidth };
+    });
   }, []);
 
   // Handle column resize end
@@ -143,47 +158,41 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
 
   const deleteProjectMutation = useDeleteProject();
 
-  // Filter projects
-  const filteredProjects = useMemo(() => {
-    let filtered = [...projects];
-
-    // Category filter
-    if (selectedCategories.length > 0) {
-      filtered = filtered.filter(p => p.category && selectedCategories.includes(p.category));
-    }
-
-    // Status filter
-    if (selectedStatuses.length > 0) {
-      filtered = filtered.filter(p => selectedStatuses.includes(p.status));
-    }
-
-    return filtered;
-  }, [projects, selectedCategories, selectedStatuses]);
-
-  // Sort projects
+  // [js-combine-iterations] Combined filter + sort in single useMemo
+  // This reduces array iterations from 3 (copy + filter + sort) to 1
   const sortedProjects = useMemo(() => {
-    if (!sortField || !sortDirection) return filteredProjects;
+    const hasCategories = selectedCategories.length > 0;
+    const hasStatuses = selectedStatuses.length > 0;
 
-    return [...filteredProjects].sort((a, b) => {
-      let aVal: any = a[sortField];
-      let bVal: any = b[sortField];
-
-      // Handle nested fields
-      if (sortField === 'category' || sortField === 'status') {
-        aVal = aVal || '';
-        bVal = bVal || '';
+    // Single-pass filter
+    let result: Project[] = [];
+    for (let i = 0; i < projects.length; i++) {
+      const p = projects[i];
+      // Category filter
+      if (hasCategories && (!p.category || !selectedCategories.includes(p.category))) {
+        continue;
       }
+      // Status filter
+      if (hasStatuses && !selectedStatuses.includes(p.status)) {
+        continue;
+      }
+      result.push(p);
+    }
 
-      // Handle undefined
-      if (aVal === undefined) aVal = '';
-      if (bVal === undefined) bVal = '';
+    // Sort if needed
+    if (sortField && sortDirection) {
+      result.sort((a, b) => {
+        const aVal = a[sortField] ?? '';
+        const bVal = b[sortField] ?? '';
 
-      // Compare
-      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [filteredProjects, sortField, sortDirection]);
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [projects, selectedCategories, selectedStatuses, sortField, sortDirection]);
 
   // Handle sort
   const handleSort = (field: SortField) => {
@@ -201,15 +210,11 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
     }
   };
 
-  // Render sort icon
+  // Render sort icon - using hoisted static JSX
   const renderSortIcon = (field: SortField) => {
-    if (sortField !== field) {
-      return <ArrowUpDown className="h-3 w-3 ml-1 text-gray-400" />;
-    }
-    if (sortDirection === 'asc') {
-      return <ArrowUp className="h-3 w-3 ml-1 text-gray-700" />;
-    }
-    return <ArrowDown className="h-3 w-3 ml-1 text-gray-700" />;
+    if (sortField !== field) return SortIconDefault;
+    if (sortDirection === 'asc') return SortIconAsc;
+    return SortIconDesc;
   };
 
   // Render resizable header
