@@ -11,6 +11,7 @@ from app.models.organization import (
 )
 from app.models.user import User, UserHistory
 from app.models.internal_io import InternalIO
+from app.models.recharge_io import RechargeIO
 from app.models.project import (
     Program,
     ProjectType,
@@ -38,6 +39,8 @@ __all__ = [
     "UserHistory",
     # Internal IO
     "InternalIO",
+    # Recharge IO
+    "RechargeIO",
     # Project
     "Program",
     "ProjectType",

@@ -95,6 +95,32 @@ class InternalIO(InternalIOBase):
         from_attributes = True
 
 
+# Schema for RechargeIO
+class RechargeIOBase(BaseModel):
+    io_number: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class RechargeIOCreate(RechargeIOBase):
+    pass
+
+
+class RechargeIOUpdate(BaseModel):
+    io_number: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class RechargeIO(RechargeIOBase):
+    id: str
+    is_active: bool = True
+
+    class Config:
+        from_attributes = True
+
+
 # Base schema for Project
 class ProjectBase(BaseModel):
     program_id: Optional[str] = (
@@ -104,6 +130,7 @@ class ProjectBase(BaseModel):
         None  # Optional - Scale field covers this functionality
     )
     internal_io_id: Optional[str] = None  # FK to internal_ios table
+    recharge_io_id: Optional[str] = None  # FK to recharge_ios table
     name: str
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
@@ -130,6 +157,7 @@ class ProjectUpdate(BaseModel):
     program_id: Optional[str] = None
     project_type_id: Optional[str] = None
     internal_io_id: Optional[str] = None
+    recharge_io_id: Optional[str] = None
     name: Optional[str] = None
     status: Optional[str] = None
     category: Optional[str] = None
@@ -151,6 +179,7 @@ class Project(ProjectBase):
     project_type: Optional[ProjectType] = None
     product_line: Optional[ProductLine] = None
     internal_io: Optional[InternalIO] = None  # Nested IO info
+    recharge_io: Optional[RechargeIO] = None  # Nested recharge IO info
     pm: Optional[User] = None
     recent_activity_score: Optional[float] = 0.0
 

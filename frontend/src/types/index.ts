@@ -122,10 +122,33 @@ export interface InternalIOUpdate {
     is_active?: boolean
 }
 
+// Recharge IO - for cost recharging
+export interface RechargeIO {
+    id: string
+    io_number: string
+    name?: string
+    description?: string
+    is_active: boolean
+}
+
+export interface RechargeIOCreate {
+    io_number: string
+    name?: string
+    description?: string
+}
+
+export interface RechargeIOUpdate {
+    io_number?: string
+    name?: string
+    description?: string
+    is_active?: boolean
+}
+
 export interface ProjectBase {
     program_id: string
     project_type_id: string
     internal_io_id?: string  // FK to internal_ios table
+    recharge_io_id?: string  // FK to recharge_ios table
     name: string
     status: ProjectStatus
     scale?: ProjectScale
@@ -153,6 +176,7 @@ export interface ProjectUpdate {
     program_id?: string
     project_type_id?: string
     internal_io_id?: string
+    recharge_io_id?: string
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
@@ -179,6 +203,7 @@ export interface Project extends ProjectBase {
     project_type?: ProjectType
     product_line?: ProductLine
     internal_io?: InternalIO  // Nested IO info
+    recharge_io?: RechargeIO  // Nested recharge IO info
     pm?: User
     recent_activity_score?: number;
 }

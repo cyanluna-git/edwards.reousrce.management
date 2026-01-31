@@ -43,6 +43,8 @@ class ProjectService:
                 joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.project_type),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
+                joinedload(Project.internal_io),
+                joinedload(Project.recharge_io),
                 joinedload(Project.pm),
             )
             .filter(Project.id == project_id)
@@ -85,6 +87,8 @@ class ProjectService:
                 joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.project_type),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
+                joinedload(Project.internal_io),
+                joinedload(Project.recharge_io),
                 joinedload(Project.pm),
             )
         )

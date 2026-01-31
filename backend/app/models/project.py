@@ -108,6 +108,9 @@ class Project(Base):
     # Internal IO relationship (replaces old 'code' column)
     internal_io_id = Column(String(36), ForeignKey("internal_ios.id"), nullable=True)
 
+    # Recharge IO - for cost recharging (separate table)
+    recharge_io_id = Column(String(36), ForeignKey("recharge_ios.id"), nullable=True)
+
     name = Column(String(300), nullable=False)  # NVARCHAR
     status = Column(
         String(20), default="Prospective"
@@ -145,6 +148,7 @@ class Project(Base):
     project_type = relationship("ProjectType", back_populates="projects")
     product_line = relationship("ProductLine", back_populates="projects")
     internal_io = relationship("InternalIO", back_populates="projects")
+    recharge_io = relationship("RechargeIO", back_populates="projects")
 
     # 다대다 관계: 여러 제품군에 걸치는 프로젝트 지원 (NEW)
     product_lines = relationship(
