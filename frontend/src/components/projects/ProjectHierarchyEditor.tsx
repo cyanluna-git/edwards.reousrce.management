@@ -38,12 +38,15 @@ import {
     deleteProductLine,
     deleteProject as apiDeleteProject,
     getProjects,
+    getProductLines,
 } from '@/api/client';
 import type { ProductLine, Project } from '@/types';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
+import { useUsers } from '@/hooks/useUsers';
 import ProjectForm from '@/components/forms/ProjectForm';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
+import { ProjectInlineTable } from './ProjectInlineTable';
 
 type HierarchyLevel = 'business_unit' | 'product_line' | 'project';
 
@@ -90,6 +93,15 @@ export const ProjectHierarchyEditor: React.FC = () => {
         queryFn: () => getProjects({ limit: 500 }),
     });
 
+    // Fetch product lines for inline table
+    const { data: productLines = [] } = useQuery({
+        queryKey: ['productLines'],
+        queryFn: getProductLines,
+    });
+
+    // Fetch users for PM selection
+    const { data: users = [] } = useUsers();
+
     // State
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
     const returnTab = (location.state as any)?.activeTab;
@@ -117,22 +129,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
         }
     }, [hierarchy, productProjects, functionalProjects]);
 
-    // Sorting state for All Projects table
-    const [sortColumn, setSortColumn] = useState<string>('code');
-    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-    // Column visibility state for classification workflow
-    const [showClassificationColumns, setShowClassificationColumns] = useState(false);
-
-    // Handle column header click for sorting
-    const handleSort = (column: string) => {
-        if (sortColumn === column) {
-            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-        } else {
-            setSortColumn(column);
-            setSortDirection('asc');
-        }
-    };
+    // Column visibility state for inline table
+    const [showFinancialColumns, setShowFinancialColumns] = useState(false);
 
     // Filter sustaining matrix projects (VSS/SUN codes)
     const sustainingProjects = useMemo(() => {
@@ -156,60 +154,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
             .sort((a: Project, b: Project) => (a.code || '').localeCompare(b.code || ''));
     }, [sustainingProjects]);
 
-    // Check if a project is a legacy candidate (for styling in All tab)
-    const isLegacyCandidate = (proj: Project) => {
-        const name = proj.name?.toLowerCase() || '';
-        const code = proj.code || '';
-        return (
-            !code.startsWith('VSS') &&
-            !code.startsWith('SUN') &&
-            (proj.project_type_id === 'SUSTAINING' ||
-             name.includes('support') ||
-             name.includes('general') ||
-             name.includes('admin'))
-        );
-    };
-
-    // Sort projects based on current sort state
-    const sortedProjects = useMemo(() => {
-        const sorted = [...allProjects].sort((a, b) => {
-            let aVal: string | undefined;
-            let bVal: string | undefined;
-
-            switch (sortColumn) {
-                case 'code':
-                    aVal = a.code || '';
-                    bVal = b.code || '';
-                    break;
-                case 'name':
-                    aVal = a.name || '';
-                    bVal = b.name || '';
-                    break;
-                case 'category':
-                    aVal = a.category || 'PRODUCT';
-                    bVal = b.category || 'PRODUCT';
-                    break;
-                case 'business_unit':
-                    aVal = a.product_line?.business_unit?.name || '';
-                    bVal = b.product_line?.business_unit?.name || '';
-                    break;
-                case 'family':
-                    aVal = a.product_line?.name || '';
-                    bVal = b.product_line?.name || '';
-                    break;
-                case 'status':
-                    aVal = a.status || '';
-                    bVal = b.status || '';
-                    break;
-                default:
-                    return 0;
-            }
-
-            const comparison = aVal.localeCompare(bVal);
-            return sortDirection === 'asc' ? comparison : -comparison;
-        });
-        return sorted;
-    }, [allProjects, sortColumn, sortDirection]);
+    // Sorting and filtering are now handled by ProjectInlineTable component
 
     // Business Unit Modal State
     const [buModalOpen, setBuModalOpen] = useState(false);
@@ -857,207 +802,24 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="all" className="mt-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center justify-between">
-                                <span>All Projects ({allProjects.length} total)</span>
-                                <div className="flex gap-2">
-                                    <Button
-                                        variant={showClassificationColumns ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setShowClassificationColumns(!showClassificationColumns)}
-                                    >
-                                        {showClassificationColumns ? 'Hide' : 'Show'} Classification Columns
-                                    </Button>
-                                </div>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-slate-50">
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('code')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Code
-                                                    {sortColumn === 'code' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('name')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Name
-                                                    {sortColumn === 'name' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('category')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Category
-                                                    {sortColumn === 'category' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('business_unit')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Business Unit
-                                                    {sortColumn === 'business_unit' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('family')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Family
-                                                    {sortColumn === 'family' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-                                            <th
-                                                className="text-left p-2 font-medium cursor-pointer hover:bg-slate-100 select-none"
-                                                onClick={() => handleSort('status')}
-                                            >
-                                                <span className="flex items-center gap-1">
-                                                    Status
-                                                    {sortColumn === 'status' && (
-                                                        <span className="text-xs">{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                    )}
-                                                </span>
-                                            </th>
-
-                                            {/* Classification Columns - shown when enabled */}
-                                            {showClassificationColumns && (
-                                                <>
-                                                    <th className="text-left p-2 font-medium bg-blue-50">Project Type</th>
-                                                    <th className="text-left p-2 font-medium bg-blue-50">Program</th>
-                                                    <th className="text-left p-2 font-medium bg-blue-50">Customer</th>
-                                                    <th className="text-left p-2 font-medium bg-blue-50">PM</th>
-                                                    <th className="text-left p-2 font-medium bg-green-50">Funding Entity</th>
-                                                    <th className="text-left p-2 font-medium bg-green-50">Recharge Status</th>
-                                                    <th className="text-left p-2 font-medium bg-green-50">IO Category</th>
-                                                    <th className="text-left p-2 font-medium bg-green-50">Capitalizable</th>
-                                                </>
-                                            )}
-
-                                            <th className="text-left p-2 font-medium">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedProjects.map((proj: Project) => (
-                                            <tr
-                                                key={proj.id}
-                                                className={`border-b hover:bg-slate-50 ${isLegacyCandidate(proj) ? 'bg-amber-50/50' : ''}`}
-                                            >
-                                                <td className="p-2 font-mono text-xs">
-                                                    {proj.code}
-                                                    {(proj.code?.startsWith('VSS') || proj.code?.startsWith('SUN')) && (
-                                                        <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-blue-100 text-blue-600">Matrix</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-2">
-                                                    <span
-                                                        className="cursor-pointer hover:text-blue-600"
-                                                        onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all' } })}
-                                                    >
-                                                        {proj.name}
-                                                    </span>
-                                                    {isLegacyCandidate(proj) && (
-                                                        <span className="ml-2 text-[9px] px-1 py-0.5 rounded bg-amber-200 text-amber-700">Legacy</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.category === 'FUNCTIONAL' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                        {proj.category === 'FUNCTIONAL' ? 'Functional' : 'Product'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-2">
-                                                    {proj.product_line?.business_unit ? (
-                                                        <span className="text-xs">{proj.product_line.business_unit.name}</span>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground">-</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-2">
-                                                    {proj.product_line ? (
-                                                        <span className="text-xs">{proj.product_line.name}</span>
-                                                    ) : (
-                                                        <span className="text-xs text-amber-600 italic">Ungrouped</span>
-                                                    )}
-                                                </td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.status === 'InProgress' ? 'bg-green-100 text-green-700' :
-                                                        proj.status === 'Completed' ? 'bg-gray-100 text-gray-700' :
-                                                        proj.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
-                                                        'bg-yellow-100 text-yellow-700'
-                                                    }`}>
-                                                        {proj.status}
-                                                    </span>
-                                                </td>
-
-                                                {/* Classification Columns - Read-only info + Financial fields */}
-                                                {showClassificationColumns && (
-                                                    <>
-                                                        <td className="p-2 text-xs bg-blue-50">{proj.project_type?.name || '-'}</td>
-                                                        <td className="p-2 text-xs bg-blue-50">{proj.program?.name || '-'}</td>
-                                                        <td className="p-2 text-xs bg-blue-50">{proj.customer || '-'}</td>
-                                                        <td className="p-2 text-xs bg-blue-50">{proj.pm?.name || '-'}</td>
-                                                        <td className="p-2 text-xs bg-green-50">{proj.funding_entity_id || '-'}</td>
-                                                        <td className="p-2 text-xs bg-green-50">{proj.recharge_status || '-'}</td>
-                                                        <td className="p-2 text-xs bg-green-50">{proj.io_category_code || '-'}</td>
-                                                        <td className="p-2 text-xs bg-green-50">{proj.is_capitalizable ? 'Yes' : 'No'}</td>
-                                                    </>
-                                                )}
-
-                                                <td className="p-2">
-                                                    <div className="flex gap-1">
-                                                        <Button
-                                                            variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
-                                                            onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'all' } })}
-                                                            title="Edit Project"
-                                                        >
-                                                            ✏️
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost" size="sm" className="h-6 w-6 text-red-600"
-                                                            onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
-                                                            title="Delete Project"
-                                                        >
-                                                            🗑️
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                                {allProjects.length === 0 && (
-                                    <div className="text-center py-8 text-muted-foreground">No projects found</div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <div className="mb-4 flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">All Projects ({allProjects.length} total)</h2>
+                        <Button
+                            variant={showFinancialColumns ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setShowFinancialColumns(!showFinancialColumns)}
+                        >
+                            {showFinancialColumns ? 'Hide' : 'Show'} Financial Columns
+                        </Button>
+                    </div>
+                    <ProjectInlineTable
+                        projects={allProjects}
+                        businessUnits={businessUnits}
+                        productLines={productLines}
+                        users={users}
+                        canManageProjects={canManageProjects}
+                        showFinancialColumns={showFinancialColumns}
+                    />
                 </TabsContent>
             </Tabs>
 

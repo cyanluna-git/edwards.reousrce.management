@@ -16,7 +16,7 @@ class UserBase(BaseModel):
     department_id: str
     sub_team_id: Optional[str] = None
     position_id: str
-    role: str = "USER"
+    role: Optional[str] = "USER"
     is_active: bool = True
     hire_date: Optional[datetime] = None
 
