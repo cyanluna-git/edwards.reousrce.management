@@ -19,6 +19,8 @@ import {
   UserSelectCell,
   BusinessUnitSelectCell,
   ProductLineSelectCell,
+  InternalIOSelectCell,
+  RechargeIOSelectCell,
   STATUS_OPTIONS,
   SCALE_OPTIONS,
   CATEGORY_OPTIONS,
@@ -37,6 +39,7 @@ const FUNDING_ENTITY_MAP = new Map(
 // Column width type matching COLUMN_CONFIG keys
 type ColumnWidths = {
   internal_io: number;
+  recharge_io: number;
   name: number;
   category: number;
   status: number;
@@ -71,6 +74,8 @@ interface InlineEditableRowProps {
   businessUnits: Array<{ id: string; name: string }>;
   productLines: Array<{ id: string; name: string; business_unit_id?: string }>;
   users: Array<{ id: string; name: string }>;
+  internalIOs: Array<{ id: string; io_number: string; name?: string }>;
+  rechargeIOs: Array<{ id: string; io_number: string; name?: string }>;
   // Column widths for resizing
   columnWidths: ColumnWidths;
 }
@@ -91,6 +96,8 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   businessUnits,
   productLines,
   users,
+  internalIOs,
+  rechargeIOs,
   columnWidths,
 }) => {
   const [selectedBU, setSelectedBU] = useState<string>(
@@ -121,9 +128,22 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
       <TableRow className="bg-blue-50 border-l-4 border-blue-500">
         {/* Internal IO */}
         <TableCell style={{ width: columnWidths.internal_io }}>
-          <span className="font-mono text-xs text-gray-500">
-            {project.internal_io?.io_number || '-'}
-          </span>
+          <InternalIOSelectCell
+            value={editState.fields.internal_io_id}
+            onChange={(value) => updateField('internal_io_id', value)}
+            internalIOs={internalIOs}
+            error={editState.errors.internal_io_id}
+          />
+        </TableCell>
+
+        {/* Recharge IO */}
+        <TableCell style={{ width: columnWidths.recharge_io }}>
+          <RechargeIOSelectCell
+            value={editState.fields.recharge_io_id}
+            onChange={(value) => updateField('recharge_io_id', value)}
+            rechargeIOs={rechargeIOs}
+            error={editState.errors.recharge_io_id}
+          />
         </TableCell>
 
         {/* Name */}
@@ -294,6 +314,11 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
       {/* Internal IO */}
       <TableCell className="font-mono text-xs text-gray-900 truncate" style={{ width: columnWidths.internal_io }}>
         {project.internal_io?.io_number || '-'}
+      </TableCell>
+
+      {/* Recharge IO */}
+      <TableCell className="font-mono text-xs text-gray-900 truncate" style={{ width: columnWidths.recharge_io }}>
+        {project.recharge_io?.io_number || '-'}
       </TableCell>
 
       {/* Name */}

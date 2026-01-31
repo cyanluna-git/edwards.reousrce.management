@@ -28,6 +28,7 @@ export function useInlineProjectEdit() {
       projectId: project.id,
       fields: {
         internal_io_id: project.internal_io_id,
+        recharge_io_id: project.recharge_io_id,
         name: project.name,
         category: project.category,
         status: project.status,

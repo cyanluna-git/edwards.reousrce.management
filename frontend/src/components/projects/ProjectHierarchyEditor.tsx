@@ -47,6 +47,9 @@ import ProjectForm from '@/components/forms/ProjectForm';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePermissions } from '@/hooks/usePermissions';
 import { ProjectInlineTable } from './ProjectInlineTable';
+import { IOManagementTab } from './IOManagementTab';
+import { useInternalIOsList } from '@/hooks/useInternalIOs';
+import { useRechargeIOsList } from '@/hooks/useRechargeIOs';
 
 type HierarchyLevel = 'business_unit' | 'product_line' | 'project';
 
@@ -101,6 +104,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
     // Fetch users for PM selection
     const { data: users = [] } = useUsers();
+
+    // Fetch IO data for inline table dropdowns
+    const { data: internalIOs = [] } = useInternalIOsList({ is_active: true });
+    const { data: rechargeIOs = [] } = useRechargeIOsList({ is_active: true });
 
     // State
     const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -385,6 +392,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                     <TabsTrigger value="sustaining">Standard IO Framework</TabsTrigger>
                     <TabsTrigger value="functional">Functional</TabsTrigger>
                     <TabsTrigger value="all">All / Legacy</TabsTrigger>
+                    <TabsTrigger value="io-management">IO Management</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="product" className="mt-4">
@@ -817,9 +825,16 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         businessUnits={businessUnits}
                         productLines={productLines}
                         users={users}
+                        internalIOs={internalIOs}
+                        rechargeIOs={rechargeIOs}
                         canManageProjects={canManageProjects}
                         showFinancialColumns={showFinancialColumns}
                     />
+                </TabsContent>
+
+                {/* IO Management Tab */}
+                <TabsContent value="io-management" className="mt-4">
+                    <IOManagementTab />
                 </TabsContent>
             </Tabs>
 

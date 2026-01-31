@@ -828,4 +828,126 @@ export const getResourceAllocationMatrix = async (
   return response.data;
 };
 
+// ============ Internal IO API ============
+
+export interface InternalIOResponse {
+  id: string;
+  io_number: string;
+  name?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface InternalIOCreate {
+  io_number: string;
+  name?: string;
+  description?: string;
+}
+
+export interface InternalIOUpdate {
+  io_number?: string;
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getInternalIOs = async (params?: { search?: string; is_active?: boolean }): Promise<InternalIOResponse[]> => {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.is_active !== undefined) searchParams.append('is_active', String(params.is_active));
+  const queryString = searchParams.toString();
+  const response = await apiClient.get(`/internal-ios/${queryString ? `?${queryString}` : ''}`);
+  return response.data;
+};
+
+export const getInternalIO = async (id: string): Promise<InternalIOResponse> => {
+  const response = await apiClient.get(`/internal-ios/${id}`);
+  return response.data;
+};
+
+export const getInternalIOByNumber = async (ioNumber: string): Promise<InternalIOResponse> => {
+  const response = await apiClient.get(`/internal-ios/by-number/${ioNumber}`);
+  return response.data;
+};
+
+export const createInternalIO = async (data: InternalIOCreate): Promise<InternalIOResponse> => {
+  const response = await apiClient.post('/internal-ios/', data);
+  return response.data;
+};
+
+export const updateInternalIO = async (id: string, data: InternalIOUpdate): Promise<InternalIOResponse> => {
+  const response = await apiClient.put(`/internal-ios/${id}`, data);
+  return response.data;
+};
+
+export const deleteInternalIO = async (id: string): Promise<void> => {
+  await apiClient.delete(`/internal-ios/${id}`);
+};
+
+export const findOrCreateInternalIO = async (data: InternalIOCreate): Promise<InternalIOResponse> => {
+  const response = await apiClient.post('/internal-ios/find-or-create/', data);
+  return response.data;
+};
+
+// ============ Recharge IO API ============
+
+export interface RechargeIOResponse {
+  id: string;
+  io_number: string;
+  name?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface RechargeIOCreate {
+  io_number: string;
+  name?: string;
+  description?: string;
+}
+
+export interface RechargeIOUpdate {
+  io_number?: string;
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getRechargeIOs = async (params?: { search?: string; is_active?: boolean }): Promise<RechargeIOResponse[]> => {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.is_active !== undefined) searchParams.append('is_active', String(params.is_active));
+  const queryString = searchParams.toString();
+  const response = await apiClient.get(`/recharge-ios/${queryString ? `?${queryString}` : ''}`);
+  return response.data;
+};
+
+export const getRechargeIO = async (id: string): Promise<RechargeIOResponse> => {
+  const response = await apiClient.get(`/recharge-ios/${id}`);
+  return response.data;
+};
+
+export const getRechargeIOByNumber = async (ioNumber: string): Promise<RechargeIOResponse> => {
+  const response = await apiClient.get(`/recharge-ios/by-number/${ioNumber}`);
+  return response.data;
+};
+
+export const createRechargeIO = async (data: RechargeIOCreate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.post('/recharge-ios/', data);
+  return response.data;
+};
+
+export const updateRechargeIO = async (id: string, data: RechargeIOUpdate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.put(`/recharge-ios/${id}`, data);
+  return response.data;
+};
+
+export const deleteRechargeIO = async (id: string): Promise<void> => {
+  await apiClient.delete(`/recharge-ios/${id}`);
+};
+
+export const findOrCreateRechargeIO = async (data: RechargeIOCreate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.post('/recharge-ios/find-or-create/', data);
+  return response.data;
+};
+
 export default apiClient;

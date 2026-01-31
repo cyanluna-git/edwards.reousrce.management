@@ -238,6 +238,84 @@ export const BusinessUnitSelectCell = memo<BusinessUnitSelectCellProps>(({
   );
 });
 
+// Internal IO Select Cell
+interface InternalIOSelectCellProps extends BaseEditableCellProps {
+  value: string | undefined;
+  onChange: (value: string) => void;
+  internalIOs: Array<{ id: string; io_number: string; name?: string }>;
+}
+
+// [rerender-memo] Memoized InternalIOSelectCell
+export const InternalIOSelectCell = memo<InternalIOSelectCellProps>(({
+  value,
+  onChange,
+  internalIOs,
+  error,
+  className,
+}) => {
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue === NONE_VALUE ? '' : newValue);
+  }, [onChange]);
+
+  return (
+    <div className="w-full">
+      <Select value={value || NONE_VALUE} onValueChange={handleChange}>
+        <SelectTrigger className={cn('h-8 text-xs', error && 'border-red-500', className)}>
+          <SelectValue placeholder="Select Internal IO" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE_VALUE} className="text-xs text-gray-500">None</SelectItem>
+          {internalIOs.map((io) => (
+            <SelectItem key={io.id} value={io.id} className="text-xs">
+              {io.io_number}{io.name ? ` - ${io.name}` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+});
+
+// Recharge IO Select Cell
+interface RechargeIOSelectCellProps extends BaseEditableCellProps {
+  value: string | undefined;
+  onChange: (value: string) => void;
+  rechargeIOs: Array<{ id: string; io_number: string; name?: string }>;
+}
+
+// [rerender-memo] Memoized RechargeIOSelectCell
+export const RechargeIOSelectCell = memo<RechargeIOSelectCellProps>(({
+  value,
+  onChange,
+  rechargeIOs,
+  error,
+  className,
+}) => {
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue === NONE_VALUE ? '' : newValue);
+  }, [onChange]);
+
+  return (
+    <div className="w-full">
+      <Select value={value || NONE_VALUE} onValueChange={handleChange}>
+        <SelectTrigger className={cn('h-8 text-xs', error && 'border-red-500', className)}>
+          <SelectValue placeholder="Select Recharge IO" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE_VALUE} className="text-xs text-gray-500">None</SelectItem>
+          {rechargeIOs.map((io) => (
+            <SelectItem key={io.id} value={io.id} className="text-xs">
+              {io.io_number}{io.name ? ` - ${io.name}` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+});
+
 // Product Line Select Cell (filtered by Business Unit)
 interface ProductLineSelectCellProps extends BaseEditableCellProps {
   value: string | undefined;
