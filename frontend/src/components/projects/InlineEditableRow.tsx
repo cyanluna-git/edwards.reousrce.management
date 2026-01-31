@@ -264,27 +264,27 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
           </>
         )}
 
-        {/* Actions */}
-        <TableCell>
-          <div className="flex gap-1">
+        {/* Actions - sticky right, icon-only buttons */}
+        <TableCell className="sticky right-0 bg-blue-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">
+          <div className="flex gap-1 justify-center">
             <Button
-              size="sm"
+              size="icon"
               onClick={handleSave}
               disabled={isSaving}
-              className="h-7 px-2 text-xs"
+              className="h-7 w-7"
+              title={isSaving ? 'Saving...' : 'Save'}
             >
-              <Save className="h-3 w-3 mr-1" />
-              {isSaving ? 'Saving...' : 'Save'}
+              <Save className="h-4 w-4" />
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
               onClick={onCancel}
               disabled={isSaving}
-              className="h-7 px-2 text-xs"
+              className="h-7 w-7"
+              title="Cancel"
             >
-              <X className="h-3 w-3 mr-1" />
-              Cancel
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </TableCell>
@@ -389,27 +389,28 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
         </>
       )}
 
-      {/* Actions - sticky right */}
+      {/* Actions - sticky right, icon-only buttons */}
       <TableCell className="sticky right-0 bg-white shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">
-        <div className="flex gap-1">
+        <div className="flex gap-1 justify-center">
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={onStartEdit}
             disabled={!canEdit}
-            className="h-7 px-2 text-xs font-medium"
+            className="h-7 w-7"
+            title="Edit"
           >
-            <Edit2 className="h-3 w-3 mr-1" />
-            Edit
+            <Edit2 className="h-4 w-4" />
           </Button>
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
             onClick={onDelete}
             disabled={!canEdit}
-            className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+            title="Delete"
           >
-            <Trash2 className="h-3 w-3" />
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       </TableCell>

@@ -287,9 +287,9 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
           </Alert>
         )}
 
-        {/* Table */}
+        {/* Table - full width with horizontal scroll */}
         <div className="overflow-x-auto" ref={tableRef}>
-          <Table style={{ tableLayout: 'fixed' }}>
+          <Table className="w-full" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
             <TableHeader className="bg-slate-100">
               <TableRow>
                 {renderResizableHeader('code', 'code')}
@@ -310,7 +310,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                     {renderResizableHeader('recharge_status')}
                   </>
                 )}
-                <TableHead className="w-40 sticky right-0 bg-slate-100 text-gray-900 font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">Actions</TableHead>
+                <TableHead className="w-20 sticky right-0 bg-slate-100 text-gray-900 font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
