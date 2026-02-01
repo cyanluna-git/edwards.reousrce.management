@@ -125,7 +125,14 @@ export const DashboardPage: React.FC = () => {
         const projectSummary = currentWorklogs.reduce((acc, wl) => {
             const key = wl.project_id || 'non-project';
             if (!acc[key]) {
-                acc[key] = { project_id: wl.project_id || 'non-project', project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
+                // For worklogs without project, display as "Team" instead of "-"
+                const isTeamWork = !wl.project_id;
+                acc[key] = {
+                    project_id: wl.project_id || 'non-project',
+                    project_code: isTeamWork ? '' : (wl.project_code || ''),
+                    project_name: isTeamWork ? 'Team' : (wl.project_name || ''),
+                    hours: 0
+                };
             }
             acc[key].hours += wl.hours;
             return acc;
@@ -173,27 +180,57 @@ export const DashboardPage: React.FC = () => {
         return map;
     }, [categoryTree]);
 
-    // Calculate Project vs Functional Ratio
-    const projectVsFunctionalData = useMemo(() => {
-        // Debug: Log first worklog's project info
-        if (currentWorklogs.length > 0) {
-            console.log('Sample Worklog Project:', currentWorklogs[0].project);
-        }
+    // Calculate Work Type Distribution (4 categories)
+    // Product, Functional, Support: from project.category
+    // Team: worklogs without project_id (internal team activities)
+    const workTypeCategoryData = useMemo(() => {
+        const counts: Record<string, number> = {
+            Product: 0,
+            Functional: 0,
+            Support: 0,
+            Team: 0,
+        };
 
-        const counts = currentWorklogs.reduce((acc, wl) => {
-            const category = wl.project?.category || 'PROJECT';
-            const key = category === 'FUNCTIONAL' ? 'Functional Activity' : 'Project';
-            acc[key] = (acc[key] || 0) + wl.hours;
-            return acc;
-        }, {} as Record<string, number>);
+        currentWorklogs.forEach(wl => {
+            if (!wl.project_id) {
+                // No project assigned = Team internal work
+                counts.Team += wl.hours;
+            } else {
+                // Use project category
+                const category = wl.project?.category?.toUpperCase() || 'PRODUCT';
+                switch (category) {
+                    case 'FUNCTIONAL':
+                        counts.Functional += wl.hours;
+                        break;
+                    case 'SUPPORT':
+                        counts.Support += wl.hours;
+                        break;
+                    default: // PRODUCT or any other
+                        counts.Product += wl.hours;
+                        break;
+                }
+            }
+        });
 
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
-        return Object.entries(counts).map(([name, value]) => ({
-            name,
-            value,
-            percentage: total > 0 ? ((value / total) * 100).toFixed(0) : '0',
-            color: name === 'Project' ? '#3b82f6' : '#cbd5e1' // Blue vs Slate-300
-        })).sort((a, b) => b.value - a.value);
+
+        const categoryConfig: Record<string, { color: string; label: string }> = {
+            Product: { color: '#3b82f6', label: 'Product' },      // Blue
+            Functional: { color: '#f59e0b', label: 'Functional' }, // Amber
+            Support: { color: '#10b981', label: 'Support' },       // Green
+            Team: { color: '#94a3b8', label: 'Team' },             // Slate
+        };
+
+        return Object.entries(counts)
+            .filter(([_, value]) => value > 0) // Only show categories with hours
+            .map(([name, value]) => ({
+                name,
+                label: categoryConfig[name].label,
+                value,
+                percentage: total > 0 ? ((value / total) * 100).toFixed(0) : '0',
+                color: categoryConfig[name].color,
+            }))
+            .sort((a, b) => b.value - a.value);
     }, [currentWorklogs]);
 
     // Build Category ID Map [ID -> Code]
@@ -495,41 +532,39 @@ export const DashboardPage: React.FC = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         {/* Left Column: Project vs Functional & Project List */}
                         <div className="space-y-4 lg:col-span-1">
-                            {/* Project vs Functional Ratio (Horizontal Bar) */}
+                            {/* Work Type Category Distribution (Horizontal Bar) */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
+                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비중</CardTitle>
                                 </CardHeader>
-                                <CardContent className="flex flex-col justify-center h-[160px]">
-                                    {projectVsFunctionalData.length === 0 ? (
+                                <CardContent className="flex flex-col justify-center h-[180px]">
+                                    {workTypeCategoryData.length === 0 ? (
                                         <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
                                     ) : (
                                         <div className="space-y-4">
                                             {/* Horizontal Bar */}
-                                            <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                                {projectVsFunctionalData.map((item, idx) => (
+                                            <div className="w-full h-10 bg-slate-100 rounded-lg overflow-hidden flex shadow-inner">
+                                                {workTypeCategoryData.map((item, idx) => (
                                                     <div
                                                         key={idx}
                                                         style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                                        className="h-full flex items-center justify-center text-white font-bold text-base transition-all duration-500 relative group"
-                                                        title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
+                                                        className="h-full flex items-center justify-center text-white font-bold text-sm transition-all duration-500 relative group"
+                                                        title={`${item.label}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
                                                     >
-                                                        {parseInt(item.percentage) > 10 && (
+                                                        {parseInt(item.percentage) > 12 && (
                                                             <span className="drop-shadow-md">{item.percentage}%</span>
                                                         )}
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            {/* Legend & Details */}
-                                            <div className="flex justify-between px-2 text-sm">
-                                                {projectVsFunctionalData.map((item, idx) => (
-                                                    <div key={idx} className="flex flex-col items-center">
-                                                        <div className="flex items-center gap-2 mb-0.5">
-                                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                                            <span className="font-medium">{item.name}</span>
-                                                        </div>
-                                                        <div className="font-bold">{item.value.toFixed(0)}h</div>
+                                            {/* Legend & Details - Grid layout for 4 categories */}
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {workTypeCategoryData.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                                        <span className="font-medium truncate">{item.label}</span>
+                                                        <span className="text-muted-foreground ml-auto">{item.value.toFixed(0)}h</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -552,7 +587,7 @@ export const DashboardPage: React.FC = () => {
                                                 <div key={proj.project_id} className="flex items-center gap-3">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-sm font-medium truncate" title={proj.project_name}>
-                                                            {proj.project_code} - {proj.project_name}
+                                                            {proj.project_code ? `${proj.project_code} - ${proj.project_name}` : proj.project_name}
                                                         </div>
                                                         <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
                                                             <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
