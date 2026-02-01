@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, addWeeks, subWeeks, addMonths, addQuarters, subQuarters, addYears, subYears } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
@@ -19,28 +19,55 @@ interface CategoryEntry extends WorkTypeCategory {
     parent?: CategoryEntry;
 }
 
-// IMPORTANT: Calculate date ranges ONCE outside component to prevent infinite re-renders
-// This ensures referential equality across re-renders and prevents useQuery refetch loops
-const getStaticDateRanges = () => {
-    const now = new Date();
-    return {
-        weekStart: format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        weekEnd: format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
-        monthStart: format(startOfMonth(now), 'yyyy-MM-dd'),
-        monthEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
-        quarterStart: format(startOfQuarter(now), 'yyyy-MM-dd'),
-        quarterEnd: format(endOfQuarter(now), 'yyyy-MM-dd'),
-        halfYearStart: format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'),
-        halfYearEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
-        yearStart: format(startOfYear(now), 'yyyy-MM-dd'),
-        yearEnd: format(endOfYear(now), 'yyyy-MM-dd'),
-        last12MonthsStart: format(subMonths(startOfMonth(now), 11), 'yyyy-MM-dd'),
-        last12MonthsEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
-    };
+/**
+ * Calculate date ranges dynamically based on reference date and view mode
+ */
+const getDynamicDateRanges = (referenceDate: Date, mode: ViewMode) => {
+    switch (mode) {
+        case 'weekly': {
+            const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
+            return {
+                start: format(weekStart, 'yyyy-MM-dd'),
+                end: format(weekEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'monthly': {
+            const monthStart = startOfMonth(referenceDate);
+            const monthEnd = endOfMonth(referenceDate);
+            return {
+                start: format(monthStart, 'yyyy-MM-dd'),
+                end: format(monthEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'quarterly': {
+            const quarterStart = startOfQuarter(referenceDate);
+            const quarterEnd = endOfQuarter(referenceDate);
+            return {
+                start: format(quarterStart, 'yyyy-MM-dd'),
+                end: format(quarterEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'yearly': {
+            const yearStart = startOfYear(referenceDate);
+            const yearEnd = endOfYear(referenceDate);
+            return {
+                start: format(yearStart, 'yyyy-MM-dd'),
+                end: format(yearEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'halfYear': {
+            const halfYearStart = subMonths(startOfMonth(referenceDate), 5);
+            const halfYearEnd = endOfMonth(referenceDate);
+            return {
+                start: format(halfYearStart, 'yyyy-MM-dd'),
+                end: format(halfYearEnd, 'yyyy-MM-dd'),
+            };
+        }
+        default:
+            return getDynamicDateRanges(referenceDate, 'weekly');
+    }
 };
-
-// Static date ranges - reference never changes after module load
-const STATIC_DATE_RANGES = getStaticDateRanges();
 
 // TeamDashboardContent component extracted to @/components/dashboard/TeamDashboardContent.tsx
 
@@ -49,75 +76,44 @@ export const DashboardPage: React.FC = () => {
     const { user } = useAuth();
     const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
+    const [currentDate, setCurrentDate] = useState<Date>(new Date()); // New: Track current reference date
     const [drillDownPath, setDrillDownPath] = useState<string[]>([]); // Stack of codes: ['ENG', 'ENG-SW']
 
     // Team Dashboard state
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
 
-    // Use static date ranges from module-level constant (reference never changes)
-    const { weekStart, weekEnd, monthStart, monthEnd, quarterStart, quarterEnd,
-        halfYearStart, halfYearEnd, yearStart, yearEnd, last12MonthsStart, last12MonthsEnd } = STATIC_DATE_RANGES;
+    // Calculate date ranges dynamically based on currentDate and viewMode
+    const dateRange = useMemo(() => getDynamicDateRanges(currentDate, viewMode), [currentDate, viewMode]);
+    const { start: periodStart, end: periodEnd } = dateRange;
 
-    const { data: weeklyWorklogs = [], isLoading: weeklyLoading } = useWorklogsTable({
-        start_date: weekStart,
-        end_date: weekEnd,
-        user_id: user?.id,
-        limit: 100,
-        enabled: true, // Always load weekly data
-    });
+    // Calculate last 12 months range for trend chart (always current month minus 11)
+    const last12MonthsRange = useMemo(() => {
+        const end = endOfMonth(new Date());
+        const start = subMonths(startOfMonth(new Date()), 11);
+        return {
+            start: format(start, 'yyyy-MM-dd'),
+            end: format(end, 'yyyy-MM-dd'),
+        };
+    }, []);
 
-    const { data: monthlyWorklogs = [], isLoading: monthlyLoading } = useWorklogsTable({
-        start_date: monthStart,
-        end_date: monthEnd,
+    // Dynamic worklog data fetching based on current view
+    const { data: currentWorklogs = [], isLoading: currentLoading } = useWorklogsTable({
+        start_date: periodStart,
+        end_date: periodEnd,
         user_id: user?.id,
-        limit: 200,
-        enabled: true, // Always load monthly data
-    });
-
-    const { data: quarterlyWorklogs = [], isLoading: _quarterlyLoading } = useWorklogsTable({
-        start_date: quarterStart,
-        end_date: quarterEnd,
-        user_id: user?.id,
-        limit: 500,
-        enabled: viewMode === 'quarterly' || viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
-    });
-
-    const { data: halfYearWorklogs = [], isLoading: _halfYearLoading } = useWorklogsTable({
-        start_date: halfYearStart,
-        end_date: halfYearEnd,
-        user_id: user?.id,
-        limit: 1000,
-        enabled: viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
-    });
-
-    const { data: yearlyWorklogs = [], isLoading: _yearlyLoading } = useWorklogsTable({
-        start_date: yearStart,
-        end_date: yearEnd,
-        user_id: user?.id,
-        limit: 2000,
-        enabled: viewMode === 'yearly', // Load when needed
+        limit: viewMode === 'yearly' ? 2000 : viewMode === 'quarterly' ? 500 : 200,
+        enabled: true,
     });
 
     // Last 12 months data for trend chart
     const { data: last12MonthsWorklogs = [] } = useWorklogsTable({
-        start_date: last12MonthsStart,
-        end_date: last12MonthsEnd,
+        start_date: last12MonthsRange.start,
+        end_date: last12MonthsRange.end,
         user_id: user?.id,
         limit: 2000,
         enabled: true, // Always load for trend chart
     });
-
-    const currentWorklogs = useMemo(() => {
-        switch (viewMode) {
-            case 'weekly': return weeklyWorklogs;
-            case 'monthly': return monthlyWorklogs;
-            case 'quarterly': return quarterlyWorklogs;
-            case 'halfYear': return halfYearWorklogs;
-            case 'yearly': return yearlyWorklogs;
-            default: return weeklyWorklogs;
-        }
-    }, [viewMode, weeklyWorklogs, monthlyWorklogs, quarterlyWorklogs, halfYearWorklogs, yearlyWorklogs]);
     // Calculate total hours and project summary with useMemo to prevent infinite re-renders
     const { totalHours, projectList } = useMemo(() => {
         const total = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
@@ -448,6 +444,51 @@ export const DashboardPage: React.FC = () => {
         setDrillDownPath(prev => prev.slice(0, -1));
     };
 
+    // Date Navigation Handlers
+    const handlePrevPeriod = () => {
+        switch (viewMode) {
+            case 'weekly':
+                setCurrentDate(prev => subWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setCurrentDate(prev => subMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setCurrentDate(prev => subQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setCurrentDate(prev => subYears(prev, 1));
+                break;
+            case 'halfYear':
+                setCurrentDate(prev => subMonths(prev, 6));
+                break;
+        }
+    };
+
+    const handleNextPeriod = () => {
+        switch (viewMode) {
+            case 'weekly':
+                setCurrentDate(prev => addWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setCurrentDate(prev => addMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setCurrentDate(prev => addQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setCurrentDate(prev => addYears(prev, 1));
+                break;
+            case 'halfYear':
+                setCurrentDate(prev => addMonths(prev, 6));
+                break;
+        }
+    };
+
+    const handleToday = () => {
+        setCurrentDate(new Date());
+    };
+
     if (isLoading) {
         return <div className="container mx-auto p-4"><div className="text-center py-12">로딩 중...</div></div>;
     }
@@ -467,21 +508,35 @@ export const DashboardPage: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="user" className="space-y-6">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {/* Navigation Arrows */}
+                        <Button variant="outline" onClick={handlePrevPeriod} size="sm" className="px-3">
+                            ←
+                        </Button>
+                        <Button variant="outline" onClick={handleToday} size="sm">
+                            오늘
+                        </Button>
+                        <Button variant="outline" onClick={handleNextPeriod} size="sm" className="px-3">
+                            →
+                        </Button>
+
+                        <div className="w-px h-6 bg-border mx-1" /> {/* Divider */}
+
+                        {/* Period Selection */}
                         <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
-                            📅 이번 주
+                            Weekly
                         </Button>
                         <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
-                            📆 이번 달
+                            Monthly
                         </Button>
                         <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
-                            📊 이번 분기
+                            Quarterly
                         </Button>
                         <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
-                            📈 최근 6개월
+                            Half Year
                         </Button>
                         <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
-                            🗓️ 올해
+                            Yearly
                         </Button>
                     </div>
 
@@ -500,11 +555,7 @@ export const DashboardPage: React.FC = () => {
                             <CardContent>
                                 <div className="text-3xl font-bold">{totalHours.toFixed(0)}h</div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {viewMode === 'weekly' && `${weekStart} ~ ${weekEnd}`}
-                                    {viewMode === 'monthly' && `${monthStart} ~ ${monthEnd}`}
-                                    {viewMode === 'quarterly' && `${quarterStart} ~ ${quarterEnd}`}
-                                    {viewMode === 'halfYear' && `${halfYearStart} ~ ${halfYearEnd}`}
-                                    {viewMode === 'yearly' && `${yearStart} ~ ${yearEnd}`}
+                                    {periodStart} ~ {periodEnd}
                                 </p>
                             </CardContent>
                         </Card>
@@ -633,7 +684,7 @@ export const DashboardPage: React.FC = () => {
                                             <span className="text-muted-foreground text-sm font-normal">상세</span>
                                         </>
                                     ) : (
-                                        <>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비율</>
+                                        <>업무 유형별 비율</>
                                     )}
                                 </CardTitle>
                                 {drillDownPath.length < 2 && (
@@ -641,16 +692,13 @@ export const DashboardPage: React.FC = () => {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                {weeklyLoading && viewMode === 'weekly' ? (
-                                    <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
-                                ) : monthlyLoading && viewMode === 'monthly' ? (
+                                {currentLoading ? (
                                     <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
                                 ) : activeChartData.length === 0 ? (
                                     <div className="text-center py-4 text-muted-foreground">
                                         데이터가 없습니다.
                                         <div className="text-xs mt-2">
-                                            {viewMode === 'weekly' && `(${weekStart} ~ ${weekEnd})`}
-                                            {viewMode === 'monthly' && `(${monthStart} ~ ${monthEnd})`}
+                                            ({periodStart} ~ {periodEnd})
                                         </div>
                                     </div>
                                 ) : (
