@@ -11,11 +11,8 @@ export const ResourceMatrixPage: React.FC = () => {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
-    const [startMonth, setStartMonth] = useState(
+    const [selectedMonth, setSelectedMonth] = useState(
         `${currentYear}-${currentMonth.toString().padStart(2, '0')}`
-    );
-    const [endMonth, setEndMonth] = useState(
-        `${currentYear}-12`
     );
 
     return (
@@ -35,38 +32,27 @@ export const ResourceMatrixPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="flex gap-6 items-end">
-                        <div className="flex-1">
+                        <div className="max-w-xs">
                             <label className="block text-sm font-medium mb-2 text-slate-700">
-                                Start Month
+                                Target Month
                             </label>
                             <input
                                 type="month"
-                                value={startMonth}
-                                onChange={(e) => setStartMonth(e.target.value)}
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(e.target.value)}
                                 className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                         </div>
                         <div className="flex-1">
-                            <label className="block text-sm font-medium mb-2 text-slate-700">
-                                End Month
-                            </label>
-                            <input
-                                type="month"
-                                value={endMonth}
-                                onChange={(e) => setEndMonth(e.target.value)}
-                                className="w-full border border-slate-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <div className="text-sm text-slate-600">
+                            <div className="text-sm text-slate-600 mb-2">
                                 <div className="font-medium mb-1">Period</div>
                                 <div className="text-slate-500">
-                                    {startMonth && endMonth ? (
+                                    {selectedMonth ? (
                                         <>
-                                            {startMonth} to {endMonth}
+                                            {selectedMonth} (Single Month View)
                                         </>
                                     ) : (
-                                        'Select date range'
+                                        'Select month'
                                     )}
                                 </div>
                             </div>
@@ -101,8 +87,8 @@ export const ResourceMatrixPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                     <ResourcePivotTable
-                        startMonth={startMonth}
-                        endMonth={endMonth}
+                        startMonth={selectedMonth}
+                        endMonth={selectedMonth}
                     />
                 </CardContent>
             </Card>

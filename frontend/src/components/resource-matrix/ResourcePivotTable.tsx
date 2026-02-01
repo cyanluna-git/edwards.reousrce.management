@@ -30,6 +30,39 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
         enabled: !!startMonth && !!endMonth,
     });
 
+    // Group rows by Department
+    // MOVED: Must be called before any early returns
+    const groupedRows = React.useMemo(() => {
+        if (!data) return {};
+        const groups: Record<string, typeof data.rows> = {};
+
+        // Sort rows by department then name first
+        const sortedRows = [...data.rows].sort((a, b) => {
+            const deptA = a.department_name || 'Unassigned';
+            const deptB = b.department_name || 'Unassigned';
+            if (deptA !== deptB) return deptA.localeCompare(deptB);
+            return a.user_name.localeCompare(b.user_name);
+        });
+
+        sortedRows.forEach(row => {
+            const dept = row.department_name || 'Unassigned';
+            if (!groups[dept]) groups[dept] = [];
+            groups[dept].push(row);
+        });
+        return groups;
+    }, [data]);
+
+    const getIOBadge = (type: string) => {
+        switch (type) {
+            case 'INTERNAL':
+                return <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200">INT</Badge>;
+            case 'RECHARGE':
+                return <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-200">RCH</Badge>;
+            default:
+                return null;
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
@@ -57,18 +90,6 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
             </div>
         );
     }
-
-    // IO Type Badge Helper
-    const getIOBadge = (type: string) => {
-        switch (type) {
-            case 'INTERNAL':
-                return <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200">INT</Badge>;
-            case 'RECHARGE':
-                return <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-200">RCH</Badge>;
-            default:
-                return null;
-        }
-    };
 
     return (
         <div className="overflow-auto max-h-[calc(100vh-300px)] border rounded-lg shadow-sm">
@@ -102,71 +123,78 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                                             {col.name}
                                         </span>
                                     )}
+                                    {/* Total at Top */}
+                                    <div className="mt-1 pt-1 border-t w-full text-center">
+                                        <span className="text-xs font-bold text-blue-700">
+                                            {col.total_fte.toFixed(1)}
+                                        </span>
+                                    </div>
                                 </div>
                             </th>
                         ))}
 
                         {/* Total Column */}
-                        <th className="sticky right-0 bg-blue-50 border border-slate-300 p-2 min-w-[80px] font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-20">
-                            Total
+                        <th className="sticky right-0 bg-blue-50 border border-slate-300 p-2 min-w-[80px] font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-20 align-top">
+                            <div className="flex flex-col h-full justify-between">
+                                <span>Total</span>
+                                <span className="text-xs mt-auto pt-2">{data.grand_total.toFixed(1)}</span>
+                            </div>
                         </th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {/* User Rows */}
-                    {data.rows.map((row) => (
-                        <tr key={row.user_id || 'tbd'} className="hover:bg-slate-50 transition-colors">
-                            {/* User Info (Sticky Left) */}
-                            <td className="sticky left-0 bg-white border border-slate-300 p-3 z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
-                                <div className="flex flex-col">
-                                    <span className="font-medium text-slate-800">{row.user_name}</span>
-                                    {row.position_name && (
-                                        <span className="text-xs text-slate-500">{row.position_name}</span>
-                                    )}
-                                </div>
-                            </td>
+                    {Object.entries(groupedRows).map(([deptName, rows]) => (
+                        <React.Fragment key={deptName}>
+                            {/* Group Header */}
+                            <tr className="bg-slate-100/80">
+                                <td
+                                    colSpan={data.columns.length + 2}
+                                    className="p-2 pl-4 font-bold text-slate-700 border border-slate-300 sticky left-0 z-10"
+                                    style={{ left: 0 }}
+                                >
+                                    {deptName}
+                                </td>
+                            </tr>
 
-                            {/* IO Cells */}
-                            {data.columns.map((col) => {
-                                const val = row.allocations[col.id] || 0;
-                                return (
-                                    <td
-                                        key={`${row.user_id}-${col.id}`}
-                                        className={cn(
-                                            "border border-slate-300 p-2 text-right font-mono text-sm",
-                                            val > 0 ? "text-slate-800" : "text-slate-300"
-                                        )}
-                                    >
-                                        {val > 0 ? val.toFixed(2) : '-'}
+                            {/* User Rows */}
+                            {rows.map((row) => (
+                                <tr key={row.user_id || 'tbd'} className="hover:bg-slate-50 transition-colors">
+                                    {/* User Info (Sticky Left) */}
+                                    <td className="sticky left-0 bg-white border border-slate-300 p-3 z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
+                                        <div className="flex flex-col ml-4"> {/* Indent for hierarchy */}
+                                            <span className="font-medium text-slate-800">{row.user_name}</span>
+                                            {row.position_name && (
+                                                <span className="text-xs text-slate-500">{row.position_name}</span>
+                                            )}
+                                        </div>
                                     </td>
-                                );
-                            })}
 
-                            {/* Row Total (Sticky Right) */}
-                            <td className="sticky right-0 bg-blue-50 border border-slate-300 p-2 text-right font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-10">
-                                {row.total_fte.toFixed(1)}
-                            </td>
-                        </tr>
+                                    {/* IO Cells */}
+                                    {data.columns.map((col) => {
+                                        const val = row.allocations[col.id] || 0;
+                                        return (
+                                            <td
+                                                key={`${row.user_id}-${col.id}`}
+                                                className={cn(
+                                                    "border border-slate-300 p-2 text-right font-mono text-sm",
+                                                    val > 0 ? "text-slate-800" : "text-slate-300"
+                                                )}
+                                            >
+                                                {val > 0 ? val.toFixed(2) : '-'}
+                                            </td>
+                                        );
+                                    })}
+
+                                    {/* Row Total (Sticky Right) */}
+                                    <td className="sticky right-0 bg-blue-50 border border-slate-300 p-2 text-right font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-10">
+                                        {row.total_fte.toFixed(1)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </React.Fragment>
                     ))}
                 </tbody>
-
-                {/* Grand Total Footer */}
-                <tfoot className="sticky bottom-0 z-20">
-                    <tr className="bg-blue-100 font-bold shadow-md">
-                        <td className="sticky left-0 bg-blue-200 border border-slate-300 p-3 text-blue-900 shadow-[1px_0_0_0_rgba(0,0,0,0.1)] z-30">
-                            GRAND TOTAL
-                        </td>
-                        {data.columns.map((col) => (
-                            <td key={col.id} className="border border-slate-300 p-2 text-right text-blue-900 bg-blue-100">
-                                {col.total_fte.toFixed(1)}
-                            </td>
-                        ))}
-                        <td className="sticky right-0 bg-blue-300 border border-slate-300 p-2 text-right text-blue-950 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-30">
-                            {data.grand_total.toFixed(1)}
-                        </td>
-                    </tr>
-                </tfoot>
             </table>
         </div>
     );

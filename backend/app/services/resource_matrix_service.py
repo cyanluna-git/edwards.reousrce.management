@@ -6,11 +6,11 @@ from datetime import datetime
 from typing import Optional, Dict, List
 from collections import defaultdict
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 
-from app.models.resource import ResourcePlan
+from app.models.resource import ResourcePlan, WorkLog
 from app.models.project import Program, Project
-from app.models.user import User  # Added User import
+from app.models.user import User
 from app.models.internal_io import InternalIO
 from app.utils import get_io_number
 from app.schemas.resource_matrix import (
@@ -58,17 +58,9 @@ def get_resource_allocation_matrix(
 ) -> ResourceAllocationMatrix:
     """
     Generate Resource Allocation Matrix
-
-    Args:
-        db: Database session
-        start_month: Start month in "YYYY-MM" format
-        end_month: End month in "YYYY-MM" format
-        department_id: Optional filter by department
-        program_id: Optional filter by program
-
-    Returns:
-        ResourceAllocationMatrix with aggregated data
+    (Still used for Planning View if needed, or legacy compatibility)
     """
+    # ... (Keep existing implementation for safety/compatibility for now)
     # Generate month list
     months = generate_month_range(start_month, end_month)
 
@@ -76,7 +68,7 @@ def get_resource_allocation_matrix(
     start_dt = datetime.strptime(start_month, "%Y-%m")
     end_dt = datetime.strptime(end_month, "%Y-%m")
 
-    # Query all resource plans in the date range with eager loading to prevent N+1
+    # Query all resource plans
     query = (
         db.query(ResourcePlan)
         .options(
@@ -93,7 +85,6 @@ def get_resource_allocation_matrix(
         )
     )
 
-    # Apply filters
     if program_id:
         query = query.join(ResourcePlan.project).filter(
             Project.program_id == program_id
@@ -101,24 +92,17 @@ def get_resource_allocation_matrix(
 
     resource_plans = query.all()
 
-    # Filter by exact month range and build aggregation structure
-    # Structure: {program_id: {project_id: {month: [details]}}}
     matrix_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     for plan in resource_plans:
         month_key = f"{plan.year}-{plan.month:02d}"
-
-        # Skip if outside month range
         if month_key not in months:
             continue
 
         program_id_key = plan.project.program_id
         project_id_key = plan.project_id
-
-        # Calculate FTE (160 hours = 1 FTE)
         fte = round(plan.planned_hours / 160, 2)
 
-        # Build detail object
         detail = ResourceAllocationDetail(
             user_id=plan.user_id,
             name=plan.user.name if plan.user else "TBD",
@@ -129,11 +113,9 @@ def get_resource_allocation_matrix(
 
         matrix_data[program_id_key][project_id_key][month_key].append(detail)
 
-    # Build response structure
     programs: List[ProgramGroup] = []
     grand_total_by_month: Dict[str, float] = {month: 0.0 for month in months}
 
-    # Query all programs (or filtered), including internal_io for projects
     programs_query = (
         db.query(Program)
         .options(joinedload(Program.projects).joinedload(Project.internal_io))
@@ -161,12 +143,9 @@ def get_resource_allocation_matrix(
                     total_fte=round(total_fte, 2),
                     details=details,
                 )
-
-                # Accumulate program totals
                 program_total_by_month[month] += total_fte
                 grand_total_by_month[month] += total_fte
 
-            # Only include projects with at least one allocation
             if any(a.total_fte > 0 for a in allocations.values()):
                 projects.append(
                     ProjectAllocationRow(
@@ -178,7 +157,6 @@ def get_resource_allocation_matrix(
                     )
                 )
 
-        # Only include programs with projects
         if projects:
             programs.append(
                 ProgramGroup(
@@ -192,7 +170,6 @@ def get_resource_allocation_matrix(
                 )
             )
 
-    # Round grand totals
     grand_total_by_month = {
         month: round(total, 2) for month, total in grand_total_by_month.items()
     }
@@ -215,6 +192,11 @@ def get_resource_pivot_matrix(
 ) -> "PivotMatrixResponse":
     """
     Generate Resource Allocation Pivot Table (User x IO)
+    Based on ACTUAL WorkLogs (Normalized FTE)
+
+    Formula:
+        FTE = (User's Hours on Project X) / (User's Total Project Hours)
+        * Note: 'Team Work' (Project IS NULL) is excluded from the denominator.
     """
     from app.schemas.resource_matrix import (
         PivotMatrixResponse,
@@ -224,54 +206,66 @@ def get_resource_pivot_matrix(
 
     # 1. Parse Date Range
     start_dt = datetime.strptime(start_month, "%Y-%m")
-    end_dt = datetime.strptime(end_month, "%Y-%m")
+    # For WorkLogs, we need strict date range.
+    # start_month "2026-02" -> start_date 2026-02-01, end_date 2026-02-28
+    import calendar
 
-    # 2. Query Resource Plans (Eager Loading)
+    end_dt_obj = datetime.strptime(end_month, "%Y-%m")
+    last_day = calendar.monthrange(end_dt_obj.year, end_dt_obj.month)[1]
+
+    query_start_date = start_dt.date()
+    query_end_date = end_dt_obj.replace(day=last_day).date()
+
+    # 2. Query WorkLogs
+    # Join Project to get IO info, Join User for details
     query = (
-        db.query(ResourcePlan)
+        db.query(WorkLog)
         .options(
-            joinedload(ResourcePlan.project).joinedload(Project.internal_io),
-            joinedload(ResourcePlan.project).joinedload(Project.recharge_io),
-            joinedload(ResourcePlan.user).joinedload(User.position),
-            joinedload(ResourcePlan.user).joinedload(User.department),
+            joinedload(WorkLog.project).joinedload(Project.internal_io),
+            joinedload(WorkLog.project).joinedload(Project.recharge_io),
+            joinedload(WorkLog.user).joinedload(User.position),
+            joinedload(WorkLog.user).joinedload(User.department),
         )
         .filter(
             and_(
-                ResourcePlan.year >= start_dt.year,
-                ResourcePlan.year <= end_dt.year,
+                WorkLog.date >= query_start_date,
+                WorkLog.date <= query_end_date,
+                WorkLog.project_id.isnot(None),  # Exclude Team Work (Overhead)
             )
         )
     )
 
-    # Filter logic (same as matrix)
-    # Check if month is within range (simple year check above is optimization, detailed check below)
-
-    # Apply Filters
     if program_id:
-        query = query.join(ResourcePlan.project).filter(
-            Project.program_id == program_id
-        )
+        query = query.join(WorkLog.project).filter(Project.program_id == program_id)
 
-    resource_plans = query.all()
+    if department_id:
+        query = query.join(WorkLog.user).filter(User.department_id == department_id)
 
-    # 3. Aggregation Structures
-    # Columns: IOs { io_id: PivotColumn }
-    # Rows: Users { user_id: PivotRow }
-    # Data: { user_id: { io_id: fte } }
+    worklogs = query.all()
 
+    # 3. Calculate Total Project Hours per User (Denominator)
+    user_total_project_hours: Dict[str, float] = defaultdict(float)
+    for log in worklogs:
+        # Safety for None hours
+        h = log.hours or 0.0
+        if log.user_id:
+            user_total_project_hours[str(log.user_id)] += h
+
+    # 4. Aggregation Structures
     cols_map: Dict[str, PivotColumn] = {}
     rows_map: Dict[str, PivotRow] = {}
     data_map: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
 
-    # Special IO ID for Unassigned
     UNASSIGNED_IO_ID = "unassigned"
 
-    # Helper to determine effective IO
     def get_effective_io(project: Project):
+        """Same IO resolution logic as before"""
         if not project:
-            return (UNASSIGNED_IO_ID, "No Project", "Unknown", "NONE")
+            return None  # Should not happen due to filter, but safe guard
 
         if project.internal_io:
+            if not project.internal_io.is_active:
+                return None
             return (
                 str(project.internal_io.id),
                 str(project.internal_io.io_number or "N/A"),
@@ -279,6 +273,8 @@ def get_resource_pivot_matrix(
                 "INTERNAL",
             )
         elif project.recharge_io:
+            if not project.recharge_io.is_active:
+                return None
             return (
                 str(project.recharge_io.id),
                 str(project.recharge_io.io_number or "N/A"),
@@ -288,86 +284,85 @@ def get_resource_pivot_matrix(
         else:
             return (UNASSIGNED_IO_ID, "No IO", "Unassigned Project", "NONE")
 
-    months = generate_month_range(start_month, end_month)
-
-    for plan in resource_plans:
-        try:
-            month_key = f"{plan.year}-{plan.month:02d}"
-            if month_key not in months:
-                continue
-
-            # Defensive check
-            if not plan.project:
-                print(f"Warning: ResourcePlan {plan.id} has no project. Skipping.")
-                continue
-
-            # Determine IO (Column)
-            io_id, io_label, io_name, io_type = get_effective_io(plan.project)
-            io_id = str(io_id)  # Ensure string
-
-            if io_id not in cols_map:
-                cols_map[io_id] = PivotColumn(
-                    id=io_id,
-                    label=str(io_label),
-                    name=str(io_name) if io_name else None,
-                    type=str(io_type),
-                )
-
-            # Determine User (Row)
-            user_id = str(plan.user_id) if plan.user_id else "TBD"
-            user_name = str(plan.user.name) if plan.user else "TBD"
-
-            # Additional User Info
-            pos_name = (
-                str(plan.user.position.name)
-                if plan.user and plan.user.position
-                else None
-            )
-            dept_name = (
-                str(plan.user.department.name)
-                if plan.user and plan.user.department
-                else None
-            )
-
-            if user_id not in rows_map:
-                rows_map[user_id] = PivotRow(
-                    user_id=user_id if user_id != "TBD" else None,
-                    user_name=user_name,
-                    position_name=pos_name,
-                    department_name=dept_name,
-                    allocations={},
-                )
-
-            # Calculate FTE
-            p_hours = plan.planned_hours if plan.planned_hours is not None else 0.0
-            fte = float(p_hours) / 160.0
-
-            # Accumulate
-            data_map[user_id][io_id] += fte
-            cols_map[io_id].total_fte += fte
-            rows_map[user_id].total_fte += fte
-        except Exception as e:
-            print(f"Error processing ResourcePlan {plan.id}: {str(e)}")
+    for log in worklogs:
+        if not log.user_id:
             continue
 
-    # 4. Construct Response
-    sorted_cols = sorted(cols_map.values(), key=lambda c: c.label)  # Sort by IO Number
+        user_id = str(log.user_id)
 
-    # Fill row allocations
+        # Skip if user has 0 total hours (divide by zero protection)
+        total_hours = user_total_project_hours[user_id]
+        if total_hours == 0:
+            continue
+
+        # Determine IO
+        io_result = get_effective_io(log.project)
+        if not io_result:
+            continue  # Skip inactive IOs or invalid projects
+
+        io_id, io_label, io_name, io_type = io_result
+        io_id = str(io_id)
+
+        # Ensure Column Exists
+        if io_id not in cols_map:
+            cols_map[io_id] = PivotColumn(
+                id=io_id,
+                label=str(io_label),
+                name=str(io_name) if io_name else None,
+                type=str(io_type),
+            )
+
+        # Ensure Row Exists
+        if user_id not in rows_map:
+            user_name = str(log.user.name) if log.user else "Unknown"
+            pos_name = (
+                str(log.user.position.name) if log.user and log.user.position else None
+            )
+            dept_name = (
+                str(log.user.department.name)
+                if log.user and log.user.department
+                else None
+            )
+
+            rows_map[user_id] = PivotRow(
+                user_id=user_id,
+                user_name=user_name,
+                position_name=pos_name,
+                department_name=dept_name,
+                allocations={},
+            )
+
+        # Calculate Normalized FTE contribution for this log entry
+        # Contribution = (Log Hours / Total User Project Hours)
+        # We can sum these contributions.
+        # Example: Log A (2h). Total (10h). Contrib = 0.2.
+        hours = log.hours or 0.0
+        fte_contribution = hours / total_hours
+
+        # Accumulate
+        data_map[user_id][io_id] += fte_contribution
+        cols_map[io_id].total_fte += fte_contribution
+        rows_map[user_id].total_fte += fte_contribution
+
+    # 5. Construct Response
+    sorted_cols = sorted(cols_map.values(), key=lambda c: c.label)
     sorted_rows = sorted(rows_map.values(), key=lambda r: r.user_name)
+
+    # Fill allocations and apply rounding
     for row in sorted_rows:
-        u_id = row.user_id or "TBD"
+        u_id = row.user_id or "TBD"  # Should always be user_id here
         for col in sorted_cols:
             val = data_map[u_id].get(col.id, 0.0)
             if val > 0:
-                row.allocations[col.id] = round(val, 2)
+                row.allocations[col.id] = float(f"{val:.2f}")  # Round for display
 
-        # Round row total
-        row.total_fte = round(row.total_fte, 2)
+        # Force row total to be exactly 1.0 if it's close (floating point mitigation)
+        # But wait, if we filtered out some IOs (inactive), row total might be < 1.0.
+        # That is correct behavior (hours on inactive IOs are lost from the view).
+        row.total_fte = float(f"{row.total_fte:.2f}")
 
-    # Round column totals
     for col in sorted_cols:
-        col.total_fte = round(col.total_fte, 2)
+        col.total_fte = float(f"{col.total_fte:.2f}")
 
     grand_total = sum(c.total_fte for c in sorted_cols)
 
@@ -376,5 +371,5 @@ def get_resource_pivot_matrix(
         end_month=end_month,
         columns=sorted_cols,
         rows=sorted_rows,
-        grand_total=round(grand_total, 2),
+        grand_total=float(f"{grand_total:.2f}"),
     )
