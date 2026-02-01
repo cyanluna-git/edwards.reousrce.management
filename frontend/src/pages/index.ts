@@ -8,3 +8,4 @@ export { ResourcePlansPage } from './ResourcePlansPage';
 export { OrganizationPage } from './OrganizationPage';
 export { ReportsPage } from './ReportsPage';
 export { RequestBoardPage } from './RequestBoardPage';
+export { ProfilePage } from './ProfilePage';
