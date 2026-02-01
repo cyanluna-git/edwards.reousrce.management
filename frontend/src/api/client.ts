@@ -1076,4 +1076,26 @@ export const getTeamAISummaryHistory = async (
   return response.data;
 };
 
+// ============ Resource Matrix Drill-down ============
+
+export interface WorklogDetail {
+  date: string;
+  hours: number;
+  project_name: string;
+  io_number: string | null;
+  description: string | null;
+  fte_contribution: number;
+}
+
+export const getMatrixDetails = async (
+  userId: string,
+  month: string,
+  ioId: string
+): Promise<WorklogDetail[]> => {
+  const response = await apiClient.get('/resource-matrix/details', {
+    params: { user_id: userId, month, io_id: ioId }
+  });
+  return response.data;
+};
+
 export default apiClient;

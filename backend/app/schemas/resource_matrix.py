@@ -88,3 +88,14 @@ class PivotMatrixResponse(BaseModel):
     columns: List[PivotColumn]
     rows: List[PivotRow]
     grand_total: float
+
+
+class WorklogDetailResponse(BaseModel):
+    """Detailed Worklog for Drill-down"""
+
+    date: str
+    hours: float
+    project_name: str
+    io_number: Optional[str] = None
+    description: Optional[str] = None
+    fte_contribution: float = 0.0  # Approx FTE impact (hours / total_hours)

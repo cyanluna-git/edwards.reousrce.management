@@ -18,6 +18,7 @@ interface ResourcePivotTableProps {
     endMonth: string;
     departmentId?: string;
     programId?: string;
+    onCellClick?: (userId: string, userName: string, ioId: string, ioName: string) => void;
 }
 
 export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
@@ -25,6 +26,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     endMonth,
     departmentId,
     programId,
+    onCellClick,
 }) => {
     const { data, isLoading, error } = useQuery<PivotMatrixResponse>({
         queryKey: ['resource-pivot', startMonth, endMonth, departmentId, programId],
@@ -242,7 +244,13 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
 
                                                     {/* SubTeam Rows */}
                                                     {!isSubCollapsed && subTeamGroup.rows.map(row => (
-                                                        <RowItem key={row.user_id || 'tbd'} row={row} columns={data.columns} indentLevel={2} />
+                                                        <RowItem
+                                                            key={row.user_id || 'tbd'}
+                                                            row={row}
+                                                            columns={data.columns}
+                                                            indentLevel={2}
+                                                            onCellClick={onCellClick}
+                                                        />
                                                     ))}
                                                 </React.Fragment>
                                             );
@@ -265,6 +273,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                                                         row={row}
                                                         columns={data.columns}
                                                         indentLevel={Object.keys(group.subTeams).length > 0 ? 2 : 1}
+                                                        onCellClick={onCellClick}
                                                     />
                                                 ))}
                                             </>
@@ -285,7 +294,8 @@ const RowItem: React.FC<{
     row: PivotRow;
     columns: PivotMatrixResponse['columns'];
     indentLevel: number;
-}> = ({ row, columns, indentLevel }) => {
+    onCellClick?: (userId: string, userName: string, ioId: string, ioName: string) => void;
+}> = ({ row, columns, indentLevel, onCellClick }) => {
     // indentLevel 1 = 1.5rem (pl-6), indentLevel 2 = 3rem (pl-12)
     const paddingLeft = indentLevel === 1 ? 'pl-8' : 'pl-14';
 
@@ -312,8 +322,13 @@ const RowItem: React.FC<{
                         key={`${row.user_id}-${col.id}`}
                         className={cn(
                             "border-r border-slate-200 p-2 text-right font-mono text-xs",
-                            val > 0 ? "text-slate-800 font-medium" : "text-slate-300"
+                            val > 0 ? "text-slate-800 font-medium cursor-pointer hover:bg-blue-50" : "text-slate-300"
                         )}
+                        onClick={() => {
+                            if (val > 0 && onCellClick && row.user_id) {
+                                onCellClick(row.user_id, row.user_name, col.id, col.name || col.label);
+                            }
+                        }}
                     >
                         {val > 0 ? val.toFixed(2) : '-'}
                     </td>

@@ -2,13 +2,22 @@
 API Endpoints for Resource Allocation Matrix
 """
 
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.resource_matrix import ResourceAllocationMatrix, PivotMatrixResponse
+from app.schemas.resource_matrix import (
+    ResourceAllocationMatrix,
+    PivotMatrixResponse,
+    WorklogDetailResponse,
+)
 from app.services.resource_matrix_service import get_resource_allocation_matrix
+
+# ... (existing router definition)
+
+# ... (other endpoints)
+
 
 router = APIRouter(prefix="/resource-matrix", tags=["Resource Matrix"])
 
@@ -77,5 +86,28 @@ def get_pivot_matrix(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.get("/details", response_model=List[WorklogDetailResponse])
+def get_matrix_details(
+    user_id: str,
+    month: str,
+    io_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Get detailed worklogs for a cell in the pivot table.
+    """
+    from app.services.resource_matrix_service import get_resource_matrix_details
+
+    try:
+        return get_resource_matrix_details(
+            db=db,
+            user_id=user_id,
+            month=month,
+            io_id=io_id,
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

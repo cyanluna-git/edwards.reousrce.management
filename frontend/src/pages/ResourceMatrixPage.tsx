@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ResourcePivotTable } from '@/components/resource-matrix/ResourcePivotTable';
+import { WorklogDrilldownModal } from '@/components/resource-matrix/WorklogDrilldownModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Calendar, Info } from 'lucide-react';
@@ -27,6 +28,31 @@ export const ResourceMatrixPage: React.FC = () => {
         const y = today.getFullYear();
         const m = String(today.getMonth() + 1).padStart(2, '0');
         setSelectedMonth(`${y}-${m}`);
+    };
+
+    // Drilldown State
+    const [drilldownState, setDrilldownState] = useState<{
+        isOpen: boolean;
+        userId: string;
+        userName: string;
+        ioId: string;
+        ioName: string;
+    }>({
+        isOpen: false,
+        userId: '',
+        userName: '',
+        ioId: '',
+        ioName: '',
+    });
+
+    const handleCellClick = (userId: string, userName: string, ioId: string, ioName: string) => {
+        setDrilldownState({
+            isOpen: true,
+            userId,
+            userName,
+            ioId,
+            ioName,
+        });
     };
 
     return (
@@ -116,10 +142,21 @@ export const ResourceMatrixPage: React.FC = () => {
                         <ResourcePivotTable
                             startMonth={selectedMonth}
                             endMonth={selectedMonth}
+                            onCellClick={handleCellClick}
                         />
                     </div>
                 </CardContent>
             </Card>
+
+            <WorklogDrilldownModal
+                isOpen={drilldownState.isOpen}
+                onClose={() => setDrilldownState(prev => ({ ...prev, isOpen: false }))}
+                userId={drilldownState.userId}
+                userName={drilldownState.userName}
+                month={selectedMonth}
+                ioId={drilldownState.ioId}
+                ioName={drilldownState.ioName}
+            />
         </div>
     );
 };

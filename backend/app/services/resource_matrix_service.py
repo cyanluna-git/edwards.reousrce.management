@@ -407,3 +407,141 @@ def get_resource_pivot_matrix(
         rows=sorted_rows,
         grand_total=float(f"{grand_total:.2f}"),
     )
+
+
+def get_resource_matrix_details(
+    db: Session,
+    user_id: str,
+    month: str,  # YYYY-MM
+    io_id: str,
+) -> List["WorklogDetailResponse"]:
+    """
+    Get detailed worklogs for a specific cell (User x IO x Month)
+    """
+    from app.schemas.resource_matrix import WorklogDetailResponse
+    import calendar
+
+    # 1. Date Range
+    dt = datetime.strptime(month, "%Y-%m")
+    last_day = calendar.monthrange(dt.year, dt.month)[1]
+    start_date = dt.date()
+    end_date = dt.replace(day=last_day).date()
+
+    # 2. Query User's Worklogs for the Month
+    # Need to query ALL logs for the user in that month first to calculate total hours (denominator)
+    # This is needed if we want to show "FTE Contribution" per log.
+
+    query = (
+        db.query(WorkLog)
+        .options(
+            joinedload(WorkLog.project).joinedload(Project.internal_io),
+            joinedload(WorkLog.project).joinedload(Project.recharge_io),
+            joinedload(WorkLog.project)
+            .joinedload(Project.recharge_mappings)
+            .joinedload(ProjectRechargeMapping.recharge_io),
+            joinedload(WorkLog.user).joinedload(User.primary_business_unit),
+        )
+        .filter(
+            and_(
+                WorkLog.user_id == user_id,
+                WorkLog.date >= start_date,
+                WorkLog.date <= end_date,
+                WorkLog.project_id.isnot(None),
+            )
+        )
+    )
+
+    all_logs = query.all()
+
+    # Calculate Total Hours for Denominator
+    total_month_hours = sum((l.hours or 0.0) for l in all_logs)
+
+    # 3. Filter for target IO and build response
+    details: List[WorklogDetailResponse] = []
+
+    for log in all_logs:
+        # Determine IO
+        # Reuse the logic from get_resource_pivot_matrix.
+        # Ideally this should be a shared helper function in the module scope.
+        # For now, defining the helper here again or refactoring.
+        # Let's Refactor `get_effective_io` to module level if possible,
+        # but to minimize change risk, I'll keep it consistent.
+
+        # NOTE: WE MUST USE THE SAME LOGIC AS THE PIVOT GENERATION
+        effective_io = _determine_effective_io_for_log(log)
+
+        if not effective_io:
+            continue
+
+        eff_io_id, eff_io_label, _, _ = effective_io
+
+        # Check match
+        if str(eff_io_id) == io_id:
+            hours = log.hours or 0.0
+            fte = 0.0
+            if total_month_hours > 0:
+                fte = hours / total_month_hours
+
+            details.append(
+                WorklogDetailResponse(
+                    date=log.date.strftime("%Y-%m-%d"),
+                    hours=hours,
+                    project_name=log.project.name if log.project else "Unknown Project",
+                    io_number=eff_io_label,
+                    description=log.description,
+                    fte_contribution=float(f"{fte:.4f}"),
+                )
+            )
+
+    # Sort by date
+    details.sort(key=lambda x: x.date)
+    return details
+
+
+def _determine_effective_io_for_log(log: WorkLog):
+    """Helper to determine effective IO for a worklog entry"""
+    project = log.project
+    user = log.user
+
+    if not project:
+        return None
+
+    # 1. Dynamic Mapping Check
+    if (
+        user
+        and user.primary_business_unit_id
+        and hasattr(project, "recharge_mappings")
+        and project.recharge_mappings
+    ):
+        for mapping in project.recharge_mappings:
+            if mapping.business_unit_id == user.primary_business_unit_id:
+                rio = mapping.recharge_io
+                if rio and rio.is_active:
+                    return (
+                        str(rio.id),
+                        str(rio.io_number or "N/A"),
+                        str(rio.name or ""),
+                        "RECHARGE",
+                    )
+
+    # 2. Existing Logic
+    if project.internal_io:
+        if not project.internal_io.is_active:
+            return None
+        return (
+            str(project.internal_io.id),
+            str(project.internal_io.io_number or "N/A"),
+            str(project.internal_io.name or ""),
+            "INTERNAL",
+        )
+    elif project.recharge_io:
+        if not project.recharge_io.is_active:
+            return None
+        return (
+            str(project.recharge_io.id),
+            str(project.recharge_io.io_number or "N/A"),
+            str(project.recharge_io.name or ""),
+            "RECHARGE",
+        )
+    else:
+        return ("unassigned", "No IO", "Unassigned Project", "NONE")
