@@ -41,7 +41,9 @@ export function WorkTypeCategorySelect({
     const filteredCategories = useMemo(() => {
         const term = searchTerm.toLowerCase();
 
-        return categories.map(l1 => {
+        return categories
+            .filter(l1 => l1.code !== 'ABS') // Hide Absence category (use Leave Entry Modal instead)
+            .map(l1 => {
             // Filter L2s and their L3s
             const filteredL2s = l1.children.map(l2 => {
 
@@ -111,7 +113,7 @@ export function WorkTypeCategorySelect({
             >
                 <span className={selectedCategory ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedCategory
-                        ? `${selectedCategory.code} - ${selectedCategory.name_ko || selectedCategory.name}`
+                        ? selectedCategory.name_ko || selectedCategory.name
                         : placeholder}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -163,7 +165,6 @@ export function WorkTypeCategorySelect({
                                             ) : (
                                                 <ChevronRight className="h-4 w-4 text-slate-500" />
                                             )}
-                                            <span className="text-blue-600 font-mono text-xs">{l1.code}</span>
                                             <span>{l1.name_ko || l1.name}</span>
                                         </button>
 
@@ -178,7 +179,6 @@ export function WorkTypeCategorySelect({
                                                             className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
                                                                 }`}
                                                         >
-                                                            <span className="text-slate-400 font-mono text-xs">{l2.code}</span>
                                                             <span>{l2.name_ko || l2.name}</span>
                                                         </button>
                                                         {/* L3 Children */}
@@ -192,7 +192,7 @@ export function WorkTypeCategorySelect({
                                                                         className={`w-full flex items-center gap-2 pl-12 pr-3 py-1.5 text-xs hover:bg-blue-50 text-left ${value === l3.id ? 'bg-blue-100 text-blue-700' : 'text-slate-600'
                                                                             }`}
                                                                     >
-                                                                        <span className="text-slate-400 font-mono text-[10px]">└ {l3.code.split('-').pop()}</span>
+                                                                        <span className="text-slate-400">└</span>
                                                                         <span>{l3.name_ko || l3.name}</span>
                                                                     </button>
                                                                 ))}

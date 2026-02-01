@@ -7,7 +7,7 @@ Multiple projects can share the same Internal IO for cost aggregation.
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -30,6 +30,11 @@ class InternalIO(Base):
     name = Column(String(200), nullable=True)  # Optional descriptive name
     description = Column(Text, nullable=True)
 
+    # 사업영역 연결 (Pre-Gate IO처럼 BU별 분리된 IO 지원)
+    business_unit_id = Column(
+        String(50), ForeignKey("business_units.id"), nullable=True, index=True
+    )
+
     # Status and metadata
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -37,6 +42,7 @@ class InternalIO(Base):
 
     # Relationships
     projects = relationship("Project", back_populates="internal_io")
+    business_unit = relationship("BusinessUnit", backref="internal_ios")
 
     def __repr__(self):
         return f"<InternalIO(io_number='{self.io_number}', name='{self.name}')>"

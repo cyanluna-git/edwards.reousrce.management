@@ -309,11 +309,18 @@ export interface TeamDashboardData {
       project_id: string;
       project_code: string;
       project_name: string;
+      category: string;
       hours: number;
     }>;
     project_vs_functional: {
       Project: number;
       Functional: number;
+    };
+    by_category?: {
+      Product: number;
+      Functional: number;
+      Support: number;
+      TeamInternal: number;
     };
   };
   member_contributions: Array<{

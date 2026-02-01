@@ -84,6 +84,7 @@ class InternalIOBase(BaseModel):
     io_number: str
     name: Optional[str] = None
     description: Optional[str] = None
+    business_unit_id: Optional[str] = None  # BU별 분리된 IO 지원
 
 
 class InternalIOCreate(InternalIOBase):
@@ -94,12 +95,14 @@ class InternalIOUpdate(BaseModel):
     io_number: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
+    business_unit_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 
 class InternalIO(InternalIOBase):
     id: str
     is_active: bool = True
+    business_unit: Optional[BusinessUnit] = None  # Nested BU info
 
     class Config:
         from_attributes = True
@@ -113,7 +116,7 @@ class RechargeIOBase(BaseModel):
 
 
 class RechargeIOCreate(RechargeIOBase):
-    pass
+    business_unit_ids: Optional[List[str]] = None  # BU IDs for M:N relationship
 
 
 class RechargeIOUpdate(BaseModel):
@@ -121,11 +124,13 @@ class RechargeIOUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
+    business_unit_ids: Optional[List[str]] = None  # Update BU mappings
 
 
 class RechargeIO(RechargeIOBase):
     id: str
     is_active: bool = True
+    business_units: List[BusinessUnit] = []  # M:N relationship
 
     class Config:
         from_attributes = True
@@ -145,7 +150,7 @@ class ProjectBase(BaseModel):
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
     )
-    category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL
+    category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL, SUPPORT
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
     product_line_id: Optional[str] = None  # Family grouping
     owner_department_id: Optional[str] = None  # NEW: Required for FUNCTIONAL projects

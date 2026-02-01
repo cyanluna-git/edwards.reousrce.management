@@ -25,17 +25,10 @@ import {
   STATUS_OPTIONS,
   SCALE_OPTIONS,
   CATEGORY_OPTIONS,
-  FUNDING_ENTITY_OPTIONS,
-  RECHARGE_STATUS_OPTIONS,
 } from './EditableCell';
 
 // [rendering-hoist-jsx] Static placeholder JSX
 const EmptyPlaceholder = <span className="text-gray-400">-</span>;
-
-// [js-index-maps] Build Map for O(1) lookups instead of .find() each render
-const FUNDING_ENTITY_MAP = new Map(
-  FUNDING_ENTITY_OPTIONS.map(o => [o.value, o.label])
-);
 
 // Column width type matching COLUMN_CONFIG keys
 type ColumnWidths = {
@@ -53,8 +46,6 @@ type ColumnWidths = {
   product: number;
   start_month: number;
   end_month: number;
-  funding_entity: number;
-  recharge_status: number;
 };
 
 interface InlineEditableRowProps {
@@ -71,7 +62,6 @@ interface InlineEditableRowProps {
   updateField: (field: keyof import('@/types').ProjectUpdate, value: any) => void;
   isSaving: boolean;
   canEdit: boolean;
-  showFinancialColumns: boolean;
   // Reference data
   businessUnits: Array<{ id: string; name: string }>;
   productLines: Array<{ id: string; name: string; business_unit_id?: string }>;
@@ -95,7 +85,6 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   updateField,
   isSaving,
   canEdit,
-  showFinancialColumns,
   businessUnits,
   productLines,
   departments,
@@ -272,28 +261,6 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
           />
         </TableCell>
 
-        {/* Financial Columns (conditional) */}
-        {showFinancialColumns && (
-          <>
-            <TableCell style={{ width: columnWidths.funding_entity }}>
-              <SelectCell
-                value={editState.fields.funding_entity_id}
-                onChange={(value) => updateField('funding_entity_id', value)}
-                options={FUNDING_ENTITY_OPTIONS}
-                placeholder="Select entity"
-              />
-            </TableCell>
-            <TableCell style={{ width: columnWidths.recharge_status }}>
-              <SelectCell
-                value={editState.fields.recharge_status}
-                onChange={(value) => updateField('recharge_status', value)}
-                options={RECHARGE_STATUS_OPTIONS}
-                placeholder="Select status"
-              />
-            </TableCell>
-          </>
-        )}
-
         {/* Actions - sticky right, icon-only buttons */}
         <TableCell className="sticky right-0 bg-blue-50 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">
           <div className="flex gap-1 justify-center">
@@ -415,19 +382,6 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
       <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.end_month }}>
         {project.end_month || EmptyPlaceholder}
       </TableCell>
-
-      {/* Financial Columns (conditional) */}
-      {showFinancialColumns && (
-        <>
-          <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.funding_entity }}>
-            {/* [js-index-maps] O(1) lookup instead of .find() */}
-            {FUNDING_ENTITY_MAP.get(project.funding_entity_id ?? '') || EmptyPlaceholder}
-          </TableCell>
-          <TableCell className="text-sm text-gray-900" style={{ width: columnWidths.recharge_status }}>
-            {project.recharge_status || EmptyPlaceholder}
-          </TableCell>
-        </>
-      )}
 
       {/* Actions - sticky right, icon-only buttons */}
       <TableCell className="sticky right-0 bg-white shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)]">

@@ -290,40 +290,59 @@ class DashboardService:
                 for p in projects
             }
 
-        # Build project summary (top 5 + others)
+        # Build project summary (all projects with category info)
         sorted_projects = sorted(
             project_hours.items(), key=lambda x: x[1], reverse=True
         )
         project_summary = []
-        for pid, hours in sorted_projects[:5]:
-            proj = projects_map.get(pid, {})
-            project_summary.append(
-                {
-                    "project_id": pid,
-                    "project_code": proj.get("code", ""),
-                    "project_name": proj.get("name", ""),
-                    "hours": float(hours),
-                }
-            )
-        if len(sorted_projects) > 5:
-            other_hours = sum(h for _, h in sorted_projects[5:])
-            project_summary.append(
-                {
-                    "project_id": "others",
-                    "project_code": "기타",
-                    "project_name": f"{len(sorted_projects) - 5}개 프로젝트",
-                    "hours": float(other_hours),
-                }
-            )
-
-        # Project vs Functional ratio
-        project_func_ratio = {"Project": 0.0, "Functional": 0.0}
-        for pid, hours in project_hours.items():
-            cat = projects_map.get(pid, {}).get("category", "PROJECT")
-            if cat == "FUNCTIONAL":
-                project_func_ratio["Functional"] += hours
+        for pid, hours in sorted_projects:
+            if pid is None:
+                # Team-internal work (no project)
+                project_summary.append(
+                    {
+                        "project_id": None,
+                        "project_code": "TEAM",
+                        "project_name": "팀 업무",
+                        "category": "TEAM",  # Special category for team-internal work
+                        "hours": float(hours),
+                    }
+                )
             else:
-                project_func_ratio["Project"] += hours
+                proj = projects_map.get(pid, {})
+                project_summary.append(
+                    {
+                        "project_id": pid,
+                        "project_code": proj.get("code", ""),
+                        "project_name": proj.get("name", ""),
+                        "category": proj.get("category", "PRODUCT"),  # Include category
+                        "hours": float(hours),
+                    }
+                )
+
+        # Category-based hours distribution (Product, Functional, Support, TeamInternal)
+        category_hours = {
+            "Product": 0.0,
+            "Functional": 0.0,
+            "Support": 0.0,
+            "TeamInternal": 0.0,  # project_id가 NULL인 경우
+        }
+        for pid, hours in project_hours.items():
+            if pid is None:
+                category_hours["TeamInternal"] += hours
+            else:
+                cat = projects_map.get(pid, {}).get("category", "PRODUCT")
+                if cat == "FUNCTIONAL":
+                    category_hours["Functional"] += hours
+                elif cat == "SUPPORT":
+                    category_hours["Support"] += hours
+                else:  # PRODUCT 또는 기타
+                    category_hours["Product"] += hours
+
+        # Legacy compatibility: project_vs_functional (Project = Product, Functional = Functional + Support + TeamInternal)
+        project_func_ratio = {
+            "Project": category_hours["Product"],
+            "Functional": category_hours["Functional"] + category_hours["Support"] + category_hours["TeamInternal"],
+        }
 
         # Member contributions
         member_contributions = []
@@ -464,7 +483,8 @@ class DashboardService:
             "team_worklogs": {
                 "total_hours": float(total_team_hours),
                 "by_project": project_summary,
-                "project_vs_functional": project_func_ratio,
+                "project_vs_functional": project_func_ratio,  # Legacy
+                "by_category": category_hours,  # New: Product, Functional, Support, TeamInternal
             },
             "member_contributions": member_contributions,
             "sub_org_contributions": sub_org_contributions,

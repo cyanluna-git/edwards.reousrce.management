@@ -59,8 +59,6 @@ const COLUMN_CONFIG = {
   product: { label: 'Product', minWidth: 80, defaultWidth: 120, sortable: false },
   start_month: { label: 'Start Month', minWidth: 100, defaultWidth: 120, sortable: true },
   end_month: { label: 'End Month', minWidth: 100, defaultWidth: 120, sortable: true },
-  funding_entity: { label: 'Funding Entity', minWidth: 100, defaultWidth: 140, sortable: false },
-  recharge_status: { label: 'Recharge Status', minWidth: 80, defaultWidth: 120, sortable: false },
 } as const;
 
 type ColumnKey = keyof typeof COLUMN_CONFIG;
@@ -74,7 +72,6 @@ interface ProjectInlineTableProps {
   internalIOs: Array<{ id: string; io_number: string; name?: string }>;
   rechargeIOs: Array<{ id: string; io_number: string; name?: string }>;
   canManageProjects: boolean;
-  showFinancialColumns: boolean;
 }
 
 export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
@@ -86,7 +83,6 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
   internalIOs,
   rechargeIOs,
   canManageProjects,
-  showFinancialColumns,
 }) => {
   // Filter state
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -314,12 +310,6 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                 {renderResizableHeader('product')}
                 {renderResizableHeader('start_month', 'start_month')}
                 {renderResizableHeader('end_month', 'end_month')}
-                {showFinancialColumns && (
-                  <>
-                    {renderResizableHeader('funding_entity')}
-                    {renderResizableHeader('recharge_status')}
-                  </>
-                )}
                 <TableHead className="w-20 sticky right-0 bg-slate-100 text-gray-900 font-semibold shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.1)] text-center">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -327,7 +317,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
               {sortedProjects.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={showFinancialColumns ? 17 : 15}
+                    colSpan={15}
                     className="text-center py-8 text-slate-500"
                   >
                     No projects found. {selectedCategories.length + selectedStatuses.length > 0 && 'Try adjusting your filters.'}
@@ -347,7 +337,6 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                     updateField={updateField}
                     isSaving={isSaving}
                     canEdit={canManageProjects && !hasActiveEdit}
-                    showFinancialColumns={showFinancialColumns}
                     businessUnits={businessUnits}
                     productLines={productLines}
                     departments={departments}

@@ -152,9 +152,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
         }
     }, [hierarchy, productProjects, functionalProjects]);
 
-    // Column visibility state for inline table
-    const [showFinancialColumns, setShowFinancialColumns] = useState(false);
-
     // Filter for Active Projects tab - only InProgress and Prospective
     const activeUngroupedProjects = useMemo(() => {
         return filterActiveProjects(ungroupedProjects);
@@ -399,7 +396,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 <TabsList>
                     <TabsTrigger value="product">Active Projects</TabsTrigger>
                     <TabsTrigger value="functional">Functional</TabsTrigger>
-                    <TabsTrigger value="all">All / Legacy</TabsTrigger>
+                    <TabsTrigger value="all">All Projects</TabsTrigger>
                     <TabsTrigger value="io-management">IO Management</TabsTrigger>
                 </TabsList>
 
@@ -677,15 +674,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="all" className="mt-4">
-                    <div className="mb-4 flex items-center justify-between">
+                    <div className="mb-4">
                         <h2 className="text-xl font-semibold">All Projects ({allProjects.length} total)</h2>
-                        <Button
-                            variant={showFinancialColumns ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setShowFinancialColumns(!showFinancialColumns)}
-                        >
-                            {showFinancialColumns ? 'Hide' : 'Show'} Financial Columns
-                        </Button>
                     </div>
                     <ProjectInlineTable
                         projects={allProjects}
@@ -696,7 +686,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         internalIOs={internalIOs}
                         rechargeIOs={rechargeIOs}
                         canManageProjects={canManageProjects}
-                        showFinancialColumns={showFinancialColumns}
                     />
                 </TabsContent>
 
