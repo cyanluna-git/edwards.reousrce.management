@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Construction } from 'lucide-react';
 import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
+import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
@@ -526,6 +527,11 @@ export const DashboardPage: React.FC = () => {
                                 <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
                             </CardContent>
                         </Card>
+                    </div>
+
+                    {/* AI Weekly Summary Card */}
+                    <div className="mb-4">
+                        <WeeklySummaryCard mode="user" period={viewMode === 'weekly' ? 'weekly' : 'monthly'} />
                     </div>
 
                     {/* Charts Row */}

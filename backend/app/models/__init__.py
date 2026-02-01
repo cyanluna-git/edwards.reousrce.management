@@ -25,6 +25,7 @@ from app.models.common import CommonCode, Holiday
 from app.models.scenario import ProjectScenario, ScenarioMilestone, ScenarioResourcePlan
 from app.models.hiring_plan import HiringPlan
 from app.models.work_type import WorkTypeCategory, WorkTypeLegacyMapping
+from app.models.ai_summary import AISummary
 
 
 __all__ = [
@@ -63,4 +64,6 @@ __all__ = [
     # Work Type
     "WorkTypeCategory",
     "WorkTypeLegacyMapping",
+    # AI Summary
+    "AISummary",
 ]

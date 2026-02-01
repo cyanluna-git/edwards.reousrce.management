@@ -4,6 +4,7 @@ import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui';
 import { Users, Building, Building2, Maximize2 } from 'lucide-react';
+import { WeeklySummaryCard } from './WeeklySummaryCard';
 
 // Team Dashboard Scope Labels
 const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
@@ -152,6 +153,13 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                     </CardContent>
                 </Card>
             </div>
+
+            {/* AI Weekly Summary Card */}
+            <WeeklySummaryCard
+                mode="team"
+                scope={teamScope}
+                period={teamViewMode === 'weekly' ? 'weekly' : 'monthly'}
+            />
 
             {/* Category Distribution Bar */}
             <Card>

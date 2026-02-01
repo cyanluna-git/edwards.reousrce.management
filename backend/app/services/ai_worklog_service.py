@@ -159,13 +159,12 @@ class AIWorklogService:
         # 최근 3개월 워크로그에서 프로젝트별 사용 빈도 집계
         project_stats = (
             self.db.query(
-                WorkLog.project_id,
-                func.count(WorkLog.id).label('usage_count')
+                WorkLog.project_id, func.count(WorkLog.id).label("usage_count")
             )
             .filter(
                 WorkLog.user_id == user_id,
                 WorkLog.date >= three_months_ago,
-                WorkLog.project_id.isnot(None)
+                WorkLog.project_id.isnot(None),
             )
             .group_by(WorkLog.project_id)
             .order_by(func.count(WorkLog.id).desc())
@@ -190,7 +189,11 @@ class AIWorklogService:
         projects_map = {p.id: p for p in projects}
 
         return [
-            {"id": p_id, "code": get_io_number(projects_map[p_id]), "name": projects_map[p_id].name}
+            {
+                "id": p_id,
+                "code": get_io_number(projects_map[p_id]),
+                "name": projects_map[p_id].name,
+            }
             for p_id in project_ids
             if p_id in projects_map
         ]
@@ -215,12 +218,9 @@ class AIWorklogService:
         work_type_stats = (
             self.db.query(
                 WorkLog.work_type_category_id,
-                func.sum(WorkLog.hours).label('total_hours')
+                func.sum(WorkLog.hours).label("total_hours"),
             )
-            .filter(
-                WorkLog.user_id == user_id,
-                WorkLog.date >= three_months_ago
-            )
+            .filter(WorkLog.user_id == user_id, WorkLog.date >= three_months_ago)
             .group_by(WorkLog.work_type_category_id)
             .order_by(func.sum(WorkLog.hours).desc())
             .limit(10)
@@ -240,13 +240,17 @@ class AIWorklogService:
         for wt in all_work_types:
             # 자주 사용한 것 우선 (priority 1)
             if wt.id in frequent_ids:
-                result.append({"id": wt.id, "code": wt.code, "name": wt.name, "priority": 1})
+                result.append(
+                    {"id": wt.id, "code": wt.code, "name": wt.name, "priority": 1}
+                )
             # 직책에 맞는 것 (priority 2)
             elif position_id and wt.applicable_roles:
                 # applicable_roles는 콤마로 구분된 문자열
-                applicable_list = [r.strip() for r in wt.applicable_roles.split(',')]
+                applicable_list = [r.strip() for r in wt.applicable_roles.split(",")]
                 if position_id in applicable_list:
-                    result.append({"id": wt.id, "code": wt.code, "name": wt.name, "priority": 2})
+                    result.append(
+                        {"id": wt.id, "code": wt.code, "name": wt.name, "priority": 2}
+                    )
 
         # 결과가 없으면 기본 업무유형 반환
         if not result:
@@ -254,7 +258,9 @@ class AIWorklogService:
 
         # 우선순위로 정렬, 상위 10개
         result.sort(key=lambda x: x["priority"])
-        return [{"id": r["id"], "code": r["code"], "name": r["name"]} for r in result[:10]]
+        return [
+            {"id": r["id"], "code": r["code"], "name": r["name"]} for r in result[:10]
+        ]
 
     def _build_system_prompt(
         self,
@@ -322,7 +328,9 @@ class AIWorklogService:
                 )
                 if result:
                     matched_project, conf = result
-                    confidence_boost = conf - 0.5  # Adjust confidence based on match quality
+                    confidence_boost = (
+                        conf - 0.5
+                    )  # Adjust confidence based on match quality
 
             # Stage 3: Keyword-based matching from description
             if not matched_project and description:
@@ -372,6 +380,13 @@ class AIWorklogService:
         if matched_work_type:
             work_type_id = matched_work_type["id"]
             work_type_name = matched_work_type["name"]
+
+            # Clear project for Leave/Absence work types only (ABS-*)
+            # These are team/org-level activities that don't belong to specific projects
+            wt_code = matched_work_type.get("code", "")
+            if wt_code and wt_code.startswith("ABS-"):
+                project_id = None
+                project_name = None
         else:
             work_type_id = None
             # Keep the original name if provided
@@ -470,7 +485,9 @@ class AIWorklogService:
             user_recent_ids = {p["id"] for p in user_recent}
 
             # Merge: user recent first, then remaining projects
-            projects = user_recent + [p for p in all_projects if p["id"] not in user_recent_ids]
+            projects = user_recent + [
+                p for p in all_projects if p["id"] not in user_recent_ids
+            ]
         else:
             projects = all_projects
 
@@ -527,7 +544,11 @@ class AIWorklogService:
                 "status": "healthy" if result["available"] else "unhealthy",
                 "model": result.get("model", settings.GROQ_MODEL),
                 "provider": "groq",
-                "message": "Groq API 연결됨" if result["available"] else f"Groq API 연결 실패: {result.get('error', 'Unknown')}",
+                "message": (
+                    "Groq API 연결됨"
+                    if result["available"]
+                    else f"Groq API 연결 실패: {result.get('error', 'Unknown')}"
+                ),
             }
         else:
             result = await self.client.health_check()
@@ -535,5 +556,9 @@ class AIWorklogService:
                 "status": "healthy" if result["available"] else "unhealthy",
                 "model": result.get("model", settings.GEMINI_MODEL),
                 "provider": "gemini",
-                "message": "Gemini API 연결됨" if result["available"] else f"Gemini API 연결 실패: {result.get('error', 'Unknown')}",
+                "message": (
+                    "Gemini API 연결됨"
+                    if result["available"]
+                    else f"Gemini API 연결 실패: {result.get('error', 'Unknown')}"
+                ),
             }

@@ -969,4 +969,43 @@ export const getRechargeIOsByBusinessUnit = async (buId: string): Promise<Rechar
   return response.data;
 };
 
+// ============ AI Summary API ============
+
+export interface UserAISummary {
+  summary: string[];
+  generated_at: string;
+  from_cache?: boolean;
+  error?: string;
+}
+
+export interface TeamAISummary {
+  project_summary: string[];
+  member_summary: string[];
+  issues: string[];
+  generated_at: string;
+  from_cache?: boolean;
+  error?: string;
+}
+
+export const getUserAISummary = async (
+  period: 'weekly' | 'monthly' = 'weekly',
+  forceRegenerate: boolean = false
+): Promise<UserAISummary> => {
+  const response = await apiClient.get(
+    `/dashboard/ai-summary/user?period=${period}&force_regenerate=${forceRegenerate}`
+  );
+  return response.data;
+};
+
+export const getTeamAISummary = async (
+  scope: TeamDashboardScope = 'department',
+  period: 'weekly' | 'monthly' = 'weekly',
+  forceRegenerate: boolean = false
+): Promise<TeamAISummary> => {
+  const response = await apiClient.get(
+    `/dashboard/ai-summary/team?scope=${scope}&period=${period}&force_regenerate=${forceRegenerate}`
+  );
+  return response.data;
+};
+
 export default apiClient;
