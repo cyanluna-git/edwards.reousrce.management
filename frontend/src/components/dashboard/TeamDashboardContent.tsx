@@ -7,7 +7,7 @@ import { Users, Building, Building2, Maximize2 } from 'lucide-react';
 
 // Team Dashboard Scope Labels
 const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
-    sub_team: { label: '소그룹', icon: <Users className="w-4 h-4" /> },
+    sub_team: { label: 'Sub-Team', icon: <Users className="w-4 h-4" /> },
     department: { label: '부서', icon: <Building className="w-4 h-4" /> },
     business_unit: { label: '사업부', icon: <Building2 className="w-4 h-4" /> },
     all: { label: '전체', icon: <Building2 className="w-4 h-4" /> },
@@ -266,7 +266,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">
-                            {teamScope === 'department' ? '소그룹별 기여도' : teamScope === 'business_unit' ? '부서별 기여도' : '하위 조직 기여도'}
+                            {teamScope === 'department' ? 'Sub-Team별 기여도' : teamScope === 'business_unit' ? '부서별 기여도' : '하위 조직 기여도'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
