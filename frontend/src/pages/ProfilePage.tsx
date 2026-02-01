@@ -5,13 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { User, Lock, Building2, Users, Briefcase, Mail } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { User, Lock, Building2, Users, Briefcase, Mail, CheckCircle2, XCircle } from 'lucide-react';
 import type { User as UserType } from '@/types';
 
 export function ProfilePage() {
   const { user: authUser } = useAuth();
-  const { toast } = useToast();
   const [user, setUser] = useState<UserType | null>(authUser);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -21,6 +20,7 @@ export function ProfilePage() {
     confirm_password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Fetch latest user info on mount
   useEffect(() => {
@@ -40,22 +40,15 @@ export function ProfilePage() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage(null);
 
     if (passwordData.new_password !== passwordData.confirm_password) {
-      toast({
-        title: 'Error',
-        description: 'New passwords do not match',
-        variant: 'destructive',
-      });
+      setMessage({ type: 'error', text: 'New passwords do not match' });
       return;
     }
 
     if (passwordData.new_password.length < 6) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters long',
-        variant: 'destructive',
-      });
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
       return;
     }
 
@@ -67,22 +60,21 @@ export function ProfilePage() {
       });
 
       if (response.data.success) {
-        toast({
-          title: 'Success',
-          description: 'Password changed successfully',
-        });
+        setMessage({ type: 'success', text: 'Password changed successfully' });
         setPasswordData({
           current_password: '',
           new_password: '',
           confirm_password: '',
         });
-        setIsChangingPassword(false);
+        setTimeout(() => {
+          setIsChangingPassword(false);
+          setMessage(null);
+        }, 2000);
       }
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.detail || 'Failed to change password',
-        variant: 'destructive',
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.detail || 'Failed to change password',
       });
     } finally {
       setIsLoading(false);
@@ -206,9 +198,26 @@ export function ProfilePage() {
             <CardDescription>Update your account password</CardDescription>
           </CardHeader>
           <CardContent>
+            {message && (
+              <Alert
+                variant={message.type === 'error' ? 'destructive' : 'default'}
+                className="mb-4"
+              >
+                {message.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <XCircle className="h-4 w-4" />
+                )}
+                <AlertTitle>{message.type === 'success' ? 'Success' : 'Error'}</AlertTitle>
+                <AlertDescription>{message.text}</AlertDescription>
+              </Alert>
+            )}
             {!isChangingPassword ? (
               <Button
-                onClick={() => setIsChangingPassword(true)}
+                onClick={() => {
+                  setIsChangingPassword(true);
+                  setMessage(null);
+                }}
                 variant="outline"
                 className="w-full"
               >
