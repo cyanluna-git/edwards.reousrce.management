@@ -170,7 +170,7 @@ export function ProfilePage() {
                   <div className="flex-1">
                     <Label className="text-sm text-slate-500">Position</Label>
                     <p className="text-sm font-medium">
-                      {user.position.name}
+                      {user.position.name.replace(/0$/, '')}
                       {user.position.level && ` (Level ${user.position.level})`}
                     </p>
                   </div>
