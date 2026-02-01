@@ -162,21 +162,14 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="Create guest user account with read-only permissions")
-    parser.add_argument("--password", type=str, help="Password for guest account (will prompt if not provided)")
+    parser.add_argument("--password", type=str, default="edwards!@", help="Password for guest account (default: edwards!@)")
     args = parser.parse_args()
     
     # Get password
-    if args.password:
-        password = args.password
-    else:
-        password = getpass("Enter password for guest@edwardsvacuum.com: ")
-        password_confirm = getpass("Confirm password: ")
-        if password != password_confirm:
-            print("❌ ERROR: Passwords do not match")
-            sys.exit(1)
+    password = args.password
     
-    if len(password) < 8:
-        print("❌ ERROR: Password must be at least 8 characters long")
+    if len(password) < 6:
+        print("❌ ERROR: Password must be at least 6 characters long")
         sys.exit(1)
     
     # Database connection
