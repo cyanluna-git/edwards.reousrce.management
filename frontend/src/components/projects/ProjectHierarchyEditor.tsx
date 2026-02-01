@@ -39,6 +39,7 @@ import {
     deleteProject as apiDeleteProject,
     getProjects,
     getProductLines,
+    getDepartments,
 } from '@/api/client';
 import type { ProductLine, Project } from '@/types';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
@@ -109,6 +110,12 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const { data: productLines = [] } = useQuery({
         queryKey: ['productLines'],
         queryFn: getProductLines,
+    });
+
+    // Fetch departments for owner department selection
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments'],
+        queryFn: () => getDepartments(),
     });
 
     // Fetch users for PM selection
@@ -684,6 +691,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         projects={allProjects}
                         businessUnits={businessUnits}
                         productLines={productLines}
+                        departments={departments}
                         users={users}
                         internalIOs={internalIOs}
                         rechargeIOs={rechargeIOs}

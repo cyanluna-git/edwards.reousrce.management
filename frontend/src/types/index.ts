@@ -200,6 +200,7 @@ export interface Project extends ProjectBase {
     program?: Program
     project_type?: ProjectType
     product_line?: ProductLine
+    owner_department?: Department  // Nested department for FUNCTIONAL projects
     internal_io?: InternalIO  // Nested IO info
     recharge_io?: RechargeIO  // Nested recharge IO info
     pm?: User

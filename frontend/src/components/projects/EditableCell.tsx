@@ -379,3 +379,45 @@ export const ProductLineSelectCell = memo<ProductLineSelectCellProps>(({
     </div>
   );
 });
+
+// ============================================================
+// DepartmentSelectCell - For selecting owner department (FUNCTIONAL projects)
+// ============================================================
+
+interface DepartmentSelectCellProps extends BaseEditableCellProps {
+  value: string | undefined;
+  onChange: (value: string) => void;
+  departments: Array<{ id: string; name: string }>;
+}
+
+// [rerender-memo] Memoized DepartmentSelectCell
+export const DepartmentSelectCell = memo<DepartmentSelectCellProps>(({
+  value,
+  onChange,
+  departments,
+  error,
+  className,
+}) => {
+  const handleChange = useCallback((newValue: string) => {
+    onChange(newValue === NONE_VALUE ? '' : newValue);
+  }, [onChange]);
+
+  return (
+    <div className="w-full">
+      <Select value={value || NONE_VALUE} onValueChange={handleChange}>
+        <SelectTrigger className={cn('h-8 text-xs', error && 'border-red-500', className)}>
+          <SelectValue placeholder="Select Department" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE_VALUE} className="text-xs text-gray-500">None</SelectItem>
+          {departments.map((dept) => (
+            <SelectItem key={dept.id} value={dept.id} className="text-xs">
+              {dept.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+});

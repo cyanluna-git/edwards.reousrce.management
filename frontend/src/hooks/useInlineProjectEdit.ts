@@ -34,6 +34,7 @@ export function useInlineProjectEdit() {
         status: project.status,
         program_id: project.program_id,
         product_line_id: project.product_line_id,
+        owner_department_id: project.owner_department_id,
         pm_id: project.pm_id,
         scale: project.scale,
         customer: project.customer,

@@ -52,6 +52,7 @@ const COLUMN_CONFIG = {
   status: { label: 'Status', minWidth: 80, defaultWidth: 100, sortable: true },
   business_unit: { label: 'Business Unit', minWidth: 100, defaultWidth: 150, sortable: false },
   product_line: { label: 'Product Line', minWidth: 100, defaultWidth: 150, sortable: false },
+  owner_department: { label: 'Owner Dept', minWidth: 100, defaultWidth: 130, sortable: false },
   pm: { label: 'PM', minWidth: 80, defaultWidth: 120, sortable: false },
   scale: { label: 'Scale', minWidth: 60, defaultWidth: 80, sortable: false },
   customer: { label: 'Customer', minWidth: 80, defaultWidth: 100, sortable: false },
@@ -68,6 +69,7 @@ interface ProjectInlineTableProps {
   projects: Project[];
   businessUnits: Array<{ id: string; name: string }>;
   productLines: Array<{ id: string; name: string; business_unit_id?: string }>;
+  departments: Array<{ id: string; name: string }>;
   users: Array<{ id: string; name: string }>;
   internalIOs: Array<{ id: string; io_number: string; name?: string }>;
   rechargeIOs: Array<{ id: string; io_number: string; name?: string }>;
@@ -79,6 +81,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
   projects,
   businessUnits,
   productLines,
+  departments,
   users,
   internalIOs,
   rechargeIOs,
@@ -304,6 +307,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                 {renderResizableHeader('status', 'status')}
                 {renderResizableHeader('business_unit')}
                 {renderResizableHeader('product_line')}
+                {renderResizableHeader('owner_department')}
                 {renderResizableHeader('pm')}
                 {renderResizableHeader('scale')}
                 {renderResizableHeader('customer')}
@@ -323,7 +327,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
               {sortedProjects.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={showFinancialColumns ? 16 : 14}
+                    colSpan={showFinancialColumns ? 17 : 15}
                     className="text-center py-8 text-slate-500"
                   >
                     No projects found. {selectedCategories.length + selectedStatuses.length > 0 && 'Try adjusting your filters.'}
@@ -346,6 +350,7 @@ export const ProjectInlineTable: React.FC<ProjectInlineTableProps> = ({
                     showFinancialColumns={showFinancialColumns}
                     businessUnits={businessUnits}
                     productLines={productLines}
+                    departments={departments}
                     users={users}
                     internalIOs={internalIOs}
                     rechargeIOs={rechargeIOs}

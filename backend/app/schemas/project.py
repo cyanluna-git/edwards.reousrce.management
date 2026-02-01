@@ -19,6 +19,16 @@ class BusinessUnit(BaseModel):
         from_attributes = True
 
 
+# Schema for Department (부서)
+class Department(BaseModel):
+    id: str
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
 # Schema for Program
 class Program(BaseModel):
     id: str
@@ -178,6 +188,7 @@ class Project(ProjectBase):
     program: Optional[Program] = None
     project_type: Optional[ProjectType] = None
     product_line: Optional[ProductLine] = None
+    owner_department: Optional[Department] = None  # Nested department for FUNCTIONAL projects
     internal_io: Optional[InternalIO] = None  # Nested IO info
     recharge_io: Optional[RechargeIO] = None  # Nested recharge IO info
     pm: Optional[User] = None

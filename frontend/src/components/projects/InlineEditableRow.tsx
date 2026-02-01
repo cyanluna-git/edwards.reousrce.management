@@ -19,6 +19,7 @@ import {
   UserSelectCell,
   BusinessUnitSelectCell,
   ProductLineSelectCell,
+  DepartmentSelectCell,
   InternalIOSelectCell,
   RechargeIOSelectCell,
   STATUS_OPTIONS,
@@ -45,6 +46,7 @@ type ColumnWidths = {
   status: number;
   business_unit: number;
   product_line: number;
+  owner_department: number;
   pm: number;
   scale: number;
   customer: number;
@@ -73,6 +75,7 @@ interface InlineEditableRowProps {
   // Reference data
   businessUnits: Array<{ id: string; name: string }>;
   productLines: Array<{ id: string; name: string; business_unit_id?: string }>;
+  departments: Array<{ id: string; name: string }>;
   users: Array<{ id: string; name: string }>;
   internalIOs: Array<{ id: string; io_number: string; name?: string }>;
   rechargeIOs: Array<{ id: string; io_number: string; name?: string }>;
@@ -95,6 +98,7 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   showFinancialColumns,
   businessUnits,
   productLines,
+  departments,
   users,
   internalIOs,
   rechargeIOs,
@@ -196,6 +200,16 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
             productLines={productLines}
             selectedBusinessUnitId={selectedBU}
             error={editState.errors.product_line_id}
+          />
+        </TableCell>
+
+        {/* Owner Department (for FUNCTIONAL projects) */}
+        <TableCell style={{ width: columnWidths.owner_department }}>
+          <DepartmentSelectCell
+            value={editState.fields.owner_department_id}
+            onChange={(value) => updateField('owner_department_id', value)}
+            departments={departments}
+            error={editState.errors.owner_department_id}
           />
         </TableCell>
 
@@ -365,6 +379,11 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
       {/* Product Line */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.product_line }}>
         {project.product_line?.name || EmptyPlaceholder}
+      </TableCell>
+
+      {/* Owner Department (for FUNCTIONAL projects) */}
+      <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.owner_department }}>
+        {project.owner_department?.name || EmptyPlaceholder}
       </TableCell>
 
       {/* PM */}
