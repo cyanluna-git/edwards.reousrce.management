@@ -413,6 +413,7 @@ export const DashboardPage: React.FC = () => {
         });
 
         const topProjects = Object.entries(projectTotals)
+            .filter(([project]) => project !== '기타') // Exclude '기타' from top 5 projects
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([project]) => project);
