@@ -135,3 +135,51 @@ async def get_team_ai_summary(
         end_date=end_date,
         force_regenerate=force_regenerate,
     )
+
+
+@router.get("/ai-summary/user/history")
+async def get_user_ai_summary_history(
+    limit: int = Query(5, description="조회 개수"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get history of AI-generated user summaries.
+    """
+    service = SummaryService(db)
+    return service.get_summary_history(
+        scope="user",
+        scope_id=current_user.id,
+        limit=limit,
+    )
+
+
+@router.get("/ai-summary/team/history")
+async def get_team_ai_summary_history(
+    scope: str = Query(
+        "department", description="조회 범위: sub_team, department, business_unit, all"
+    ),
+    limit: int = Query(5, description="조회 개수"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get history of AI-generated team summaries.
+    """
+    # Get team ID based on scope
+    if scope == "sub_team":
+        team_id = current_user.sub_team_id
+    elif scope == "department":
+        team_id = current_user.department_id
+    elif scope == "business_unit":
+        team_id = current_user.business_unit_id
+    else:
+        team_id = "all"
+
+    service = SummaryService(db)
+    return service.get_summary_history(
+        scope="team",
+        scope_id=team_id or "all",
+        limit=limit,
+        team_type=scope,
+    )

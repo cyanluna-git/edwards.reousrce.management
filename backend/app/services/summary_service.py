@@ -7,7 +7,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional, Dict, Any, List, Union
 from uuid import uuid4
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, desc
 
 from app.models.resource import WorkLog
 from app.models.project import Project
@@ -401,6 +401,38 @@ JSON 형식으로 응답:
         lines.append(", ".join(data["descriptions"][:15]))
 
         return "\n".join(lines)
+
+    def get_summary_history(
+        self,
+        scope: str,
+        scope_id: str,
+        limit: int = 5,
+        team_type: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Get historical AI summaries from cache.
+        Returns list of summaries sorted by period_start desc.
+        """
+        query = self.db.query(AISummary).filter(
+            AISummary.scope == scope,
+            AISummary.scope_id == scope_id,
+        )
+
+        if team_type:
+            query = query.filter(AISummary.team_type == team_type)
+
+        history = query.order_by(desc(AISummary.period_start)).limit(limit).all()
+
+        return [
+            {
+                "id": h.id,
+                "period_start": h.period_start,
+                "period_end": h.period_end,
+                "summary": h.summary_data,
+                "generated_at": h.generated_at,
+            }
+            for h in history
+        ]
 
     def _get_team_user_filter(self, team_id: str, team_type: str):
         """Get SQLAlchemy filter for team users"""

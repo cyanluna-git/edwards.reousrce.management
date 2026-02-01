@@ -1008,4 +1008,25 @@ export const getTeamAISummary = async (
   return response.data;
 };
 
+export interface AISummaryHistoryItem {
+  id: string;
+  period_start: string;
+  period_end: string;
+  summary: any;
+  generated_at: string;
+}
+
+export const getUserAISummaryHistory = async (limit: number = 5): Promise<AISummaryHistoryItem[]> => {
+  const response = await apiClient.get(`/dashboard/ai-summary/user/history?limit=${limit}`);
+  return response.data;
+};
+
+export const getTeamAISummaryHistory = async (
+  scope: TeamDashboardScope = 'department',
+  limit: number = 5
+): Promise<AISummaryHistoryItem[]> => {
+  const response = await apiClient.get(`/dashboard/ai-summary/team/history?scope=${scope}&limit=${limit}`);
+  return response.data;
+};
+
 export default apiClient;
