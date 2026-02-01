@@ -173,17 +173,17 @@ export interface ProjectBase {
 export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
-    program_id?: string
-    project_type_id?: string
-    internal_io_id?: string
-    recharge_io_id?: string
+    program_id?: string | null
+    project_type_id?: string | null
+    internal_io_id?: string | null
+    recharge_io_id?: string | null
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
     category?: 'PRODUCT' | 'FUNCTIONAL'
-    product_line_id?: string
-    owner_department_id?: string
-    pm_id?: string
+    product_line_id?: string | null
+    owner_department_id?: string | null
+    pm_id?: string | null
     start_month?: string
     end_month?: string
     customer?: string

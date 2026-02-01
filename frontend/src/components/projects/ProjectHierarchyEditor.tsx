@@ -63,6 +63,15 @@ const STATUS_PRIORITY: Record<string, number> = {
     'Cancelled': 6,
 };
 
+// Active statuses for filtering
+const ACTIVE_STATUSES = ['InProgress', 'Prospective'];
+
+// Filter projects to only active ones
+const filterActiveProjects = (projects: any[]): any[] => {
+    if (!projects) return [];
+    return projects.filter(p => ACTIVE_STATUSES.includes(p.status));
+};
+
 // Sort projects by status priority
 const sortProjectsByStatus = (projects: any[]): any[] => {
     if (!projects) return [];
@@ -138,6 +147,21 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
     // Column visibility state for inline table
     const [showFinancialColumns, setShowFinancialColumns] = useState(false);
+
+    // Filter for Active Projects tab - only InProgress and Prospective
+    const activeUngroupedProjects = useMemo(() => {
+        return filterActiveProjects(ungroupedProjects);
+    }, [ungroupedProjects]);
+
+    const activeProductProjects = useMemo(() => {
+        return productProjects.map((bu: any) => ({
+            ...bu,
+            children: bu.children?.map((pl: any) => ({
+                ...pl,
+                children: filterActiveProjects(pl.children || [])
+            })).filter((pl: any) => pl.children && pl.children.length > 0) || []
+        })).filter((bu: any) => bu.children && bu.children.length > 0);
+    }, [productProjects]);
 
     // Filter sustaining matrix projects (VSS/SUN codes)
     const sustainingProjects = useMemo(() => {
@@ -396,18 +420,18 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="product" className="mt-4">
-                    {/* Ungrouped Projects Section */}
-                    {ungroupedProjects.length > 0 && (
+                    {/* Ungrouped Projects Section - Only Active */}
+                    {activeUngroupedProjects.length > 0 && (
                         <Card className="mb-4 border-amber-200 bg-amber-50">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-amber-800 flex items-center gap-2">
                                     <span>Ungrouped Projects</span>
-                                    <span className="text-sm font-normal text-amber-600">({ungroupedProjects.length} projects without Product Line)</span>
+                                    <span className="text-sm font-normal text-amber-600">({activeUngroupedProjects.length} active projects without Product Line)</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-1">
-                                    {sortProjectsByStatus(ungroupedProjects).map((proj: any) => (
+                                    {sortProjectsByStatus(activeUngroupedProjects).map((proj: any) => (
                                         <div key={proj.id} className="flex items-center justify-between p-2 text-sm hover:bg-amber-100 border border-amber-200 rounded">
                                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}>
                                                 <span>⚠️</span>
@@ -450,7 +474,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
-                                {productProjects.map((bu: any) => (
+                                {activeProductProjects.map((bu: any) => (
                                     <div key={bu.id} className="border rounded-lg overflow-hidden">
                                         {/* Business Unit Row */}
                                         <div className="flex items-center justify-between p-3 bg-slate-100 hover:bg-slate-200">

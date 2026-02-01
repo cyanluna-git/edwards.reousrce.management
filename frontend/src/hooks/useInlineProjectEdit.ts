@@ -91,10 +91,19 @@ export function useInlineProjectEdit() {
       return false;
     }
 
+    // Convert empty strings to null for ID fields (backend expects UUID or null)
+    const cleanedFields = { ...editState.fields };
+    const idFields = ['internal_io_id', 'recharge_io_id', 'pm_id', 'product_line_id', 'program_id', 'project_type_id', 'owner_department_id'] as const;
+    for (const field of idFields) {
+      if (cleanedFields[field] === '') {
+        cleanedFields[field] = null;
+      }
+    }
+
     try {
       await updateProjectMutation.mutateAsync({
         id: editState.projectId,
-        updatedProject: editState.fields,
+        updatedProject: cleanedFields,
       });
 
       // Reset edit state on success
