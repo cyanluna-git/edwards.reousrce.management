@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTeamDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
-import { Users, Building, Building2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui';
+import { Users, Building, Building2, Maximize2 } from 'lucide-react';
 
 // Team Dashboard Scope Labels
 const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
@@ -32,6 +33,16 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
 }) => {
     const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode);
 
+    // IMPORTANT: useMemo must be called BEFORE any early returns to satisfy Rules of Hooks
+    // React requires hooks to be called in the same order on every render
+    const productFunctionalProjects = useMemo(() => {
+        if (!teamData?.team_worklogs?.by_project) return [];
+        return teamData.team_worklogs.by_project
+            .filter(p => p.category === 'PRODUCT' || p.category === 'FUNCTIONAL')
+            .sort((a, b) => b.hours - a.hours);
+    }, [teamData?.team_worklogs?.by_project]);
+
+    // Early returns AFTER all hooks
     if (teamLoading) {
         return <div className="text-center py-12">팀 데이터 로딩 중...</div>;
     }
@@ -41,11 +52,28 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     }
 
     const { team_info, date_range, team_worklogs, member_contributions, sub_org_contributions, resource_allocation, org_context } = teamData;
-    const projectVsFunctionalTotal = team_worklogs.project_vs_functional.Project + team_worklogs.project_vs_functional.Functional;
-    const projectPercent = projectVsFunctionalTotal > 0
-        ? Math.round((team_worklogs.project_vs_functional.Project / projectVsFunctionalTotal) * 100)
-        : 0;
-    const functionalPercent = 100 - projectPercent;
+
+    // New: 4-category distribution (Product, Functional, Support, TeamInternal)
+    const byCategory = team_worklogs.by_category || {
+        Product: team_worklogs.project_vs_functional?.Project || 0,
+        Functional: team_worklogs.project_vs_functional?.Functional || 0,
+        Support: 0,
+        TeamInternal: 0,
+    };
+    const categoryTotal = byCategory.Product + byCategory.Functional + byCategory.Support + byCategory.TeamInternal;
+
+    const categoryData = [
+        { key: 'Product', label: 'Product', hours: byCategory.Product, color: 'bg-blue-500', textColor: 'text-blue-500' },
+        { key: 'Functional', label: 'Functional', hours: byCategory.Functional, color: 'bg-amber-500', textColor: 'text-amber-500' },
+        { key: 'Support', label: 'Support', hours: byCategory.Support, color: 'bg-green-500', textColor: 'text-green-500' },
+        { key: 'TeamInternal', label: 'Team', hours: byCategory.TeamInternal, color: 'bg-slate-400', textColor: 'text-slate-500' },
+    ].map(cat => ({
+        ...cat,
+        percent: categoryTotal > 0 ? Math.round((cat.hours / categoryTotal) * 100) : 0,
+    })).filter(cat => cat.hours > 0); // 0시간 카테고리는 숨김
+
+    const top5Projects = productFunctionalProjects.slice(0, 5);
+    const hasMoreProjects = productFunctionalProjects.length > 5;
 
     return (
         <>
@@ -125,50 +153,90 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                 </Card>
             </div>
 
-            {/* Project vs Functional Bar */}
+            {/* Category Distribution Bar */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm font-medium">프로젝트 vs 기능 업무</CardTitle>
+                    <CardTitle className="text-sm font-medium">업무 유형별 시간</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center gap-2">
-                        <div
-                            className="h-8 bg-blue-500 rounded-l flex items-center justify-center text-white text-xs font-medium"
-                            style={{ width: `${projectPercent}%`, minWidth: projectPercent > 0 ? '40px' : '0' }}
-                        >
-                            {projectPercent > 10 && `${projectPercent}%`}
-                        </div>
-                        <div
-                            className="h-8 bg-amber-500 rounded-r flex items-center justify-center text-white text-xs font-medium"
-                            style={{ width: `${functionalPercent}%`, minWidth: functionalPercent > 0 ? '40px' : '0' }}
-                        >
-                            {functionalPercent > 10 && `${functionalPercent}%`}
-                        </div>
+                    {/* Stacked Bar */}
+                    <div className="flex items-center rounded-lg overflow-hidden h-10">
+                        {categoryData.map((cat) => (
+                            <div
+                                key={cat.key}
+                                className={`h-full ${cat.color} flex items-center justify-center text-white text-xs font-medium transition-all`}
+                                style={{
+                                    width: `${cat.percent}%`,
+                                    minWidth: cat.percent > 0 ? '32px' : '0',
+                                }}
+                                title={`${cat.label}: ${cat.hours.toFixed(0)}h (${cat.percent}%)`}
+                            >
+                                {cat.percent >= 12 && `${cat.percent}%`}
+                            </div>
+                        ))}
                     </div>
-                    <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-full bg-blue-500" />
-                            프로젝트 {team_worklogs.project_vs_functional.Project.toFixed(0)}h
-                        </span>
-                        <span className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-full bg-amber-500" />
-                            기능 {team_worklogs.project_vs_functional.Functional.toFixed(0)}h
-                        </span>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                        {categoryData.map(cat => (
+                            <span key={cat.key} className="flex items-center gap-1.5">
+                                <span className={`w-3 h-3 rounded-full ${cat.color}`} />
+                                <span className={cat.textColor}>{cat.label}</span>
+                                <span className="text-muted-foreground">{cat.hours.toFixed(0)}h</span>
+                            </span>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Top Projects */}
+            {/* Top Projects (Product + Functional only) */}
             <Card>
-                <CardHeader>
-                    <CardTitle className="text-sm font-medium">프로젝트별 시간</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">프로젝트별 비중</CardTitle>
+                    {hasMoreProjects && (
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="gap-1">
+                                    <Maximize2 className="w-3 h-3" />
+                                    전체 보기
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>프로젝트별 비중 (전체 {productFunctionalProjects.length}개)</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-2 mt-4">
+                                    {productFunctionalProjects.map(p => {
+                                        const percent = team_worklogs.total_hours > 0
+                                            ? Math.round((p.hours / team_worklogs.total_hours) * 100)
+                                            : 0;
+                                        return (
+                                            <div key={p.project_id} className="flex items-center gap-2">
+                                                <div className="w-48 truncate text-sm font-medium" title={`${p.project_code} - ${p.project_name}`}>
+                                                    {p.project_name || p.project_code}
+                                                </div>
+                                                <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden">
+                                                    <div
+                                                        className="bg-teal-500 h-full rounded-full"
+                                                        style={{ width: `${percent}%` }}
+                                                    />
+                                                </div>
+                                                <div className="w-16 text-right text-sm">{p.hours.toFixed(0)}h</div>
+                                                <div className="w-12 text-right text-xs text-muted-foreground">{percent}%</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </CardHeader>
                 <CardContent>
-                    {team_worklogs.by_project.length === 0 ? (
+                    {top5Projects.length === 0 ? (
                         <div className="text-center py-4 text-muted-foreground">프로젝트 데이터가 없습니다.</div>
                     ) : (
                         <div className="space-y-2">
-                            {team_worklogs.by_project.slice(0, 10).map(p => {
+                            {top5Projects.map(p => {
                                 const percent = team_worklogs.total_hours > 0
                                     ? Math.round((p.hours / team_worklogs.total_hours) * 100)
                                     : 0;

@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAx
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
-import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
+import { useWorkTypeCategories, type WorkTypeCategory } from '@/hooks/useWorkTypeCategories';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { Construction } from 'lucide-react';
@@ -12,6 +12,34 @@ import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
+
+// Type for category map entry with parent reference
+interface CategoryEntry extends WorkTypeCategory {
+    parent?: CategoryEntry;
+}
+
+// IMPORTANT: Calculate date ranges ONCE outside component to prevent infinite re-renders
+// This ensures referential equality across re-renders and prevents useQuery refetch loops
+const getStaticDateRanges = () => {
+    const now = new Date();
+    return {
+        weekStart: format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        weekEnd: format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+        monthStart: format(startOfMonth(now), 'yyyy-MM-dd'),
+        monthEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
+        quarterStart: format(startOfQuarter(now), 'yyyy-MM-dd'),
+        quarterEnd: format(endOfQuarter(now), 'yyyy-MM-dd'),
+        halfYearStart: format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'),
+        halfYearEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
+        yearStart: format(startOfYear(now), 'yyyy-MM-dd'),
+        yearEnd: format(endOfYear(now), 'yyyy-MM-dd'),
+        last12MonthsStart: format(subMonths(startOfMonth(now), 11), 'yyyy-MM-dd'),
+        last12MonthsEnd: format(endOfMonth(now), 'yyyy-MM-dd'),
+    };
+};
+
+// Static date ranges - reference never changes after module load
+const STATIC_DATE_RANGES = getStaticDateRanges();
 
 // TeamDashboardContent component extracted to @/components/dashboard/TeamDashboardContent.tsx
 
@@ -26,22 +54,9 @@ export const DashboardPage: React.FC = () => {
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
 
-    // ... (Date calculations) ...
-    const now = new Date();
-    const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
-    const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
-    const quarterStart = format(startOfQuarter(now), 'yyyy-MM-dd');
-    const quarterEnd = format(endOfQuarter(now), 'yyyy-MM-dd');
-    const halfYearStart = format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'); // last 6 months
-    const halfYearEnd = format(endOfMonth(now), 'yyyy-MM-dd');
-    const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
-    const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
-    
-    // Last 12 months for trend chart
-    const last12MonthsStart = format(subMonths(startOfMonth(now), 11), 'yyyy-MM-dd');
-    const last12MonthsEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    // Use static date ranges from module-level constant (reference never changes)
+    const { weekStart, weekEnd, monthStart, monthEnd, quarterStart, quarterEnd,
+        halfYearStart, halfYearEnd, yearStart, yearEnd, last12MonthsStart, last12MonthsEnd } = STATIC_DATE_RANGES;
 
     const { data: weeklyWorklogs = [], isLoading: weeklyLoading } = useWorklogsTable({
         start_date: weekStart,
@@ -102,50 +117,57 @@ export const DashboardPage: React.FC = () => {
             default: return weeklyWorklogs;
         }
     }, [viewMode, weeklyWorklogs, monthlyWorklogs, quarterlyWorklogs, halfYearWorklogs, yearlyWorklogs]);
-    const totalHours = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
+    // Calculate total hours and project summary with useMemo to prevent infinite re-renders
+    const { totalHours, projectList } = useMemo(() => {
+        const total = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
 
-    // Group by project
-    const projectSummary = currentWorklogs.reduce((acc, wl) => {
-        const key = wl.project_id || 'non-project';
-        if (!acc[key]) {
-            acc[key] = { project_id: wl.project_id || 'non-project', project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
-        }
-        acc[key].hours += wl.hours;
-        return acc;
-    }, {} as Record<string, { project_id: string; project_code: string; project_name: string; hours: number }>);
-    const allProjects = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
+        // Group by project
+        const projectSummary = currentWorklogs.reduce((acc, wl) => {
+            const key = wl.project_id || 'non-project';
+            if (!acc[key]) {
+                acc[key] = { project_id: wl.project_id || 'non-project', project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
+            }
+            acc[key].hours += wl.hours;
+            return acc;
+        }, {} as Record<string, { project_id: string; project_code: string; project_name: string; hours: number }>);
+        const allProjects = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
 
-    // Top 5 projects + Others
-    const TOP_N = 5;
-    const topProjects = allProjects.slice(0, TOP_N);
-    const otherProjects = allProjects.slice(TOP_N);
-    const otherHours = otherProjects.reduce((sum, p) => sum + p.hours, 0);
-    const projectList = otherHours > 0
-        ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
-        : topProjects;
+        // Top 5 projects + Others (but show all 6 if there are exactly 6)
+        const TOP_N = 5;
+        const topProjects = allProjects.slice(0, TOP_N);
+        const otherProjects = allProjects.slice(TOP_N);
+        const otherHours = otherProjects.reduce((sum, p) => sum + p.hours, 0);
+
+        // Better UX: if there's only 1 "other" project, just show all 6 instead of grouping
+        const list = otherProjects.length === 1
+            ? allProjects // Show all 6 projects
+            : otherHours > 0
+                ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
+                : topProjects;
+
+        return { totalHours: total, projectList: list };
+    }, [currentWorklogs]);
 
     // Build Category Map for easy lookup [Code -> Category Object]
     const categoryMap = useMemo(() => {
-        const map: Record<string, any> = {};
-        const traverse = (cats: any[], parent?: any) => {
-            for (const cat of cats) {
-                // Store category with parent reference
-                map[cat.code] = { 
-                    ...cat, 
-                    parent: parent ? {
-                        id: parent.id,
-                        code: parent.code,
-                        name: parent.name,
-                        name_ko: parent.name_ko,
-                        level: parent.level,
-                        parent: parent.parent // Keep grandparent for L3
-                    } : undefined 
+        if (!categoryTree || categoryTree.length === 0) return {};
+
+        const map: Record<string, CategoryEntry> = {};
+
+        const traverse = (cats: WorkTypeCategory[], parentCat?: CategoryEntry) => {
+            cats.forEach(cat => {
+                // Use original object with parent reference - spread creates new object but preserves data structure
+                const entry: CategoryEntry = {
+                    ...cat,
+                    parent: parentCat
                 };
+                map[cat.code] = entry;
                 if (cat.children && cat.children.length > 0) {
-                    traverse(cat.children, map[cat.code]);
+                    traverse(cat.children, entry);
                 }
-            }
+            });
         };
+
         traverse(categoryTree);
         console.log('[Dashboard] Category Map sample:', Object.keys(map).slice(0, 5).map(k => ({ code: k, cat: map[k] })));
         return map;
@@ -251,7 +273,7 @@ export const DashboardPage: React.FC = () => {
                     } else if (cat.level === 1) {
                         l1 = cat.code; l1Name = cat.name_ko || cat.name;
                     }
-                    
+
                     if (idx < 3) {
                         console.log(`[WL ${idx}] Resolved to L1: ${l1} (${l1Name})`);
                     }
@@ -333,11 +355,11 @@ export const DashboardPage: React.FC = () => {
 
         // Group by month and project (use project name for display)
         const monthlyData: Record<string, Record<string, number>> = {};
-        
+
         last12MonthsWorklogs.forEach(wl => {
             const monthKey = format(new Date(wl.date), 'yyyy-MM');
             const projectKey = wl.project_name || wl.project_code || '기타';
-            
+
             if (!monthlyData[monthKey]) {
                 monthlyData[monthKey] = {};
             }
@@ -591,41 +613,39 @@ export const DashboardPage: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
-                                        <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={activeChartData}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={80}
-                                                        outerRadius={120}
-                                                        paddingAngle={2}
-                                                        dataKey="value"
-                                                        animationDuration={400}
-                                                        onClick={(data) => {
-                                                            if (drillDownPath.length < 2 && data.code) {
-                                                                setDrillDownPath(prev => [...prev, data.code]);
-                                                            }
-                                                        }}
-                                                        style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
-                                                    >
-                                                        {activeChartData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={entry.color}
-                                                                className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
-                                                            />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip
-                                                        formatter={(value: number | undefined) => [
-                                                            `${(value ?? 0).toFixed(0)}h`,
-                                                            '시간'
-                                                        ]}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
+                                        <div className="w-80 h-80 min-h-[320px] transition-all duration-300 flex-shrink-0 flex items-center justify-center">
+                                            <PieChart width={320} height={320}>
+                                                <Pie
+                                                    data={activeChartData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={80}
+                                                    outerRadius={120}
+                                                    paddingAngle={2}
+                                                    dataKey="value"
+                                                    animationDuration={400}
+                                                    onClick={(data) => {
+                                                        if (drillDownPath.length < 2 && data.code) {
+                                                            setDrillDownPath(prev => [...prev, data.code]);
+                                                        }
+                                                    }}
+                                                    style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
+                                                >
+                                                    {activeChartData.map((entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={entry.color}
+                                                            className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip
+                                                    formatter={(value: number | undefined) => [
+                                                        `${(value ?? 0).toFixed(0)}h`,
+                                                        '시간'
+                                                    ]}
+                                                />
+                                            </PieChart>
                                         </div>
                                         <div className="flex-1 space-y-3 min-w-[280px]">
                                             {activeChartData.map((item, idx) => (
@@ -664,8 +684,8 @@ export const DashboardPage: React.FC = () => {
                                 <CardTitle>월별 Top-5 프로젝트 투입 시간 추이</CardTitle>
                                 <p className="text-xs text-muted-foreground mt-1">최근 12개월</p>
                             </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={400}>
+                            <CardContent className="h-[400px] min-h-[400px]">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={monthlyProjectTrendData.chartData}>
                                         <defs>
                                             {monthlyProjectTrendData.topProjects.map((project, idx) => {
@@ -673,30 +693,30 @@ export const DashboardPage: React.FC = () => {
                                                 const color = colors[idx % colors.length];
                                                 return (
                                                     <linearGradient key={project} id={`colorProject${idx}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-                                                        <stop offset="95%" stopColor={color} stopOpacity={0.3}/>
+                                                        <stop offset="5%" stopColor={color} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={color} stopOpacity={0.3} />
                                                     </linearGradient>
                                                 );
                                             })}
                                             <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.6}/>
-                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2}/>
+                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.6} />
+                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                        <XAxis 
-                                            dataKey="month" 
+                                        <XAxis
+                                            dataKey="month"
                                             tick={{ fontSize: 12 }}
                                             tickFormatter={(value) => {
                                                 const [, month] = value.split('-');
                                                 return `${month}월`;
                                             }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             label={{ value: '투입 시간 (h)', angle: -90, position: 'insideLeft' }}
                                             tick={{ fontSize: 12 }}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                                             formatter={(value, name) => [`${(value as number)?.toFixed(0) ?? 0}h`, name]}
                                             labelFormatter={(label) => {
@@ -704,7 +724,7 @@ export const DashboardPage: React.FC = () => {
                                                 return `${year}년 ${month}월`;
                                             }}
                                         />
-                                        <Legend 
+                                        <Legend
                                             wrapperStyle={{ paddingTop: '20px' }}
                                             iconType="rect"
                                         />

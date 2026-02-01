@@ -209,10 +209,14 @@ def run_backend():
             "[INFO] Using existing postgres container, starting backend only...",
             Colors.GREEN,
         )
-        subprocess.run(get_compose_command() + ["up", "-d", "--no-deps", "backend"], check=True)
+        subprocess.run(
+            get_compose_command() + ["up", "-d", "--no-deps", "backend"], check=True
+        )
     else:
         print_colored("[INFO] Starting database and backend services...", Colors.GREEN)
-        subprocess.run(get_compose_command() + ["up", "-d", "db", "backend"], check=True)
+        subprocess.run(
+            get_compose_command() + ["up", "-d", "db", "backend"], check=True
+        )
 
     # Wait for services to initialize
     print_colored("[INFO] Waiting for services to initialize...", Colors.GREEN)
@@ -422,6 +426,197 @@ def show_status():
     subprocess.run(get_compose_command() + ["ps"])
 
 
+def run_db_only():
+    """Start only the database service"""
+    print_header("Edwards Database Service Launcher")
+
+    load_env_file()
+
+    print()
+    print_colored("Configuration:", Colors.CYAN)
+    print_colored(f"  Database Port: {os.getenv('DB_PORT', '5434')}", Colors.WHITE)
+    print_colored(f"  Database URL: {os.getenv('DATABASE_URL', 'N/A')}", Colors.WHITE)
+    print()
+
+    if not check_docker():
+        sys.exit(1)
+
+    # Check if existing postgres container is available
+    if check_existing_postgres():
+        print_colored("[OK] Database is already running", Colors.GREEN)
+        return
+
+    print()
+    print_colored("[INFO] Starting database service...", Colors.GREEN)
+    print()
+
+    subprocess.run(get_compose_command() + ["up", "-d", "db"], check=True)
+
+    # Wait for database to initialize
+    print_colored("[INFO] Waiting for database to initialize...", Colors.GREEN)
+    time.sleep(3)
+
+    print()
+    print_header("Database Service Started!")
+    print()
+    print_colored("Service:", Colors.CYAN)
+    print_colored(f"  Database: localhost:{os.getenv('DB_PORT', '5434')}", Colors.WHITE)
+    print()
+    print_colored("Commands:", Colors.CYAN)
+    print_colored("  View logs: docker compose logs -f db", Colors.WHITE)
+    print_colored("  Stop database: docker compose stop db", Colors.WHITE)
+    print()
+
+
+def run_local_backend():
+    """Run backend with uvicorn locally (not in Docker)"""
+    print_header("Edwards Local Backend Launcher")
+
+    load_env_file()
+
+    print()
+    print_colored("Configuration:", Colors.CYAN)
+    print_colored(f"  Backend Port: {os.getenv('BACKEND_PORT', '8004')}", Colors.WHITE)
+    print_colored(f"  Database URL: {os.getenv('DATABASE_URL', 'N/A')}", Colors.WHITE)
+    print()
+
+    # Check if venv exists
+    venv_path = Path("backend/venv")
+    if not venv_path.exists():
+        print_colored("[ERROR] Virtual environment not found!", Colors.RED)
+        print_colored("[INFO] Please create venv first:", Colors.YELLOW)
+        print_colored("  cd backend", Colors.WHITE)
+        print_colored("  python -m venv venv", Colors.WHITE)
+        print_colored(
+            "  source venv/bin/activate  # or venv\\Scripts\\activate on Windows",
+            Colors.WHITE,
+        )
+        print_colored("  pip install -r requirements.txt", Colors.WHITE)
+        sys.exit(1)
+
+    # Check if DB is running
+    if check_docker():
+        print_colored("[INFO] Checking if database is running...", Colors.GREEN)
+        if not check_existing_postgres():
+            print_colored("[WARNING] Database is not running!", Colors.YELLOW)
+            print_colored("[INFO] Starting database...", Colors.GREEN)
+            run_db_only()
+            print()
+
+    print_colored("[INFO] Starting backend with uvicorn...", Colors.GREEN)
+    print_colored("[INFO] Press Ctrl+C to stop", Colors.YELLOW)
+    print()
+
+    # Change to backend directory and run uvicorn
+    backend_dir = Path("backend")
+
+    # Determine the activation script based on platform
+    if sys.platform == "win32":
+        activate_cmd = f"cd {backend_dir} && venv\\Scripts\\activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        subprocess.run(activate_cmd, shell=True)
+    else:
+        activate_cmd = f"cd {backend_dir} && source venv/bin/activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        subprocess.run(activate_cmd, shell=True, executable="/bin/bash")
+
+
+def run_local_frontend():
+    """Run frontend with pnpm dev locally (not in Docker)"""
+    print_header("Edwards Local Frontend Launcher")
+
+    load_env_file()
+
+    print()
+    print_colored("Configuration:", Colors.CYAN)
+    print_colored(
+        f"  Frontend Port: {os.getenv('FRONTEND_PORT', '3004')}", Colors.WHITE
+    )
+    print_colored(
+        f"  Backend API: {os.getenv('VITE_API_URL', 'http://localhost:8004')}",
+        Colors.WHITE,
+    )
+    print()
+
+    # Check if node_modules exists
+    frontend_dir = Path("frontend")
+    node_modules = frontend_dir / "node_modules"
+
+    if not node_modules.exists():
+        print_colored("[WARNING] node_modules not found!", Colors.YELLOW)
+        print_colored("[INFO] Installing dependencies...", Colors.GREEN)
+        print()
+        subprocess.run(["pnpm", "install"], cwd=frontend_dir, check=True)
+        print()
+
+    print_colored("[INFO] Starting frontend with pnpm dev...", Colors.GREEN)
+    print_colored("[INFO] Press Ctrl+C to stop", Colors.YELLOW)
+    print()
+
+    # Run pnpm dev
+    subprocess.run(
+        ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")], cwd=frontend_dir
+    )
+
+
+def run_dev():
+    """Development mode: DB in Docker, Frontend & Backend run locally"""
+    print_header("Edwards Development Mode")
+
+    load_env_file()
+
+    print()
+    print_colored("Development Mode Setup:", Colors.CYAN)
+    print_colored("  • Database: Docker container", Colors.WHITE)
+    print_colored("  • Backend: Local uvicorn (hot reload)", Colors.WHITE)
+    print_colored("  • Frontend: Local pnpm dev (HMR)", Colors.WHITE)
+    print()
+
+    if not check_docker():
+        sys.exit(1)
+
+    # Start DB
+    print_colored("[STEP 1/3] Starting Database...", Colors.CYAN)
+    run_db_only()
+
+    print()
+    print_header("Development Environment Ready!")
+    print()
+    print_colored("Next Steps:", Colors.CYAN)
+    print()
+    print_colored("1. Start Backend (in a new terminal):", Colors.YELLOW)
+    print_colored("   cd backend", Colors.WHITE)
+    print_colored(
+        "   source venv/bin/activate  # or venv\\Scripts\\activate on Windows",
+        Colors.WHITE,
+    )
+    print_colored(
+        f"   uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}",
+        Colors.WHITE,
+    )
+    print()
+    print_colored("   OR use:", Colors.YELLOW)
+    print_colored("   python run.py local-backend", Colors.WHITE)
+    print()
+    print_colored("2. Start Frontend (in another new terminal):", Colors.YELLOW)
+    print_colored("   cd frontend", Colors.WHITE)
+    print_colored(
+        f"   pnpm dev --port {os.getenv('FRONTEND_PORT', '3004')}", Colors.WHITE
+    )
+    print()
+    print_colored("   OR use:", Colors.YELLOW)
+    print_colored("   python run.py local-frontend", Colors.WHITE)
+    print()
+    print_colored("Services:", Colors.CYAN)
+    print_colored(f"  Database: localhost:{os.getenv('DB_PORT', '5434')}", Colors.WHITE)
+    print_colored(
+        f"  Backend: http://localhost:{os.getenv('BACKEND_PORT', '8004')}", Colors.WHITE
+    )
+    print_colored(
+        f"  Frontend: http://localhost:{os.getenv('FRONTEND_PORT', '3004')}",
+        Colors.WHITE,
+    )
+    print()
+
+
 def print_usage():
     """Print usage information"""
     print_header("Edwards Service Runner")
@@ -429,18 +624,36 @@ def print_usage():
     print_colored("Usage:", Colors.CYAN)
     print_colored("  python run.py [command]", Colors.WHITE)
     print()
-    print_colored("Commands:", Colors.CYAN)
-    print_colored("  backend     Start backend services (Database + API)", Colors.WHITE)
-    print_colored("  frontend    Start frontend service", Colors.WHITE)
-    print_colored("  all         Start all services", Colors.WHITE)
-    print_colored("  stop        Stop all services", Colors.WHITE)
-    print_colored("  status      Show status of all services", Colors.WHITE)
-    print_colored("  help        Show this help message", Colors.WHITE)
+    print_colored("Docker Mode (All in containers):", Colors.CYAN)
+    print_colored(
+        "  backend        Start backend services (Database + API)", Colors.WHITE
+    )
+    print_colored("  frontend       Start frontend service", Colors.WHITE)
+    print_colored("  all            Start all services", Colors.WHITE)
+    print()
+    print_colored("Development Mode (Local execution):", Colors.CYAN)
+    print_colored(
+        "  dev            Start DB only, show instructions for local dev", Colors.WHITE
+    )
+    print_colored("  db             Start database only (Docker)", Colors.WHITE)
+    print_colored("  local-backend  Run backend with uvicorn locally", Colors.WHITE)
+    print_colored("  local-frontend Run frontend with pnpm dev locally", Colors.WHITE)
+    print()
+    print_colored("Management:", Colors.CYAN)
+    print_colored("  stop           Stop all services", Colors.WHITE)
+    print_colored("  status         Show status of all services", Colors.WHITE)
+    print_colored("  help           Show this help message", Colors.WHITE)
     print()
     print_colored("Examples:", Colors.CYAN)
-    print_colored("  python run.py backend   # Start backend only", Colors.WHITE)
-    print_colored("  python run.py all       # Start everything", Colors.WHITE)
-    print_colored("  python run.py stop      # Stop all services", Colors.WHITE)
+    print_colored(
+        "  python run.py all            # Start everything in Docker", Colors.WHITE
+    )
+    print_colored(
+        "  python run.py dev            # Setup local dev environment", Colors.WHITE
+    )
+    print_colored("  python run.py local-backend  # Run backend locally", Colors.WHITE)
+    print_colored("  python run.py local-frontend # Run frontend locally", Colors.WHITE)
+    print_colored("  python run.py stop           # Stop all services", Colors.WHITE)
     print()
 
 
@@ -456,9 +669,16 @@ def main():
     command = sys.argv[1].lower()
 
     commands = {
+        # Docker mode
         "backend": run_backend,
         "frontend": run_frontend,
         "all": run_all,
+        # Development mode
+        "dev": run_dev,
+        "db": run_db_only,
+        "local-backend": run_local_backend,
+        "local-frontend": run_local_frontend,
+        # Management
         "stop": stop_all,
         "status": show_status,
         "help": print_usage,
