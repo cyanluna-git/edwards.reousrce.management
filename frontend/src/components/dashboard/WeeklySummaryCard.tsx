@@ -113,7 +113,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                                 <span>{selectedHistory.period_start} ~ {selectedHistory.period_end}</span>
                             </span>
                         ) : (
-                            "AI 주간 업무 요약"
+                            "지난 주 AI 업무 요약"
                         )}
                         {isFromCache && (
                             <Badge variant="secondary" className="text-xs py-0 px-1.5 flex items-center gap-1">

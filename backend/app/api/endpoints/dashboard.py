@@ -78,9 +78,12 @@ async def get_user_ai_summary(
     today = date.today()
     if period == "monthly":
         start_date = today.replace(day=1)
+        end_date = today
     else:  # weekly
-        start_date = today - timedelta(days=today.weekday())
-    end_date = today
+        # Last week Monday to Sunday
+        this_monday = today - timedelta(days=today.weekday())
+        start_date = this_monday - timedelta(days=7)
+        end_date = start_date + timedelta(days=6)  # Last Sunday
 
     service = SummaryService(db)
     return await service.generate_user_summary(
@@ -112,10 +115,17 @@ async def get_team_ai_summary(
     # Calculate date range
     today = date.today()
     if period == "monthly":
+        # First day of current month
         start_date = today.replace(day=1)
+        end_date = today
     else:  # weekly
-        start_date = today - timedelta(days=today.weekday())
-    end_date = today
+        # Last week Monday to Sunday
+        # today.weekday() is 0 for Monday.
+        # This week's Monday is today - today.weekday()
+        # Last week's Monday is today - today.weekday() - 7
+        this_monday = today - timedelta(days=today.weekday())
+        start_date = this_monday - timedelta(days=7)
+        end_date = start_date + timedelta(days=6)  # Last Sunday
 
     # Get team ID based on scope
     if scope == "sub_team":
