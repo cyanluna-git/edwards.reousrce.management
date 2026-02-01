@@ -50,11 +50,17 @@ export interface User {
     korean_name?: string
     sub_team_id?: string
     position_id: string
+    department_id?: string
     primary_business_unit_id?: string  // 주 활동 사업영역
     role: UserRole
     is_active: boolean
     hire_date?: string
     termination_date?: string
+    department?: {
+        id: string
+        name: string
+        code?: string
+    }
     sub_team?: SubTeam
     position?: JobPosition
     primary_business_unit?: BusinessUnit  // Nested BU

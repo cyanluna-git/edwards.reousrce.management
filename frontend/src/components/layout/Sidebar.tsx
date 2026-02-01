@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import {
@@ -49,6 +49,7 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const location = useLocation()
+    const navigate = useNavigate()
     const { user, logout } = useAuth()
 
     const handleLogout = () => {
@@ -217,13 +218,16 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     </>
                 ) : (
                     <>
-                        <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate('/profile')}
+                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 transition-colors"
+                        >
                             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 flex-shrink-0">
                                 <span className="text-sm font-medium text-white">
                                     {user?.korean_name?.[0] || user?.name?.[0] || 'U'}
                                 </span>
                             </div>
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 text-left">
                                 <p className="truncate text-sm font-medium text-white">
                                     {user?.korean_name || user?.name || 'User'}
                                 </p>
@@ -231,7 +235,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                     {user?.email || 'user@edwards.com'}
                                 </p>
                             </div>
-                        </div>
+                        </button>
                         <button
                             onClick={handleLogout}
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"

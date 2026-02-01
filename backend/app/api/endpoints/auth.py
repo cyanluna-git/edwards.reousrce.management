@@ -13,11 +13,15 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
     get_current_user,
+    verify_password,
+    get_password_hash,
+    require_write_permission,
 )
 from app.core.config import settings
 from app.services.auth_service import authenticate_user
-from app.schemas.auth import Token, UserResponse
+from app.schemas.auth import Token, UserResponse, PasswordChangeRequest, PasswordChangeResponse
 from app.models.user import User
+from sqlalchemy.orm import joinedload
 
 router = APIRouter()
 
@@ -67,20 +71,106 @@ async def refresh_token(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
-    Get current authenticated user info.
+    Get current authenticated user info with full profile details.
 
     Requires a valid Bearer token in Authorization header.
-    Returns the authenticated user's profile information.
+    Returns the authenticated user's profile information including department, sub_team, position, and business unit.
     """
+    # Reload user with relationships
+    user = (
+        db.query(User)
+        .options(
+            joinedload(User.department),
+            joinedload(User.sub_team),
+            joinedload(User.position),
+            joinedload(User.primary_business_unit),
+        )
+        .filter(User.id == current_user.id)
+        .first()
+    )
+
     return UserResponse(
-        id=current_user.id,
-        email=current_user.email,
-        name=current_user.name,
-        korean_name=current_user.korean_name,
-        role=current_user.role,
-        sub_team_id=current_user.sub_team_id,
-        position_id=current_user.position_id,
-        is_active=current_user.is_active,
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        korean_name=user.korean_name,
+        role=user.role,
+        sub_team_id=user.sub_team_id,
+        position_id=user.position_id,
+        department_id=user.department_id,
+        primary_business_unit_id=user.primary_business_unit_id,
+        is_active=user.is_active,
+        department={
+            "id": user.department.id,
+            "name": user.department.name,
+            "code": user.department.code,
+        }
+        if user.department
+        else None,
+        sub_team={
+            "id": user.sub_team.id,
+            "name": user.sub_team.name,
+            "code": user.sub_team.code,
+        }
+        if user.sub_team
+        else None,
+        position={
+            "id": user.position.id,
+            "name": user.position.name,
+            "level": user.position.level,
+        }
+        if user.position
+        else None,
+        primary_business_unit={
+            "id": user.primary_business_unit.id,
+            "name": user.primary_business_unit.name,
+            "code": user.primary_business_unit.code,
+        }
+        if user.primary_business_unit
+        else None,
+    )
+
+
+@router.post("/change-password", response_model=PasswordChangeResponse)
+async def change_password(
+    password_data: PasswordChangeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Change user's password.
+
+    Requires:
+    - Valid Bearer token in Authorization header
+    - Current password (for verification)
+    - New password (minimum 6 characters)
+
+    Returns success message on successful password change.
+    """
+    # Verify current password
+    if not verify_password(password_data.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    # Validate new password
+    if len(password_data.new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 6 characters long",
+        )
+
+    # Update password
+    current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.commit()
+
+    return PasswordChangeResponse(
+        message="Password changed successfully",
+        success=True,
     )
