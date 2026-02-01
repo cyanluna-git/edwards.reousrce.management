@@ -163,28 +163,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
         })).filter((bu: any) => bu.children && bu.children.length > 0);
     }, [productProjects]);
 
-    // Filter sustaining matrix projects (VSS/SUN codes)
-    const sustainingProjects = useMemo(() => {
-        return allProjects.filter((p: Project) =>
-            p.project_type_id === 'SUSTAINING' ||
-            p.internal_io?.io_number?.startsWith('VSS') ||
-            p.internal_io?.io_number?.startsWith('SUN')
-        );
-    }, [allProjects]);
-
-    // Split sustaining projects into VSS and SUN groups
-    const vssProjects = useMemo(() => {
-        return sustainingProjects
-            .filter((p: Project) => p.funding_entity_id === 'ENTITY_VSS' || p.internal_io?.io_number?.startsWith('VSS'))
-            .sort((a: Project, b: Project) => (a.internal_io?.io_number || '').localeCompare(b.internal_io?.io_number || ''));
-    }, [sustainingProjects]);
-
-    const sunProjects = useMemo(() => {
-        return sustainingProjects
-            .filter((p: Project) => p.funding_entity_id === 'ENTITY_SUN' || p.internal_io?.io_number?.startsWith('SUN'))
-            .sort((a: Project, b: Project) => (a.internal_io?.io_number || '').localeCompare(b.internal_io?.io_number || ''));
-    }, [sustainingProjects]);
-
     // Sorting and filtering are now handled by ProjectInlineTable component
 
     // Business Unit Modal State
@@ -413,7 +391,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="product">Active Projects</TabsTrigger>
-                    <TabsTrigger value="sustaining">Standard IO Framework</TabsTrigger>
                     <TabsTrigger value="functional">Functional</TabsTrigger>
                     <TabsTrigger value="all">All / Legacy</TabsTrigger>
                     <TabsTrigger value="io-management">IO Management</TabsTrigger>
@@ -613,147 +590,6 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                         )}
                                     </div>
                                 ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Standard IO Framework Tab - Matrix Projects (VSS/SUN) */}
-                <TabsContent value="sustaining" className="mt-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* VSS (Integrated Systems) Card */}
-                        <Card className="border-blue-200">
-                            <CardHeader className="bg-blue-50 pb-2">
-                                <CardTitle className="text-blue-800 flex items-center gap-2">
-                                    <span>🔷 VSS (Integrated Systems)</span>
-                                    <span className="text-sm font-normal text-blue-600">({vssProjects.length} buckets)</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-3">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-slate-50">
-                                            <th className="text-left p-2 font-medium">Code</th>
-                                            <th className="text-left p-2 font-medium">Name</th>
-                                            <th className="text-left p-2 font-medium">IO Category</th>
-                                            <th className="text-left p-2 font-medium">Recharge</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {vssProjects.map((proj: Project) => (
-                                            <tr
-                                                key={proj.id}
-                                                className="border-b hover:bg-blue-50 cursor-pointer"
-                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
-                                            >
-                                                <td className="p-2 font-mono text-xs font-semibold text-blue-700">{proj.internal_io?.io_number || '-'}</td>
-                                                <td className="p-2">{proj.name?.replace('VSS - ', '')}</td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.io_category_code === 'FIELD_FAILURE' ? 'bg-red-100 text-red-700' :
-                                                        proj.io_category_code === 'SUSTAINING' ? 'bg-orange-100 text-orange-700' :
-                                                        proj.io_category_code === 'OPS_SUPPORT' ? 'bg-purple-100 text-purple-700' :
-                                                        proj.io_category_code === 'CIP' ? 'bg-green-100 text-green-700' :
-                                                        'bg-gray-100 text-gray-700'
-                                                    }`}>
-                                                        {proj.io_category_code || '-'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.recharge_status === 'BILLABLE' ? 'bg-emerald-100 text-emerald-700' :
-                                                        proj.recharge_status === 'INTERNAL' ? 'bg-slate-100 text-slate-700' :
-                                                        'bg-amber-100 text-amber-700'
-                                                    }`}>
-                                                        {proj.recharge_status || '-'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {vssProjects.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                                                    No VSS matrix projects found
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </CardContent>
-                        </Card>
-
-                        {/* SUN (Abatement) Card */}
-                        <Card className="border-orange-200">
-                            <CardHeader className="bg-orange-50 pb-2">
-                                <CardTitle className="text-orange-800 flex items-center gap-2">
-                                    <span>🔶 SUN (Abatement)</span>
-                                    <span className="text-sm font-normal text-orange-600">({sunProjects.length} buckets)</span>
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-3">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b bg-slate-50">
-                                            <th className="text-left p-2 font-medium">Code</th>
-                                            <th className="text-left p-2 font-medium">Name</th>
-                                            <th className="text-left p-2 font-medium">IO Category</th>
-                                            <th className="text-left p-2 font-medium">Recharge</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sunProjects.map((proj: Project) => (
-                                            <tr
-                                                key={proj.id}
-                                                className="border-b hover:bg-orange-50 cursor-pointer"
-                                                onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'sustaining' } })}
-                                            >
-                                                <td className="p-2 font-mono text-xs font-semibold text-orange-700">{proj.internal_io?.io_number || '-'}</td>
-                                                <td className="p-2">{proj.name?.replace('SUN - ', '')}</td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.io_category_code === 'FIELD_FAILURE' ? 'bg-red-100 text-red-700' :
-                                                        proj.io_category_code === 'SUSTAINING' ? 'bg-orange-100 text-orange-700' :
-                                                        proj.io_category_code === 'OPS_SUPPORT' ? 'bg-purple-100 text-purple-700' :
-                                                        proj.io_category_code === 'CIP' ? 'bg-green-100 text-green-700' :
-                                                        'bg-gray-100 text-gray-700'
-                                                    }`}>
-                                                        {proj.io_category_code || '-'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-2">
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                                        proj.recharge_status === 'BILLABLE' ? 'bg-emerald-100 text-emerald-700' :
-                                                        proj.recharge_status === 'INTERNAL' ? 'bg-slate-100 text-slate-700' :
-                                                        'bg-amber-100 text-amber-700'
-                                                    }`}>
-                                                        {proj.recharge_status || '-'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {sunProjects.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                                                    No SUN matrix projects found
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* IO Category Legend */}
-                    <Card className="mt-4">
-                        <CardContent className="pt-4">
-                            <div className="flex flex-wrap gap-4 text-xs">
-                                <span className="font-medium text-muted-foreground">IO Categories:</span>
-                                <span className="px-2 py-1 rounded bg-red-100 text-red-700">FIELD_FAILURE - L4 Escalations</span>
-                                <span className="px-2 py-1 rounded bg-orange-100 text-orange-700">SUSTAINING - Corrective Actions</span>
-                                <span className="px-2 py-1 rounded bg-purple-100 text-purple-700">OPS_SUPPORT - Factory/Ops</span>
-                                <span className="px-2 py-1 rounded bg-green-100 text-green-700">CIP - Improvements</span>
-                                <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">OTHER - Regulatory/Sales</span>
                             </div>
                         </CardContent>
                     </Card>

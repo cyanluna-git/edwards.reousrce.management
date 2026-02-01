@@ -59,15 +59,6 @@ export const RECHARGE_STATUS_OPTIONS = [
     { value: 'INTERNAL', label: 'Internal' },
 ];
 
-export const IO_CATEGORY_OPTIONS = [
-    { value: 'NPI', label: 'NPI (New Product Introduction)' },
-    { value: 'FIELD_FAILURE', label: 'Field Failure Escalation' },
-    { value: 'OPS_SUPPORT', label: 'Operations Support' },
-    { value: 'SUSTAINING', label: 'Sustaining Engineering' },
-    { value: 'CIP', label: 'CIP (Continuous Improvement)' },
-    { value: 'OTHER', label: 'Other (Miscellaneous)' },
-];
-
 // ============================================================
 // Types
 // ============================================================
@@ -111,7 +102,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 // Financial fields
                 funding_entity_id: project.funding_entity_id || undefined,
                 recharge_status: project.recharge_status || undefined,
-                io_category_code: project.io_category_code || undefined,
                 is_capitalizable: project.is_capitalizable || false,
                 owner_department_id: project.owner_department_id || undefined,
             };
@@ -494,7 +484,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             <div className="border-t pt-3">
                 <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Classification</h4>
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     {/* Funding Entity */}
                     <div>
                         <Label className="text-xs">Funding Entity</Label>
@@ -531,29 +521,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RECHARGE_STATUS_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </div>
-
-                    {/* IO Category */}
-                    <div>
-                        <Label className="text-xs">IO Category</Label>
-                        <Controller
-                            name="io_category_code"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger className="h-8">
-                                        <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {IO_CATEGORY_OPTIONS.map((opt) => (
                                             <SelectItem key={opt.value} value={opt.value}>
                                                 {opt.label}
                                             </SelectItem>

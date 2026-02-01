@@ -29,7 +29,6 @@ class ClassificationResult:
     """Result of project financial classification"""
     funding_entity_id: str
     recharge_status: str
-    io_category_code: str
     is_capitalizable: bool
     confidence: ConfidenceScore
     reason: str  # Human-readable explanation
@@ -71,46 +70,39 @@ class ProjectClassifier:
         }
     ]
 
-    # IO Category rules (project type based)
+    # Capitalization rules (project type based)
     CATEGORY_RULES = {
         "NPI": {
-            "io_category_code": "NPI",
             "is_capitalizable": True,
             "confidence": ConfidenceScore.HIGH,
             "reason": "New Product Introduction (NPI) project type"
         },
         "ETO": {
-            "io_category_code": "NPI",
             "is_capitalizable": True,
             "confidence": ConfidenceScore.HIGH,
             "reason": "Engineering To Order (ETO) classified as NPI"
         },
         "SUSTAINING": {
-            "io_category_code": "SUSTAINING",
             "is_capitalizable": True,
             "confidence": ConfidenceScore.HIGH,
             "reason": "Sustaining engineering project"
         },
         "CIP": {
-            "io_category_code": "SUSTAINING",
             "is_capitalizable": True,
             "confidence": ConfidenceScore.MEDIUM,
             "reason": "Continuous Improvement Project (CIP)"
         },
         "SUPPORT": {
-            "io_category_code": "OTHER",
             "is_capitalizable": False,
             "confidence": ConfidenceScore.MEDIUM,
             "reason": "Support project (OPEX)"
         },
         "TEAM_TASK": {
-            "io_category_code": "OTHER",
             "is_capitalizable": False,
             "confidence": ConfidenceScore.MEDIUM,
             "reason": "Internal team task (OPEX)"
         },
         "INTERNAL": {
-            "io_category_code": "OTHER",
             "is_capitalizable": False,
             "confidence": ConfidenceScore.MEDIUM,
             "reason": "Internal project (OPEX)"
@@ -155,8 +147,8 @@ class ProjectClassifier:
         funding_entity, recharge_status, funding_conf, funding_reason = \
             self._determine_funding(normalized_text)
 
-        # Step 2: Determine IO category and capitalization
-        io_category, is_capitalizable, category_conf, category_reason = \
+        # Step 2: Determine capitalization
+        is_capitalizable, category_conf, category_reason = \
             self._determine_category(project_type_id)
 
         # Step 3: Calculate overall confidence
@@ -171,7 +163,6 @@ class ProjectClassifier:
         return ClassificationResult(
             funding_entity_id=funding_entity,
             recharge_status=recharge_status,
-            io_category_code=io_category,
             is_capitalizable=is_capitalizable,
             confidence=overall_confidence,
             reason=combined_reason,
@@ -239,19 +230,18 @@ class ProjectClassifier:
     def _determine_category(
         self,
         project_type_id: Optional[str]
-    ) -> Tuple[str, bool, ConfidenceScore, str]:
+    ) -> Tuple[bool, ConfidenceScore, str]:
         """
-        Determine IO category and capitalization from project type.
+        Determine capitalization from project type.
 
         Returns:
-            (io_category_code, is_capitalizable, confidence, reason)
+            (is_capitalizable, confidence, reason)
         """
         if not project_type_id:
             return (
-                "OTHER",
                 False,
                 ConfidenceScore.LOW,
-                "No project type provided - defaulting to OTHER"
+                "No project type provided - defaulting to OPEX"
             )
 
         # Normalize project type
@@ -261,7 +251,6 @@ class ProjectClassifier:
         if type_upper in self.CATEGORY_RULES:
             rule = self.CATEGORY_RULES[type_upper]
             return (
-                rule["io_category_code"],
                 rule["is_capitalizable"],
                 rule["confidence"],
                 rule["reason"]
@@ -269,10 +258,9 @@ class ProjectClassifier:
 
         # Default fallback
         return (
-            "OTHER",
             False,
             ConfidenceScore.LOW,
-            f"Unknown project type '{project_type_id}' - defaulting to OTHER"
+            f"Unknown project type '{project_type_id}' - defaulting to OPEX"
         )
 
     def _combine_confidence(

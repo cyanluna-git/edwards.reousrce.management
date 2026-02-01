@@ -39,7 +39,6 @@ import {
   ArrowLeft,
   DollarSign,
   RefreshCw,
-  Folder,
   TrendingUp,
   BarChart3,
   Info
@@ -428,16 +427,6 @@ export const ProjectDetailPage: React.FC = () => {
                     'bg-gray-100 text-gray-500 border border-gray-200'
                   }`}>
                     {project.recharge_status || 'Not Set'}
-                  </span>
-                </PropertyRow>
-
-                <PropertyRow icon={Folder} label="IO Category">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
-                    project.io_category_code
-                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                      : 'bg-gray-100 text-gray-500 border border-gray-200'
-                  }`}>
-                    {project.io_category_code || 'Not Set'}
                   </span>
                 </PropertyRow>
 

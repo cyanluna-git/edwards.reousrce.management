@@ -136,7 +136,6 @@ class Project(Base):
     # Financial Routing (v2.0 - Recharge & Planning System)
     funding_entity_id = Column(String(50), nullable=True)  # FK to dim_funding_entity
     recharge_status = Column(String(20), nullable=True)  # BILLABLE, NON_BILLABLE, INTERNAL
-    io_category_code = Column(String(100), nullable=True)  # Maps to IO Framework Programme
     is_capitalizable = Column(Boolean, default=False)  # CAPEX vs OPEX
     gl_account_code = Column(String(50), nullable=True)  # General Ledger account
 
