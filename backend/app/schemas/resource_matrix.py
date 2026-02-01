@@ -51,3 +51,39 @@ class ResourceAllocationMatrix(BaseModel):
     months: List[str]  # ["2026-01", "2026-02", ...]
     programs: List[ProgramGroup]
     grand_total_by_month: Dict[str, float]  # Overall total by month
+
+
+# ==========================================
+# Pivot Table Architecture (User x IO)
+# ==========================================
+
+
+class PivotColumn(BaseModel):
+    """Dynamic Column for Pivot Table (IO)"""
+
+    id: str  # IO ID (Internal or Recharge)
+    label: str  # IO Number (e.g., "404532")
+    type: str  # "INTERNAL" | "RECHARGE" | "NONE"
+    name: Optional[str] = None  # IO Name
+    total_fte: float = 0.0  # Column Total
+
+
+class PivotRow(BaseModel):
+    """Row for Pivot Table (User)"""
+
+    user_id: Optional[str] = None  # None for TBD
+    user_name: str
+    position_name: Optional[str] = None
+    department_name: Optional[str] = None
+    total_fte: float = 0.0  # Row Total (sum of allocations)
+    allocations: Dict[str, float]  # { col_id: fte_value }
+
+
+class PivotMatrixResponse(BaseModel):
+    """Pivot Matrix Response"""
+
+    start_month: str
+    end_month: str
+    columns: List[PivotColumn]
+    rows: List[PivotRow]
+    grand_total: float

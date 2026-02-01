@@ -3,7 +3,7 @@
  * Shows resource allocation matrix with filters
  */
 import React, { useState } from 'react';
-import { ResourceAllocationGrid } from '@/components/resource-matrix/ResourceAllocationGrid';
+import { ResourcePivotTable } from '@/components/resource-matrix/ResourcePivotTable';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 
 export const ResourceMatrixPage: React.FC = () => {
@@ -24,7 +24,7 @@ export const ResourceMatrixPage: React.FC = () => {
             <div>
                 <h1 className="text-3xl font-bold text-slate-800">Resource Allocation Matrix</h1>
                 <p className="text-slate-600 mt-2">
-                    Master headcount sheet showing resource allocations by program, project, and month
+                    Headcount Pivot Table (IO x User)
                 </p>
             </div>
 
@@ -80,19 +80,15 @@ export const ResourceMatrixPage: React.FC = () => {
                 <CardContent className="py-4">
                     <div className="flex gap-8 items-center text-sm">
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-blue-100 border border-slate-300 rounded"></div>
-                            <span className="text-slate-600">Program Total</span>
+                            <div className="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-bold border border-blue-200">INT</div>
+                            <span className="text-slate-600">Internal IO</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-white border border-slate-300 rounded"></div>
-                            <span className="text-slate-600">Project Allocation</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 bg-blue-200 border border-slate-300 rounded"></div>
-                            <span className="text-slate-600">Grand Total</span>
+                            <div className="px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-200">RCH</div>
+                            <span className="text-slate-600">Recharge IO</span>
                         </div>
                         <div className="ml-auto text-slate-500 italic">
-                            Click on any allocation cell to view individual resource details
+                            Values are in FTE (1.0 = Regular Work Hours/Month)
                         </div>
                     </div>
                 </CardContent>
@@ -101,10 +97,10 @@ export const ResourceMatrixPage: React.FC = () => {
             {/* Matrix */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Allocation Matrix</CardTitle>
+                    <CardTitle>Allocation Pivot</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ResourceAllocationGrid
+                    <ResourcePivotTable
                         startMonth={startMonth}
                         endMonth={endMonth}
                     />

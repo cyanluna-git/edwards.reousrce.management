@@ -835,6 +835,49 @@ export const getResourceAllocationMatrix = async (
   return response.data;
 };
 
+// Pivot Matrix API 
+export interface PivotColumn {
+  id: string;
+  label: string;
+  type: string;
+  name: string | null;
+  total_fte: number;
+}
+
+export interface PivotRow {
+  user_id: string | null;
+  user_name: string;
+  position_name: string | null;
+  department_name: string | null;
+  total_fte: number;
+  allocations: Record<string, number>;
+}
+
+export interface PivotMatrixResponse {
+  start_month: string;
+  end_month: string;
+  columns: PivotColumn[];
+  rows: PivotRow[];
+  grand_total: number;
+}
+
+export const getResourcePivotMatrix = async (
+  startMonth: string,
+  endMonth: string,
+  departmentId?: string,
+  programId?: string
+): Promise<PivotMatrixResponse> => {
+  const params = new URLSearchParams({
+    start_month: startMonth,
+    end_month: endMonth,
+  });
+  if (departmentId) params.append('department_id', departmentId);
+  if (programId) params.append('program_id', programId);
+
+  const response = await apiClient.get(`/resource-matrix/pivot?${params.toString()}`);
+  return response.data;
+};
+
 // ============ Internal IO API ============
 
 export interface InternalIOResponse {

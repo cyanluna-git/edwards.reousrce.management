@@ -1,0 +1,176 @@
+# Edwards Project Operation Board - Cursor Rules
+
+This file provides guidance to Cursor AI when working with code in this repository.
+
+## Project Overview
+
+Edwards Project Operation Board - Engineering resource management system for EUV Program IS. Replaces SharePoint/Excel workflows with a unified web application for worklog tracking, resource forecasting, and milestone management.
+
+## Development Commands
+
+### Quick Start
+```bash
+./run.py all          # Start all services (Backend + DB + Frontend)
+./run.py backend      # Backend + Database only
+./run.py frontend     # Frontend only
+./run.py status       # Check service status
+./run.py stop         # Stop all services
+```
+
+### Backend (FastAPI)
+```bash
+cd backend
+source venv/bin/activate
+uvicorn app.main:app --reload --port 8004
+
+# Run tests
+pytest
+pytest tests/test_users.py -v           # Single test file
+pytest -k "test_create_user"            # Single test by name
+
+# Database migrations
+alembic upgrade head
+alembic revision --autogenerate -m "description"
+```
+
+### Frontend (React + Vite)
+```bash
+cd frontend
+pnpm install
+pnpm dev --port 3004
+pnpm build            # Production build
+pnpm preview          # Preview production build
+```
+
+### Data Sync (CSV to PostgreSQL)
+```bash
+cd backend
+python -m scripts.sync_from_pbi --csv --worklogs -0       # Today's worklogs
+python -m scripts.sync_from_pbi --csv --worklogs -7d      # Last 7 days
+```
+
+## Architecture
+
+### Backend (FastAPI + SQLAlchemy)
+```
+backend/app/
+├── api/endpoints/    # HTTP handlers only - delegate to services
+├── core/             # Config, database connection, security (JWT)
+├── models/           # SQLAlchemy models - DB structure only
+├── schemas/          # Pydantic schemas - validation only
+├── services/         # Business logic - all complex operations here
+```
+
+**Key Pattern:** Endpoints → Services → Models. Keep endpoints thin, services handle business logic.
+
+### Frontend (React + TanStack Query)
+```
+frontend/src/
+├── api/client.ts     # Axios client with auth interceptor
+├── components/ui/    # Shadcn/UI primitives (Button, Card, Dialog, etc.)
+├── hooks/            # TanStack Query hooks (useUsers, useProjects, etc.)
+├── pages/            # Page components - route handlers
+├── types/            # TypeScript interfaces
+```
+
+**Key Pattern:** Pages use hooks for data fetching. Hooks wrap API calls with TanStack Query.
+
+### Database Models (PostgreSQL)
+- **Organization:** BusinessUnit → Department → SubTeam → JobPosition (hierarchy)
+- **Projects:** Program, ProjectType, ProductLine, Project, ProjectMilestone
+- **Resources:** ResourcePlan (monthly FTE), WorkLog (daily hours)
+- **Users:** User, UserHistory (change tracking)
+
+### Key Business Concepts
+- **FTE (Full-Time Equivalent):** 0.0-1.0 monthly allocation per user per project
+- **TBD Position:** ResourcePlan with user_id=null - placeholder for future hiring
+- **WorkType:** Categorized work activities (Meeting, Development, Review, etc.)
+- **PCP Gates:** G3, G5, G6 milestones for product commercialization process
+
+## Service URLs
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3004 |
+| Backend API | http://localhost:8004 |
+| API Docs | http://localhost:8004/docs |
+| Database | localhost:5434 (PostgreSQL) |
+
+Default login: `admin@edwards.com` / `password`
+
+## Code Style
+
+### Backend
+- Type hints everywhere: `def get_user(user_id: str, db: Session) -> User | None`
+- Service layer pattern: Business logic in `services/`, not endpoints
+- Use `Depends()` for dependency injection
+- Keep files small (< 200 lines preferred)
+- Use `async def` for I/O operations
+- Use Alembic for migrations
+
+### Frontend
+- Functional components with TypeScript interfaces
+- TanStack Query for all data fetching
+- Tailwind CSS for styling, `cn()` for conditional classes
+- Path alias: `@/` maps to `src/`
+- Keep components small (< 150 lines preferred)
+- One component = One file
+- One hook = One file
+
+## Key Files to Know
+- `backend/app/core/database.py` - Database connection and session
+- `backend/app/core/security.py` - JWT authentication
+- `frontend/src/api/client.ts` - API client with token handling
+- `frontend/src/components/ui/index.ts` - All UI component exports
+
+## Language & Documentation
+- All comments and documentation (.md files) should be written in English
+- Always respond in Korean when communicating with users
+
+## Naming Conventions
+
+### Backend (Python)
+- Functions: `snake_case`
+- Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Files: `snake_case.py`
+
+### Frontend (TypeScript/React)
+- Components: `PascalCase` (e.g., `UserCard.tsx`)
+- Hooks: `camelCase` with `use` prefix (e.g., `useUsers.ts`)
+- Utilities: `camelCase` (e.g., `formatDate.ts`)
+- Types: `PascalCase` (e.g., `User`, `ProjectStatus`)
+- Pages: `PascalCase` + `Page` suffix (e.g., `DashboardPage.tsx`)
+
+## Testing
+- Backend: pytest + pytest-asyncio, one test file per module
+- Frontend: Playwright for E2E tests
+- Test files: `test_{module_name}.py` or `{component}.spec.ts`
+
+## Global Skills
+
+This project uses Claude global skills for consistent development patterns:
+
+### 1. Workthrough Skill
+- **Location**: `.claude/skills/workthrough/SKILL.md`
+- **Purpose**: Reference past development work and patterns from `workthrough/` directory
+- **Use when**: Starting new features, fixing bugs, or making architectural decisions
+- **Key benefit**: Learn from past experiences and maintain consistency
+
+### 2. Gemini-Claude Loop Skill
+- **Location**: `.claude/skills/gemini-claude-loop/SKILL.md`
+- **Purpose**: Apply 3-phase engineering process (Planning → Validation → Implementation)
+- **Use when**: Developing complex features requiring careful design and review
+- **Key benefit**: Ensures high code quality and catches issues early
+
+### 3. Vercel Best Practice Skill
+- **Location**: `.claude/skills/vercel-best-practice/SKILL.md`
+- **Purpose**: Apply Vercel React performance optimization guidelines
+- **Use when**: Optimizing React components, reducing bundle size, improving rendering performance
+- **Key benefit**: Proven performance optimizations from Vercel Engineering
+
+### Available Skills
+- `/workthrough` - Search and reference past workthrough documents
+- `/gemini-claude-loop` - Apply engineering loop methodology
+- `/vercel-best-practice` - Apply React performance optimizations
+- `/migrate-worklogs` - CSV worklog migration tool
+- `/db-backup` - Database backup operations
