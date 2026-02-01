@@ -1,8 +1,13 @@
 /**
  * ResourcePivotTable - Master Headcount Pivot Sheet
  * Shows resource allocation by User x IO (Internal/Recharge)
+ * 
+ * Performance optimizations:
+ * - React.memo for row components
+ * - Optimized query caching (10min staleTime)
+ * - Memoized grouping calculations
  */
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
     getResourcePivotMatrix,
@@ -28,22 +33,27 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     programId,
     onCellClick,
 }) => {
+    // ✅ OPTIMIZED: Longer staleTime for reference data (resource matrix changes infrequently)
     const { data, isLoading, error } = useQuery<PivotMatrixResponse>({
         queryKey: ['resource-pivot', startMonth, endMonth, departmentId, programId],
         queryFn: () => getResourcePivotMatrix(startMonth, endMonth, departmentId, programId),
         enabled: !!startMonth && !!endMonth,
+        staleTime: 10 * 60 * 1000, // 10 minutes (longer than default 5min)
+        gcTime: 60 * 60 * 1000, // 1 hour cache
+        refetchOnWindowFocus: false, // Don't refetch on window focus
     });
 
     // State for collapsed groups
     // Keys: "dept:{DeptName}" or "sub:{DeptName}:{SubTeamName}"
     const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
 
-    const toggleCollapse = (key: string) => {
+    // ✅ OPTIMIZED: useCallback for stable function reference
+    const toggleCollapse = useCallback((key: string) => {
         setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
-    };
+    }, []);
 
-    // Group rows by Department -> SubTeam
-    const groupedRows = React.useMemo(() => {
+    // ✅ OPTIMIZED: Memoized grouping calculation
+    const groupedRows = useMemo(() => {
         if (!data) return {};
 
         type GroupStructure = {
@@ -92,16 +102,14 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
         return groups;
     }, [data]);
 
-    const getIOBadge = (type: string) => {
-        switch (type) {
-            case 'INTERNAL':
-                return <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200">INT</Badge>;
-            case 'RECHARGE':
-                return <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-200">RCH</Badge>;
-            default:
-                return null;
-        }
-    };
+    // ✅ OPTIMIZED: Memoized badge component
+    const getIOBadge = useMemo(() => {
+        const badgeMap = {
+            'INTERNAL': <Badge variant="secondary" className="text-[10px] bg-blue-100 text-blue-700 hover:bg-blue-200">INT</Badge>,
+            'RECHARGE': <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 hover:bg-green-200">RCH</Badge>,
+        };
+        return (type: string) => badgeMap[type as keyof typeof badgeMap] || null;
+    }, []);
 
     if (isLoading) {
         return (
@@ -289,13 +297,13 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     );
 };
 
-// Helper Component for rendering a single row
+// ✅ OPTIMIZED: Memoized row component with custom comparison
 const RowItem: React.FC<{
     row: PivotRow;
     columns: PivotMatrixResponse['columns'];
     indentLevel: number;
     onCellClick?: (userId: string, userName: string, ioId: string, ioName: string) => void;
-}> = ({ row, columns, indentLevel, onCellClick }) => {
+}> = memo(({ row, columns, indentLevel, onCellClick }) => {
     // indentLevel 1 = 1.5rem (pl-6), indentLevel 2 = 3rem (pl-12)
     const paddingLeft = indentLevel === 1 ? 'pl-8' : 'pl-14';
 
@@ -341,4 +349,16 @@ const RowItem: React.FC<{
             </td>
         </tr>
     );
-};
+}, (prevProps, nextProps) => {
+    // Custom comparison for better performance
+    // Only re-render if relevant props changed
+    return (
+        prevProps.row.user_id === nextProps.row.user_id &&
+        prevProps.row.total_fte === nextProps.row.total_fte &&
+        prevProps.indentLevel === nextProps.indentLevel &&
+        prevProps.columns.length === nextProps.columns.length &&
+        JSON.stringify(prevProps.row.allocations) === JSON.stringify(nextProps.row.allocations)
+    );
+});
+
+RowItem.displayName = 'RowItem';

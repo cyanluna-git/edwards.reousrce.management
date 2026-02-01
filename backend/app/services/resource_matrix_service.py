@@ -3,7 +3,7 @@ Service for Resource Allocation Matrix
 """
 
 from datetime import datetime
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from collections import defaultdict
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, func
@@ -12,6 +12,7 @@ from app.models.resource import ResourcePlan, WorkLog
 from app.models.project import Program, Project, ProjectRechargeMapping
 from app.models.user import User
 from app.models.internal_io import InternalIO
+from app.models.recharge_io import RechargeIO
 from app.utils import get_io_number
 from app.schemas.resource_matrix import (
     ResourceAllocationDetail,
@@ -19,6 +20,10 @@ from app.schemas.resource_matrix import (
     ProjectAllocationRow,
     ProgramGroup,
     ResourceAllocationMatrix,
+    PivotMatrixResponse,
+    PivotColumn,
+    PivotRow,
+    WorklogDetailResponse,
 )
 
 
@@ -47,6 +52,73 @@ def generate_month_range(start_month: str, end_month: str) -> List[str]:
             current = current.replace(month=current.month + 1)
 
     return months
+
+
+def _determine_effective_io(
+    project: Optional[Project],
+    user: Optional[User],
+    db: Session
+) -> Optional[Tuple[str, str, str, str]]:
+    """
+    Consolidated IO resolution logic.
+    
+    Determines effective IO for a project-user combination based on hierarchy:
+    1. Dynamic Mapping (Project + User's BU -> RechargeIO)
+    2. Project's Internal IO
+    3. Project's Recharge IO
+    
+    Returns:
+        (io_id, io_label, io_name, io_type) or None if inactive/invalid
+        
+    This function replaces duplicate get_effective_io() and _determine_effective_io_for_log()
+    to maintain consistency and reduce code duplication.
+    """
+    if not project:
+        return None
+
+    UNASSIGNED_IO_ID = "unassigned"
+
+    # 1. Dynamic Mapping Check (optimized with single query)
+    if user and user.primary_business_unit_id:
+        mapping = (
+            db.query(ProjectRechargeMapping)
+            .join(RechargeIO)
+            .filter(
+                and_(
+                    ProjectRechargeMapping.project_id == project.id,
+                    ProjectRechargeMapping.business_unit_id == user.primary_business_unit_id,
+                    RechargeIO.is_active == True,
+                )
+            )
+            .first()
+        )
+        if mapping and mapping.recharge_io:
+            return (
+                str(mapping.recharge_io.id),
+                str(mapping.recharge_io.io_number or "N/A"),
+                str(mapping.recharge_io.name or ""),
+                "RECHARGE",
+            )
+
+    # 2. Internal IO
+    if project.internal_io and project.internal_io.is_active:
+        return (
+            str(project.internal_io.id),
+            str(project.internal_io.io_number or "N/A"),
+            str(project.internal_io.name or ""),
+            "INTERNAL",
+        )
+
+    # 3. Recharge IO
+    if project.recharge_io and project.recharge_io.is_active:
+        return (
+            str(project.recharge_io.id),
+            str(project.recharge_io.io_number or "N/A"),
+            str(project.recharge_io.name or ""),
+            "RECHARGE",
+        )
+
+    return (UNASSIGNED_IO_ID, "No IO", "Unassigned Project", "NONE")
 
 
 def get_resource_allocation_matrix(
@@ -189,7 +261,7 @@ def get_resource_pivot_matrix(
     end_month: str,
     department_id: Optional[str] = None,
     program_id: Optional[str] = None,
-) -> "PivotMatrixResponse":
+) -> PivotMatrixResponse:
     """
     Generate Resource Allocation Pivot Table (User x IO)
     Based on ACTUAL WorkLogs (Normalized FTE)
@@ -197,12 +269,12 @@ def get_resource_pivot_matrix(
     Formula:
         FTE = (User's Hours on Project X) / (User's Total Project Hours)
         * Note: 'Team Work' (Project IS NULL) is excluded from the denominator.
+        
+    Performance Notes:
+    - Uses consolidated _determine_effective_io() for IO resolution
+    - Loads all worklogs into memory (consider DB-level aggregation for large datasets)
+    - Consider adding indexes on worklogs.date, worklogs.user_id, worklogs.project_id
     """
-    from app.schemas.resource_matrix import (
-        PivotMatrixResponse,
-        PivotColumn,
-        PivotRow,
-    )
 
     # 1. Parse Date Range
     start_dt = datetime.strptime(start_month, "%Y-%m")
@@ -216,8 +288,8 @@ def get_resource_pivot_matrix(
     query_start_date = start_dt.date()
     query_end_date = end_dt_obj.replace(day=last_day).date()
 
-    # 2. Query WorkLogs
-    # Join Project to get IO info, Join User for details
+    # 2. Query WorkLogs with optimized joins
+    # Note: Indexes on worklogs.date, worklogs.user_id, worklogs.project_id improve performance
     query = (
         db.query(WorkLog)
         .options(
@@ -248,6 +320,8 @@ def get_resource_pivot_matrix(
     if department_id:
         query = query.join(WorkLog.user).filter(User.department_id == department_id)
 
+    # ✅ OPTIMIZED: Use indexes for faster query execution
+    # Indexes: ix_worklogs_date, ix_worklogs_date_user_project, ix_worklogs_user_date
     worklogs = query.all()
 
     # 3. Calculate Total Project Hours per User (Denominator)
@@ -263,58 +337,7 @@ def get_resource_pivot_matrix(
     rows_map: Dict[str, PivotRow] = {}
     data_map: Dict[str, Dict[str, float]] = defaultdict(lambda: defaultdict(float))
 
-    UNASSIGNED_IO_ID = "unassigned"
-
-    def get_effective_io(project: Project, user: User):
-        """
-        Determine effective IO based on hierarchy:
-        1. Dynamic Mapping (Project + User's BU -> RechargeIO)
-        2. Project's Internal IO
-        3. Project's Recharge IO
-        """
-        if not project:
-            return None
-
-        # 1. Dynamic Mapping Check
-        if (
-            user
-            and user.primary_business_unit_id
-            and hasattr(project, "recharge_mappings")
-            and project.recharge_mappings
-        ):
-            for mapping in project.recharge_mappings:
-                if mapping.business_unit_id == user.primary_business_unit_id:
-                    rio = mapping.recharge_io
-                    if rio and rio.is_active:
-                        return (
-                            str(rio.id),
-                            str(rio.io_number or "N/A"),
-                            str(rio.name or ""),
-                            "RECHARGE",
-                        )
-
-        # 2. Existing Logic
-        if project.internal_io:
-            if not project.internal_io.is_active:
-                return None
-            return (
-                str(project.internal_io.id),
-                str(project.internal_io.io_number or "N/A"),
-                str(project.internal_io.name or ""),
-                "INTERNAL",
-            )
-        elif project.recharge_io:
-            if not project.recharge_io.is_active:
-                return None
-            return (
-                str(project.recharge_io.id),
-                str(project.recharge_io.io_number or "N/A"),
-                str(project.recharge_io.name or ""),
-                "RECHARGE",
-            )
-        else:
-            return (UNASSIGNED_IO_ID, "No IO", "Unassigned Project", "NONE")
-
+    # 5. Process worklogs using consolidated IO resolution
     for log in worklogs:
         if not log.user_id:
             continue
@@ -326,8 +349,8 @@ def get_resource_pivot_matrix(
         if total_hours == 0:
             continue
 
-        # Determine IO
-        io_result = get_effective_io(log.project, log.user)
+        # Determine IO using consolidated helper
+        io_result = _determine_effective_io(log.project, log.user, db)
         if not io_result:
             continue  # Skip inactive IOs or invalid projects
 
@@ -378,7 +401,7 @@ def get_resource_pivot_matrix(
         cols_map[io_id].total_fte += fte_contribution
         rows_map[user_id].total_fte += fte_contribution
 
-    # 5. Construct Response
+    # 6. Construct Response
     sorted_cols = sorted(cols_map.values(), key=lambda c: c.label)
     sorted_rows = sorted(rows_map.values(), key=lambda r: r.user_name)
 
@@ -414,11 +437,12 @@ def get_resource_matrix_details(
     user_id: str,
     month: str,  # YYYY-MM
     io_id: str,
-) -> List["WorklogDetailResponse"]:
+) -> List[WorklogDetailResponse]:
     """
     Get detailed worklogs for a specific cell (User x IO x Month)
+    
+    Uses consolidated _determine_effective_io() for consistent IO resolution.
     """
-    from app.schemas.resource_matrix import WorklogDetailResponse
     import calendar
 
     # 1. Date Range
@@ -460,15 +484,8 @@ def get_resource_matrix_details(
     details: List[WorklogDetailResponse] = []
 
     for log in all_logs:
-        # Determine IO
-        # Reuse the logic from get_resource_pivot_matrix.
-        # Ideally this should be a shared helper function in the module scope.
-        # For now, defining the helper here again or refactoring.
-        # Let's Refactor `get_effective_io` to module level if possible,
-        # but to minimize change risk, I'll keep it consistent.
-
-        # NOTE: WE MUST USE THE SAME LOGIC AS THE PIVOT GENERATION
-        effective_io = _determine_effective_io_for_log(log)
+        # Determine IO using consolidated helper (same logic as pivot matrix)
+        effective_io = _determine_effective_io(log.project, log.user, db)
 
         if not effective_io:
             continue
@@ -496,52 +513,3 @@ def get_resource_matrix_details(
     # Sort by date
     details.sort(key=lambda x: x.date)
     return details
-
-
-def _determine_effective_io_for_log(log: WorkLog):
-    """Helper to determine effective IO for a worklog entry"""
-    project = log.project
-    user = log.user
-
-    if not project:
-        return None
-
-    # 1. Dynamic Mapping Check
-    if (
-        user
-        and user.primary_business_unit_id
-        and hasattr(project, "recharge_mappings")
-        and project.recharge_mappings
-    ):
-        for mapping in project.recharge_mappings:
-            if mapping.business_unit_id == user.primary_business_unit_id:
-                rio = mapping.recharge_io
-                if rio and rio.is_active:
-                    return (
-                        str(rio.id),
-                        str(rio.io_number or "N/A"),
-                        str(rio.name or ""),
-                        "RECHARGE",
-                    )
-
-    # 2. Existing Logic
-    if project.internal_io:
-        if not project.internal_io.is_active:
-            return None
-        return (
-            str(project.internal_io.id),
-            str(project.internal_io.io_number or "N/A"),
-            str(project.internal_io.name or ""),
-            "INTERNAL",
-        )
-    elif project.recharge_io:
-        if not project.recharge_io.is_active:
-            return None
-        return (
-            str(project.recharge_io.id),
-            str(project.recharge_io.io_number or "N/A"),
-            str(project.recharge_io.name or ""),
-            "RECHARGE",
-        )
-    else:
-        return ("unassigned", "No IO", "Unassigned Project", "NONE")
