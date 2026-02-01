@@ -891,12 +891,19 @@ export const findOrCreateInternalIO = async (data: InternalIOCreate): Promise<In
 
 // ============ Recharge IO API ============
 
+export interface BusinessUnitSimple {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export interface RechargeIOResponse {
   id: string;
   io_number: string;
   name?: string;
   description?: string;
   is_active: boolean;
+  business_units?: BusinessUnitSimple[];
 }
 
 export interface RechargeIOCreate {
@@ -947,6 +954,11 @@ export const deleteRechargeIO = async (id: string): Promise<void> => {
 
 export const findOrCreateRechargeIO = async (data: RechargeIOCreate): Promise<RechargeIOResponse> => {
   const response = await apiClient.post('/recharge-ios/find-or-create/', data);
+  return response.data;
+};
+
+export const getRechargeIOsByBusinessUnit = async (buId: string): Promise<RechargeIOResponse[]> => {
+  const response = await apiClient.get(`/recharge-ios/by-business-unit/${buId}`);
   return response.data;
 };
 

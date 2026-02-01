@@ -9,6 +9,7 @@ import {
     updateRechargeIO,
     deleteRechargeIO,
     findOrCreateRechargeIO,
+    getRechargeIOsByBusinessUnit,
     RechargeIOCreate,
     RechargeIOUpdate,
     RechargeIOResponse,
@@ -18,6 +19,7 @@ const rechargeIOKeys = {
     all: ['recharge-ios'] as const,
     list: (params?: { search?: string; is_active?: boolean }) => [...rechargeIOKeys.all, 'list', params] as const,
     detail: (id: string) => [...rechargeIOKeys.all, 'detail', id] as const,
+    byBusinessUnit: (buId: string) => [...rechargeIOKeys.all, 'by-bu', buId] as const,
 };
 
 export function useRechargeIOsList(params?: { search?: string; is_active?: boolean }) {
@@ -33,6 +35,15 @@ export function useRechargeIO(id: string) {
         queryKey: rechargeIOKeys.detail(id),
         queryFn: () => getRechargeIO(id),
         enabled: !!id,
+    });
+}
+
+export function useRechargeIOsByBusinessUnit(buId: string | undefined) {
+    return useQuery<RechargeIOResponse[], Error>({
+        queryKey: rechargeIOKeys.byBusinessUnit(buId || ''),
+        queryFn: () => getRechargeIOsByBusinessUnit(buId!),
+        enabled: !!buId,
+        staleTime: 5 * 60 * 1000,
     });
 }
 

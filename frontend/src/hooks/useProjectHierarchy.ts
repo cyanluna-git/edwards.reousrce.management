@@ -9,7 +9,7 @@ import { apiClient } from '@/api/client';
 // Types for hierarchy response
 export interface HierarchyNode {
     id: string;
-    code: string;
+    code?: string;  // Optional - departments don't have code
     name: string;
     type: 'business_unit' | 'product_line' | 'project' | 'department';
     status?: string;
@@ -20,6 +20,7 @@ export interface HierarchyNode {
 export interface ProjectHierarchyResponse {
     product_projects: HierarchyNode[];
     functional_projects: HierarchyNode[];
+    support_projects: HierarchyNode[];
     ungrouped_projects: HierarchyNode[];
 }
 

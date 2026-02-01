@@ -16,6 +16,7 @@ class UserBase(BaseModel):
     department_id: str
     sub_team_id: Optional[str] = None
     position_id: str
+    primary_business_unit_id: Optional[str] = None  # 주 활동 사업영역
     role: Optional[str] = "USER"
     is_active: bool = True
     hire_date: Optional[datetime] = None
@@ -36,6 +37,7 @@ class UserUpdate(BaseModel):
     department_id: Optional[str] = None
     sub_team_id: Optional[str] = None
     position_id: Optional[str] = None
+    primary_business_unit_id: Optional[str] = None  # 주 활동 사업영역
     role: Optional[str] = None
     is_active: Optional[bool] = None
     hire_date: Optional[datetime] = None

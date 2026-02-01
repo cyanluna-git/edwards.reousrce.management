@@ -1,22 +1,24 @@
 /**
  * ProjectHierarchySelect Component
  * Hierarchical selector for projects and product lines in WorkLog entry
- * Supports 3 modes:
- * 1. Project selection (specific project)
- * 2. Product line selection (general product support)
- * 3. No selection (non-project work)
+ * Supports 4 modes:
+ * 1. Project selection (specific product project)
+ * 2. Functional project selection (department-based projects)
+ * 3. Support project selection (non-project regular work with auto-routing)
+ * 4. No selection (general team work)
  */
 import React, { useState, useMemo } from 'react';
 import { useProjectHierarchy, useProductLineHierarchy, HierarchyNode } from '@/hooks/useProjectHierarchy';
 import { useAuth } from '@/hooks/useAuth';
-import { ChevronDown, ChevronRight, Folder, Package, Briefcase, Building2 } from 'lucide-react';
+import { useRechargeIOsByBusinessUnit } from '@/hooks/useRechargeIOs';
+import { ChevronDown, ChevronRight, Folder, Package, Briefcase, Building2, Wrench, Info } from 'lucide-react';
 
-export type SelectionMode = 'project' | 'product_line' | 'none';
+export type SelectionMode = 'project' | 'product_line' | 'support' | 'none';
 
 interface ProjectHierarchySelectProps {
     projectId?: string | null;
     productLineId?: string | null;
-    onProjectChange: (projectId: string | null, projectName?: string) => void;
+    onProjectChange: (projectId: string | null, projectName?: string, category?: string) => void;
     onProductLineChange: (productLineId: string | null, productLineName?: string) => void;
     projectRequired?: boolean;
     placeholder?: string;
@@ -33,10 +35,16 @@ export function ProjectHierarchySelect({
     className = '',
 }: ProjectHierarchySelectProps) {
     const { user } = useAuth();
+    // Pass department_id (not sub_team_id) to filter functional projects by owner_department_id
+    const userDepartmentId = user?.sub_team?.department_id;
     const { data: projectHierarchy, isLoading: isLoadingProjects } = useProjectHierarchy(
-        user?.sub_team_id ? String(user.sub_team_id) : undefined
+        userDepartmentId ? String(userDepartmentId) : undefined
     );
     const { data: productLineHierarchy, isLoading: isLoadingProductLines } = useProductLineHierarchy();
+
+    // Fetch RechargeIOs by user's primary business unit for auto-routing
+    const userPrimaryBuId = user?.primary_business_unit_id;
+    const { data: buRechargeIOs } = useRechargeIOsByBusinessUnit(userPrimaryBuId);
 
 
     const [isOpen, setIsOpen] = useState(false);
@@ -67,6 +75,12 @@ export function ProjectHierarchySelect({
                     }
                 }
             }
+            // Search in support projects
+            for (const proj of projectHierarchy.support_projects || []) {
+                if (proj.id === projectId) {
+                    return `[비프로젝트] ${proj.name}`;
+                }
+            }
         }
         if (productLineId && productLineHierarchy) {
             for (const bu of productLineHierarchy) {
@@ -93,10 +107,18 @@ export function ProjectHierarchySelect({
         });
     };
 
-    const handleSelectProject = (project: HierarchyNode) => {
-        onProjectChange(project.id, `${project.code} - ${project.name}`);
+    const handleSelectProject = (project: HierarchyNode, category?: string) => {
+        onProjectChange(project.id, `${project.code} - ${project.name}`, category);
         onProductLineChange(null);
-        setSelectionMode('project');
+        setSelectionMode(category === 'SUPPORT' ? 'support' : 'project');
+        setIsOpen(false);
+        setSearchTerm('');
+    };
+
+    const handleSelectSupportProject = (project: HierarchyNode) => {
+        onProjectChange(project.id, project.name, 'SUPPORT');
+        onProductLineChange(null);
+        setSelectionMode('support');
         setIsOpen(false);
         setSearchTerm('');
     };
@@ -127,7 +149,7 @@ export function ProjectHierarchySelect({
         for (const node of nodes) {
             const matches =
                 node.name.toLowerCase().includes(lowerTerm) ||
-                node.code.toLowerCase().includes(lowerTerm);
+                (node.code || '').toLowerCase().includes(lowerTerm);
 
             const filteredChildren = node.children ? filterNodes(node.children, term) : [];
 
@@ -157,6 +179,34 @@ export function ProjectHierarchySelect({
         if (!productLineHierarchy) return [];
         return filterNodes(productLineHierarchy, searchTerm);
     }, [productLineHierarchy, searchTerm]);
+
+    const filteredSupportProjects = useMemo(() => {
+        if (!projectHierarchy?.support_projects) return [];
+        if (!searchTerm) return projectHierarchy.support_projects;
+        const lowerTerm = searchTerm.toLowerCase();
+        return projectHierarchy.support_projects.filter(
+            p => p.name.toLowerCase().includes(lowerTerm) || (p.code || '').toLowerCase().includes(lowerTerm)
+        );
+    }, [projectHierarchy, searchTerm]);
+
+    // Find matching RechargeIO for a Support project
+    const findMatchingRechargeIO = (supportProjectName: string) => {
+        if (!buRechargeIOs || buRechargeIOs.length === 0) return null;
+
+        // Extract the key part of the support project name for matching
+        // e.g., "SUN Operations Support" should match "[ABT/IS] SUN Operations Support"
+        const normalizedName = supportProjectName.toLowerCase().trim();
+
+        return buRechargeIOs.find(io => {
+            const ioName = io.name?.toLowerCase() || '';
+            // Check if RechargeIO name contains the support project name
+            return ioName.includes(normalizedName) ||
+                // Also check reverse: support name contains key parts of IO name
+                normalizedName.split(' ').every(word =>
+                    word.length <= 3 || ioName.includes(word)
+                );
+        });
+    };
 
     const isLoading = isLoadingProjects || isLoadingProductLines;
 
@@ -327,7 +377,43 @@ export function ProjectHierarchySelect({
                                 </div>
                             )}
 
-                            {/* Product Line Support Section - REMOVED: No longer needed */}
+                            {/* Support Projects Section (비프로젝트 상시 업무) */}
+                            {filteredSupportProjects.length > 0 && (
+                                <div className="border-b">
+                                    <div className="px-3 py-2 text-xs font-semibold text-slate-500 bg-amber-50 flex items-center gap-2">
+                                        비프로젝트 업무
+                                        {user?.primary_business_unit && (
+                                            <span className="text-xs font-normal text-amber-600">
+                                                ({user.primary_business_unit.code})
+                                            </span>
+                                        )}
+                                    </div>
+                                    {filteredSupportProjects.map(project => {
+                                        const matchedIO = findMatchingRechargeIO(project.name);
+                                        return (
+                                            <button
+                                                key={project.id}
+                                                type="button"
+                                                onClick={() => handleSelectSupportProject(project)}
+                                                className={`w-full flex items-center gap-2 py-2 px-3 text-sm hover:bg-amber-50 text-left ${
+                                                    projectId === project.id ? 'bg-amber-100 text-amber-700' : ''
+                                                }`}
+                                            >
+                                                <Wrench className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <span className="truncate block">{project.name}</span>
+                                                    {matchedIO && (
+                                                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                                                            <Info className="h-3 w-3" />
+                                                            IO: {matchedIO.io_number}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
 
                             {/* No Selection Option */}
                             {!projectRequired && (
@@ -346,6 +432,7 @@ export function ProjectHierarchySelect({
                             {/* Empty State */}
                             {filteredProductProjects.length === 0 &&
                                 filteredFunctionalProjects.length === 0 &&
+                                filteredSupportProjects.length === 0 &&
                                 filteredProductLines.length === 0 && (
                                     <div className="p-4 text-center text-muted-foreground text-sm">
                                         검색 결과가 없습니다.

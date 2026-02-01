@@ -69,6 +69,7 @@ def project_to_hierarchy_dict(project: "Project") -> Dict[str, Any]:
     """
     return {
         "id": project.id,
+        "code": get_project_display_code(project),
         "internal_io": {
             "io_number": project.internal_io.io_number,
             "name": project.internal_io.name,

@@ -50,12 +50,14 @@ export interface User {
     korean_name?: string
     sub_team_id?: string
     position_id: string
+    primary_business_unit_id?: string  // 주 활동 사업영역
     role: UserRole
     is_active: boolean
     hire_date?: string
     termination_date?: string
     sub_team?: SubTeam
     position?: JobPosition
+    primary_business_unit?: BusinessUnit  // Nested BU
 }
 
 export interface UserHistory {
@@ -106,6 +108,8 @@ export interface InternalIO {
     io_number: string
     name?: string
     description?: string
+    business_unit_id?: string  // BU별 분리된 IO
+    business_unit?: BusinessUnit
     is_active: boolean
 }
 
@@ -129,12 +133,14 @@ export interface RechargeIO {
     name?: string
     description?: string
     is_active: boolean
+    business_units: BusinessUnit[]  // M:N relationship
 }
 
 export interface RechargeIOCreate {
     io_number: string
     name?: string
     description?: string
+    business_unit_ids?: string[]  // BU IDs for M:N
 }
 
 export interface RechargeIOUpdate {
@@ -142,6 +148,7 @@ export interface RechargeIOUpdate {
     name?: string
     description?: string
     is_active?: boolean
+    business_unit_ids?: string[]  // Update BU mappings
 }
 
 export interface ProjectBase {
@@ -152,7 +159,7 @@ export interface ProjectBase {
     name: string
     status: ProjectStatus
     scale?: ProjectScale
-    category?: 'PRODUCT' | 'FUNCTIONAL'
+    category?: 'PRODUCT' | 'FUNCTIONAL' | 'SUPPORT'
     product_line_id?: string
     owner_department_id?: string  // NEW: Functional project owner
     pm_id?: string
@@ -179,7 +186,7 @@ export interface ProjectUpdate {
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
-    category?: 'PRODUCT' | 'FUNCTIONAL'
+    category?: 'PRODUCT' | 'FUNCTIONAL' | 'SUPPORT'
     product_line_id?: string | null
     owner_department_id?: string | null
     pm_id?: string | null

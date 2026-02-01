@@ -473,9 +473,35 @@ class ProjectService:
             project_to_hierarchy_dict(p) for p in ungrouped_product_projects
         ]
 
+        # Build Support Projects list (non-project regular work)
+        support_projects_db = (
+            self.db.query(Project)
+            .options(
+                joinedload(Project.internal_io),
+                joinedload(Project.recharge_io),
+            )
+            .filter(Project.category == "SUPPORT")
+            .order_by(Project.name)
+            .all()
+        )
+
+        support_projects = [
+            {
+                "id": p.id,
+                "code": p.internal_io.io_number if p.internal_io else "",
+                "name": p.name,
+                "type": "project",
+                "status": p.status,
+                "description": p.description,
+                "recharge_io_id": p.recharge_io_id,
+            }
+            for p in support_projects_db
+        ]
+
         return {
             "product_projects": product_projects,
             "functional_projects": functional_projects,
+            "support_projects": support_projects,
             "ungrouped_projects": ungrouped_projects,
         }
 

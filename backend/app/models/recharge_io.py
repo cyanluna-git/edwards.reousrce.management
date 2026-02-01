@@ -7,9 +7,20 @@ Multiple projects can share the same Recharge IO for billing aggregation.
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+
+# M:N 관계: RechargeIO ↔ BusinessUnit
+# 동일한 RechargeIO가 여러 BU에서 사용될 수 있음 (예: ABT/IS 공용)
+recharge_io_business_units = Table(
+    "recharge_io_business_units",
+    Base.metadata,
+    Column("recharge_io_id", String(36), ForeignKey("recharge_ios.id", ondelete="CASCADE"), primary_key=True),
+    Column("business_unit_id", String(50), ForeignKey("business_units.id", ondelete="CASCADE"), primary_key=True),
+    Column("created_at", DateTime, default=datetime.utcnow),
+)
 
 
 def generate_uuid():
@@ -37,6 +48,11 @@ class RechargeIO(Base):
 
     # Relationships
     projects = relationship("Project", back_populates="recharge_io")
+    business_units = relationship(
+        "BusinessUnit",
+        secondary=recharge_io_business_units,
+        backref="recharge_ios"
+    )
 
     def __repr__(self):
         return f"<RechargeIO(io_number='{self.io_number}', name='{self.name}')>"
