@@ -171,7 +171,6 @@ export function ProfilePage() {
                     <Label className="text-sm text-slate-500">Position</Label>
                     <p className="text-sm font-medium">
                       {user.position.name}
-                      {user.position.level && user.position.level !== 0 && ` (Level ${user.position.level})`}
                     </p>
                   </div>
                 </div>
