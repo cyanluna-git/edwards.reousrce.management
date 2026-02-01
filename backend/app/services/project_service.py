@@ -341,77 +341,100 @@ class ProjectService:
         Returns a structure with:
         - product_projects: Business Unit -> Product Line -> Projects
         - functional_projects: Department -> Projects (filtered by user's department)
+
+        Only shows active projects (InProgress, Prospective, Planned).
+        Completed, Cancelled, OnHold projects are hidden.
+
+        Optimized: Uses single JOIN queries instead of N+1 loops.
         """
         from app.models.organization import Department as DepartmentModel
 
-        # Build Product Projects tree
-        business_units = (
+        # Active status filter for WorkLog entry
+        ACTIVE_STATUSES = ["InProgress", "Prospective", "Planned"]
+
+        # ============ OPTIMIZED: Single query for all Product Projects ============
+        # Fetches Projects + ProductLine + BusinessUnit in one query (eliminates N+1)
+        product_data = (
+            self.db.query(Project, ProductLineModel, BusinessUnitModel)
+            .join(ProductLineModel, Project.product_line_id == ProductLineModel.id)
+            .join(BusinessUnitModel, ProductLineModel.business_unit_id == BusinessUnitModel.id)
+            .options(joinedload(Project.internal_io))
+            .filter(
+                Project.category == "PRODUCT",
+                Project.status.in_(ACTIVE_STATUSES),
+                BusinessUnitModel.is_active == True,
+                ProductLineModel.is_active == True,
+            )
+            .order_by(BusinessUnitModel.name, ProductLineModel.name, Project.name)
+            .all()
+        )
+
+        # Also fetch empty BUs and PLs for UI management
+        all_bus = (
             self.db.query(BusinessUnitModel)
             .filter(BusinessUnitModel.is_active == True)
             .order_by(BusinessUnitModel.name)
             .all()
         )
+        all_pls = (
+            self.db.query(ProductLineModel)
+            .filter(ProductLineModel.is_active == True)
+            .order_by(ProductLineModel.name)
+            .all()
+        )
 
-        product_projects = []
-        for bu in business_units:
-            # Get product lines for this BU
-            product_lines = (
-                self.db.query(ProductLineModel)
-                .filter(
-                    ProductLineModel.business_unit_id == bu.id,
-                    ProductLineModel.is_active == True,
-                )
-                .order_by(ProductLineModel.name)
-                .all()
-            )
+        # Build hierarchy in Python (O(n) time complexity)
+        bu_map: dict[str, dict] = {}
+        pl_map: dict[str, dict] = {}
 
-            bu_children = []
-            for pl in product_lines:
-                # Get projects for this product line
-                projects = (
-                    self.db.query(Project)
-                    .options(joinedload(Project.internal_io))
-                    .filter(
-                        Project.product_line_id == pl.id, Project.category == "PRODUCT"
-                    )
-                    .order_by(Project.name)
-                    .all()
-                )
+        # Initialize all BUs
+        for bu in all_bus:
+            bu_map[bu.id] = {
+                "id": bu.id,
+                "code": bu.code,
+                "name": bu.name,
+                "type": "business_unit",
+                "children": {},  # pl_id -> pl_dict
+            }
 
-                # Always include Product Line, even if no projects (so it can be managed in UI)
-                pl_children = [project_to_hierarchy_dict(p) for p in projects]
-                bu_children.append(
-                    {
-                        "id": pl.id,
-                        "code": pl.code,
-                        "name": pl.name,
-                        "line_category": pl.line_category,
-                        "description": pl.description,
-                        "type": "product_line",
-                        "children": pl_children,
-                    }
-                )
-
-            # Always append BU, even if empty, so it can be managed in the ProjectHierarchyEditor
-            product_projects.append(
-                {
-                    "id": bu.id,
-                    "code": bu.code,
-                    "name": bu.name,
-                    "type": "business_unit",
-                    "children": bu_children,
+        # Initialize all PLs under their BUs
+        for pl in all_pls:
+            if pl.business_unit_id and pl.business_unit_id in bu_map:
+                pl_dict = {
+                    "id": pl.id,
+                    "code": pl.code,
+                    "name": pl.name,
+                    "line_category": pl.line_category,
+                    "description": pl.description,
+                    "type": "product_line",
+                    "children": [],
                 }
-            )
+                bu_map[pl.business_unit_id]["children"][pl.id] = pl_dict
+                pl_map[pl.id] = pl_dict
 
-        # Build Functional Projects tree (filtered by department if provided)
-        # Exclude SUSTAINING projects (VSS/SUN Matrix IO buckets) as they have their own tab
+        # Add projects to their PLs
+        for project, pl, bu in product_data:
+            if pl.id in pl_map:
+                pl_map[pl.id]["children"].append(project_to_hierarchy_dict(project))
+
+        # Convert to list format
+        product_projects = []
+        for bu_dict in bu_map.values():
+            bu_dict["children"] = list(bu_dict["children"].values())
+            product_projects.append(bu_dict)
+
+        # ============ OPTIMIZED: Functional Projects with eager-loaded Department ============
+        # Single query with joinedload eliminates N+1 department queries
         functional_query = (
             self.db.query(Project)
-            .outerjoin(InternalIO, Project.internal_io_id == InternalIO.id)
-            .options(joinedload(Project.internal_io))
+            .options(
+                joinedload(Project.internal_io),
+                joinedload(Project.owner_department),  # Eager load department
+            )
             .filter(
                 Project.category == "FUNCTIONAL",
                 Project.project_type_id != "SUSTAINING",
+                Project.status.in_(ACTIVE_STATUSES),
             )
         )
 
@@ -422,17 +445,14 @@ class ProjectService:
 
         functional_projects_db = functional_query.order_by(Project.name).all()
 
-        # Group by department
+        # Group by department (no additional queries needed)
         dept_map: dict[str, Any] = {}
         ungrouped_functional: list[dict] = []
         for p in functional_projects_db:
             if p.owner_department_id:
                 if p.owner_department_id not in dept_map:
-                    dept = (
-                        self.db.query(DepartmentModel)
-                        .filter(DepartmentModel.id == p.owner_department_id)
-                        .first()
-                    )
+                    # Use eager-loaded relationship instead of separate query
+                    dept = p.owner_department
                     dept_map[p.owner_department_id] = {
                         "id": dept.id if dept else p.owner_department_id,
                         "name": dept.name if dept else "Unknown",
@@ -443,12 +463,10 @@ class ProjectService:
                     project_to_hierarchy_dict(p)
                 )
             else:
-                # Collect functional projects without owner_department_id
                 ungrouped_functional.append(project_to_hierarchy_dict(p))
 
         functional_projects = list(dept_map.values())
 
-        # Add ungrouped functional projects as a special group
         if ungrouped_functional:
             functional_projects.append({
                 "id": "ungrouped_functional",
@@ -457,13 +475,14 @@ class ProjectService:
                 "children": ungrouped_functional,
             })
 
-        # Get ungrouped PRODUCT projects (no product_line_id assigned)
+        # ============ Ungrouped PRODUCT projects ============
         ungrouped_product_projects = (
             self.db.query(Project)
             .options(joinedload(Project.internal_io))
             .filter(
                 Project.category == "PRODUCT",
                 Project.product_line_id == None,
+                Project.status.in_(ACTIVE_STATUSES),
             )
             .order_by(Project.name)
             .all()
@@ -473,14 +492,17 @@ class ProjectService:
             project_to_hierarchy_dict(p) for p in ungrouped_product_projects
         ]
 
-        # Build Support Projects list (non-project regular work)
+        # ============ Support Projects ============
         support_projects_db = (
             self.db.query(Project)
             .options(
                 joinedload(Project.internal_io),
                 joinedload(Project.recharge_io),
             )
-            .filter(Project.category == "SUPPORT")
+            .filter(
+                Project.category == "SUPPORT",
+                Project.status.in_(ACTIVE_STATUSES),
+            )
             .order_by(Project.name)
             .all()
         )
