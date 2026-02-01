@@ -19,6 +19,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
+# Read-only roles (can only view, cannot create/update/delete)
+READ_ONLY_ROLES = ["GUEST", "VIEWER"]
+
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash"""
@@ -127,3 +130,21 @@ def require_role(*allowed_roles: str):
         return current_user
 
     return role_checker
+
+
+def require_write_permission():
+    """
+    Factory function to create a dependency that requires write permissions.
+    Blocks read-only roles (GUEST, VIEWER) from creating/updating/deleting.
+    Usage: Depends(require_write_permission())
+    """
+
+    async def write_checker(current_user=Depends(get_current_user)):
+        if current_user.role in READ_ONLY_ROLES:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Read-only access. This account does not have permission to modify data.",
+            )
+        return current_user
+
+    return write_checker
