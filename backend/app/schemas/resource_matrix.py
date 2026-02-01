@@ -75,6 +75,7 @@ class PivotRow(BaseModel):
     user_name: str
     position_name: Optional[str] = None
     department_name: Optional[str] = None
+    sub_team_name: Optional[str] = None
     total_fte: float = 0.0  # Row Total (sum of allocations)
     allocations: Dict[str, float]  # { col_id: fte_value }
 

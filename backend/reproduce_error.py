@@ -22,6 +22,11 @@ try:
         db=db, start_month="2026-01", end_month="2026-02"
     )
     print("Success! Result Grand Total:", result.grand_total)
+    print("Sample Rows:")
+    for row in result.rows[:5]:
+        print(
+            f"User: {row.user_name}, Dept: {row.department_name}, SubTeam: {row.sub_team_name}"
+        )
 except Exception as e:
     import traceback
 

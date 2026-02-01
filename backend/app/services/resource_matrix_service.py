@@ -228,6 +228,7 @@ def get_resource_pivot_matrix(
             .joinedload(ProjectRechargeMapping.recharge_io),
             joinedload(WorkLog.user).joinedload(User.position),
             joinedload(WorkLog.user).joinedload(User.department),
+            joinedload(WorkLog.user).joinedload(User.sub_team),
             joinedload(WorkLog.user).joinedload(
                 User.primary_business_unit
             ),  # Load user BU
@@ -341,7 +342,6 @@ def get_resource_pivot_matrix(
                 name=str(io_name) if io_name else None,
                 type=str(io_type),
             )
-
         # Ensure Row Exists
         if user_id not in rows_map:
             user_name = str(log.user.name) if log.user else "Unknown"
@@ -353,12 +353,16 @@ def get_resource_pivot_matrix(
                 if log.user and log.user.department
                 else None
             )
+            sub_team_name = (
+                str(log.user.sub_team.name) if log.user and log.user.sub_team else None
+            )
 
             rows_map[user_id] = PivotRow(
                 user_id=user_id,
                 user_name=user_name,
                 position_name=pos_name,
                 department_name=dept_name,
+                sub_team_name=sub_team_name,
                 allocations={},
             )
 

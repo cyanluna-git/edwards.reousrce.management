@@ -849,6 +849,7 @@ export interface PivotRow {
   user_name: string;
   position_name: string | null;
   department_name: string | null;
+  sub_team_name: string | null;
   total_fte: number;
   allocations: Record<string, number>;
 }

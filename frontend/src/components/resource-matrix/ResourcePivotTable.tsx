@@ -7,9 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import {
     getResourcePivotMatrix,
     type PivotMatrixResponse,
+    type PivotRow,
 } from '@/api/client';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ChevronDown, ChevronRight, Building2, Users } from 'lucide-react';
 
 interface ResourcePivotTableProps {
     startMonth: string;
@@ -30,24 +32,60 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
         enabled: !!startMonth && !!endMonth,
     });
 
-    // Group rows by Department
-    // MOVED: Must be called before any early returns
+    // State for collapsed groups
+    // Keys: "dept:{DeptName}" or "sub:{DeptName}:{SubTeamName}"
+    const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
+
+    const toggleCollapse = (key: string) => {
+        setCollapsed(prev => ({ ...prev, [key]: !prev[key] }));
+    };
+
+    // Group rows by Department -> SubTeam
     const groupedRows = React.useMemo(() => {
         if (!data) return {};
-        const groups: Record<string, typeof data.rows> = {};
 
-        // Sort rows by department then name first
+        type GroupStructure = {
+            totalFte: number;
+            rows: PivotRow[]; // Direct reports (no subteam)
+            subTeams: Record<string, { rows: PivotRow[], totalFte: number }>;
+        };
+        const groups: Record<string, GroupStructure> = {};
+
+        // Sort rows by department, then sub-team, then name
         const sortedRows = [...data.rows].sort((a, b) => {
             const deptA = a.department_name || 'Unassigned';
             const deptB = b.department_name || 'Unassigned';
             if (deptA !== deptB) return deptA.localeCompare(deptB);
+
+            // If Deuts match, sort by SubTeam (nulls first or last? let's say last)
+            const subA = a.sub_team_name || '';
+            const subB = b.sub_team_name || '';
+            if (subA !== subB) {
+                if (!subA) return 1; // Put direct reports at bottom? Or top? Let's put at bottom (General)
+                if (!subB) return -1;
+                return subA.localeCompare(subB);
+            }
+
             return a.user_name.localeCompare(b.user_name);
         });
 
         sortedRows.forEach(row => {
             const dept = row.department_name || 'Unassigned';
-            if (!groups[dept]) groups[dept] = [];
-            groups[dept].push(row);
+            const subTeam = row.sub_team_name;
+
+            if (!groups[dept]) groups[dept] = { totalFte: 0, rows: [], subTeams: {} };
+
+            groups[dept].totalFte += row.total_fte;
+
+            if (subTeam) {
+                if (!groups[dept].subTeams[subTeam]) {
+                    groups[dept].subTeams[subTeam] = { rows: [], totalFte: 0 };
+                }
+                groups[dept].subTeams[subTeam].rows.push(row);
+                groups[dept].subTeams[subTeam].totalFte += row.total_fte;
+            } else {
+                groups[dept].rows.push(row);
+            }
         });
         return groups;
     }, [data]);
@@ -144,58 +182,148 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                 </thead>
 
                 <tbody>
-                    {Object.entries(groupedRows).map(([deptName, rows]) => (
-                        <React.Fragment key={deptName}>
-                            {/* Group Header */}
-                            <tr className="bg-slate-100/80">
-                                <td
-                                    colSpan={data.columns.length + 2}
-                                    className="p-2 pl-4 font-bold text-slate-700 border border-slate-300 sticky left-0 z-10"
-                                    style={{ left: 0 }}
-                                >
-                                    {deptName}
-                                </td>
-                            </tr>
+                    {Object.entries(groupedRows).map(([deptName, group]) => {
+                        const deptKey = `dept:${deptName}`;
+                        const isDeptCollapsed = collapsed[deptKey];
 
-                            {/* User Rows */}
-                            {rows.map((row) => (
-                                <tr key={row.user_id || 'tbd'} className="hover:bg-slate-50 transition-colors">
-                                    {/* User Info (Sticky Left) */}
-                                    <td className="sticky left-0 bg-white border border-slate-300 p-3 z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
-                                        <div className="flex flex-col ml-4"> {/* Indent for hierarchy */}
-                                            <span className="font-medium text-slate-800">{row.user_name}</span>
-                                            {row.position_name && (
-                                                <span className="text-xs text-slate-500">{row.position_name}</span>
-                                            )}
+                        return (
+                            <React.Fragment key={deptName}>
+                                {/* Department Group Header */}
+                                <tr
+                                    className="bg-slate-100 hover:bg-slate-200/50 cursor-pointer select-none transition-colors border-b border-slate-300/50"
+                                    onClick={() => toggleCollapse(deptKey)}
+                                >
+                                    <td
+                                        colSpan={data.columns.length + 2}
+                                        className="p-2 pl-2 font-bold text-slate-700 sticky left-0 z-10"
+                                        style={{ left: 0 }}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            {isDeptCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                                            <Building2 size={16} className="text-slate-500" />
+                                            <span>{deptName}</span>
+                                            <Badge variant="outline" className="ml-2 text-xs font-normal text-slate-500 bg-white">
+                                                {group.totalFte.toFixed(1)} FTE
+                                            </Badge>
                                         </div>
                                     </td>
-
-                                    {/* IO Cells */}
-                                    {data.columns.map((col) => {
-                                        const val = row.allocations[col.id] || 0;
-                                        return (
-                                            <td
-                                                key={`${row.user_id}-${col.id}`}
-                                                className={cn(
-                                                    "border border-slate-300 p-2 text-right font-mono text-sm",
-                                                    val > 0 ? "text-slate-800" : "text-slate-300"
-                                                )}
-                                            >
-                                                {val > 0 ? val.toFixed(2) : '-'}
-                                            </td>
-                                        );
-                                    })}
-
-                                    {/* Row Total (Sticky Right) */}
-                                    <td className="sticky right-0 bg-blue-50 border border-slate-300 p-2 text-right font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-10">
-                                        {row.total_fte.toFixed(1)}
-                                    </td>
                                 </tr>
-                            ))}
-                        </React.Fragment>
-                    ))}
+
+                                {/* If not collapsed, render contents */}
+                                {!isDeptCollapsed && (
+                                    <>
+                                        {/* 1. Render SubTeams */}
+                                        {Object.entries(group.subTeams).map(([subTeamName, subTeamGroup]) => {
+                                            const subKey = `sub:${deptName}:${subTeamName}`;
+                                            const isSubCollapsed = collapsed[subKey];
+
+                                            return (
+                                                <React.Fragment key={subTeamName}>
+                                                    {/* SubTeam Header */}
+                                                    <tr
+                                                        className="bg-slate-50/80 hover:bg-slate-100 cursor-pointer select-none transition-colors border-b border-slate-200"
+                                                        onClick={() => toggleCollapse(subKey)}
+                                                    >
+                                                        <td
+                                                            colSpan={data.columns.length + 2}
+                                                            className="p-2 pl-8 font-semibold text-slate-600 sticky left-0 z-10"
+                                                            style={{ left: 0 }}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                {isSubCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                                                <Users size={14} className="text-slate-400" />
+                                                                <span>{subTeamName}</span>
+                                                                <span className="text-xs text-slate-400 font-normal">
+                                                                    ({subTeamGroup.totalFte.toFixed(1)} FTE)
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    {/* SubTeam Rows */}
+                                                    {!isSubCollapsed && subTeamGroup.rows.map(row => (
+                                                        <RowItem key={row.user_id || 'tbd'} row={row} columns={data.columns} indentLevel={2} />
+                                                    ))}
+                                                </React.Fragment>
+                                            );
+                                        })}
+
+                                        {/* 2. Render Direct Rows (No SubTeam) */}
+                                        {group.rows.length > 0 && (
+                                            <>
+                                                {/* Optional: Add "General" header if there are subteams, to separate? */}
+                                                {Object.keys(group.subTeams).length > 0 && (
+                                                    <tr className="bg-slate-50/50 border-b border-slate-200">
+                                                        <td colSpan={data.columns.length + 2} className="p-1 pl-10 text-xs font-medium text-slate-400 sticky left-0 z-10">
+                                                            General / Direct Reports
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                {group.rows.map(row => (
+                                                    <RowItem
+                                                        key={row.user_id || 'tbd'}
+                                                        row={row}
+                                                        columns={data.columns}
+                                                        indentLevel={Object.keys(group.subTeams).length > 0 ? 2 : 1}
+                                                    />
+                                                ))}
+                                            </>
+                                        )}
+                                    </>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </div>
+    );
+};
+
+// Helper Component for rendering a single row
+const RowItem: React.FC<{
+    row: PivotRow;
+    columns: PivotMatrixResponse['columns'];
+    indentLevel: number;
+}> = ({ row, columns, indentLevel }) => {
+    // indentLevel 1 = 1.5rem (pl-6), indentLevel 2 = 3rem (pl-12)
+    const paddingLeft = indentLevel === 1 ? 'pl-8' : 'pl-14';
+
+    return (
+        <tr className="hover:bg-slate-50 transition-colors border-b border-slate-100">
+            {/* User Info (Sticky Left) */}
+            <td className={cn(
+                "sticky left-0 bg-white border-r border-slate-300 p-2 z-10 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]",
+                paddingLeft
+            )}>
+                <div className="flex flex-col">
+                    <span className="font-medium text-slate-800 text-sm">{row.user_name}</span>
+                    {row.position_name && (
+                        <span className="text-[11px] text-slate-500">{row.position_name}</span>
+                    )}
+                </div>
+            </td>
+
+            {/* IO Cells */}
+            {columns.map((col) => {
+                const val = row.allocations[col.id] || 0;
+                return (
+                    <td
+                        key={`${row.user_id}-${col.id}`}
+                        className={cn(
+                            "border-r border-slate-200 p-2 text-right font-mono text-xs",
+                            val > 0 ? "text-slate-800 font-medium" : "text-slate-300"
+                        )}
+                    >
+                        {val > 0 ? val.toFixed(2) : '-'}
+                    </td>
+                );
+            })}
+
+            {/* Row Total (Sticky Right) */}
+            <td className="sticky right-0 bg-blue-50 border-l border-slate-300 p-2 text-right font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-10 text-xs">
+                {row.total_fte.toFixed(1)}
+            </td>
+        </tr>
     );
 };
