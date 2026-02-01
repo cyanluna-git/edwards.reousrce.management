@@ -556,6 +556,7 @@ export interface UserDetails {
   department_id: string;
   sub_team_id: string | null;
   position_id: string;
+  primary_business_unit_id: string | null;
   role: string;
   is_active: boolean;
 }
@@ -695,6 +696,7 @@ export interface UserUpdate {
   department_id?: string;
   sub_team_id?: string | null;
   position_id?: string;
+  primary_business_unit_id?: string | null;
   role?: string;
   is_active?: boolean;
 }
@@ -706,6 +708,7 @@ export interface UserCreate {
   department_id: string;
   sub_team_id?: string | null;
   position_id: string;
+  primary_business_unit_id?: string | null;
   role?: string;
   is_active?: boolean;
   password: string;
