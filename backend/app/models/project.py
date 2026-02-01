@@ -135,7 +135,9 @@ class Project(Base):
 
     # Financial Routing (v2.0 - Recharge & Planning System)
     funding_entity_id = Column(String(50), nullable=True)  # FK to dim_funding_entity
-    recharge_status = Column(String(20), nullable=True)  # BILLABLE, NON_BILLABLE, INTERNAL
+    recharge_status = Column(
+        String(20), nullable=True
+    )  # BILLABLE, NON_BILLABLE, INTERNAL
     is_capitalizable = Column(Boolean, default=False)  # CAPEX vs OPEX
     gl_account_code = Column(String(50), nullable=True)  # General Ledger account
 
@@ -164,6 +166,9 @@ class Project(Base):
     scenarios = relationship(
         "ProjectScenario", back_populates="project", cascade="all, delete-orphan"
     )
+    recharge_mappings = relationship(
+        "ProjectRechargeMapping", back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class ProjectMilestone(Base):
@@ -185,3 +190,26 @@ class ProjectMilestone(Base):
 
     # Relationships
     project = relationship("Project", back_populates="milestones")
+
+
+class ProjectRechargeMapping(Base):
+    """
+    Project + Business Unit -> Specific Recharge IO Mapping
+    Used for cost recharge allocation based on user's primary business unit.
+    """
+
+    __tablename__ = "project_recharge_mappings"
+
+    project_id = Column(String(36), ForeignKey("projects.id"), primary_key=True)
+    business_unit_id = Column(
+        String(50), ForeignKey("business_units.id"), primary_key=True
+    )
+    recharge_io_id = Column(String(36), ForeignKey("recharge_ios.id"), nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="recharge_mappings")
+    business_unit = relationship("BusinessUnit")
+    recharge_io = relationship("RechargeIO")

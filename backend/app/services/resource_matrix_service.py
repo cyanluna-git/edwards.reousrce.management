@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, func
 
 from app.models.resource import ResourcePlan, WorkLog
-from app.models.project import Program, Project
+from app.models.project import Program, Project, ProjectRechargeMapping
 from app.models.user import User
 from app.models.internal_io import InternalIO
 from app.utils import get_io_number
@@ -223,8 +223,14 @@ def get_resource_pivot_matrix(
         .options(
             joinedload(WorkLog.project).joinedload(Project.internal_io),
             joinedload(WorkLog.project).joinedload(Project.recharge_io),
+            joinedload(WorkLog.project)
+            .joinedload(Project.recharge_mappings)
+            .joinedload(ProjectRechargeMapping.recharge_io),
             joinedload(WorkLog.user).joinedload(User.position),
             joinedload(WorkLog.user).joinedload(User.department),
+            joinedload(WorkLog.user).joinedload(
+                User.primary_business_unit
+            ),  # Load user BU
         )
         .filter(
             and_(
@@ -258,11 +264,35 @@ def get_resource_pivot_matrix(
 
     UNASSIGNED_IO_ID = "unassigned"
 
-    def get_effective_io(project: Project):
-        """Same IO resolution logic as before"""
+    def get_effective_io(project: Project, user: User):
+        """
+        Determine effective IO based on hierarchy:
+        1. Dynamic Mapping (Project + User's BU -> RechargeIO)
+        2. Project's Internal IO
+        3. Project's Recharge IO
+        """
         if not project:
-            return None  # Should not happen due to filter, but safe guard
+            return None
 
+        # 1. Dynamic Mapping Check
+        if (
+            user
+            and user.primary_business_unit_id
+            and hasattr(project, "recharge_mappings")
+            and project.recharge_mappings
+        ):
+            for mapping in project.recharge_mappings:
+                if mapping.business_unit_id == user.primary_business_unit_id:
+                    rio = mapping.recharge_io
+                    if rio and rio.is_active:
+                        return (
+                            str(rio.id),
+                            str(rio.io_number or "N/A"),
+                            str(rio.name or ""),
+                            "RECHARGE",
+                        )
+
+        # 2. Existing Logic
         if project.internal_io:
             if not project.internal_io.is_active:
                 return None
@@ -296,7 +326,7 @@ def get_resource_pivot_matrix(
             continue
 
         # Determine IO
-        io_result = get_effective_io(log.project)
+        io_result = get_effective_io(log.project, log.user)
         if not io_result:
             continue  # Skip inactive IOs or invalid projects
 

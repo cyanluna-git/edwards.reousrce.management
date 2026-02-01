@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, joinedload
 
 from app.core.database import Base
-from app.models.project import Project
+from app.models.project import Project, ProjectRechargeMapping
 from app.models.resource import WorkLog
 from app.models.internal_io import InternalIO
 from app.models.recharge_io import RechargeIO
@@ -47,11 +47,16 @@ print(f"Found {len(recent_project_ids)} distinct projects in recent logs.")
 # Find which of these have NO IO
 results = []
 hidden_results = []
+mapped_results = []
 
 for pid in recent_project_ids:
     project = (
         db.query(Project)
-        .options(joinedload(Project.internal_io), joinedload(Project.recharge_io))
+        .options(
+            joinedload(Project.internal_io),
+            joinedload(Project.recharge_io),
+            joinedload(Project.recharge_mappings),
+        )
         .get(pid)
     )
 
@@ -61,48 +66,48 @@ for pid in recent_project_ids:
     # Check Logic
     internal = project.internal_io
     recharge = project.recharge_io
+    mappings = project.recharge_mappings
+
+    hours = (
+        db.query(func.sum(WorkLog.hours))
+        .filter(WorkLog.project_id == pid, WorkLog.date >= ninety_days_ago)
+        .scalar()
+        or 0
+    )
+    if hours == 0:
+        continue
 
     # "No IO" Case
     if not internal and not recharge:
-        # Sum hours for this project in last 90 days
-        hours = (
-            db.query(func.sum(WorkLog.hours))
-            .filter(WorkLog.project_id == pid, WorkLog.date >= ninety_days_ago)
-            .scalar()
-            or 0
-        )
-        if hours > 0:
+        if mappings:
+            mapped_results.append(
+                (project.name, hours, f"Dynamic Mapping ({len(mappings)} BUs)")
+            )
+        else:
             results.append((project.name, hours, "Missing Both Internal/Recharge"))
 
     # "Hidden" Case (Inactive Recharge/Internal)
     elif internal and not internal.is_active:
-        hours = (
-            db.query(func.sum(WorkLog.hours))
-            .filter(WorkLog.project_id == pid, WorkLog.date >= ninety_days_ago)
-            .scalar()
-            or 0
+        hidden_results.append(
+            (project.name, hours, f"Internal IO '{internal.name}' Inactive")
         )
-        if hours > 0:
-            hidden_results.append(
-                (project.name, hours, f"Internal IO '{internal.name}' Inactive")
-            )
     elif recharge and not recharge.is_active:
-        hours = (
-            db.query(func.sum(WorkLog.hours))
-            .filter(WorkLog.project_id == pid, WorkLog.date >= ninety_days_ago)
-            .scalar()
-            or 0
+        hidden_results.append(
+            (project.name, hours, f"Recharge IO '{recharge.name}' Inactive")
         )
-        if hours > 0:
-            hidden_results.append(
-                (project.name, hours, f"Recharge IO '{recharge.name}' Inactive")
-            )
 
 # Sort and Print
 results.sort(key=lambda x: x[1], reverse=True)
 hidden_results.sort(key=lambda x: x[1], reverse=True)
+mapped_results.sort(key=lambda x: x[1], reverse=True)
 
-print("\n=== [No IO] Projects (Unassigned Project Column) ===")
+print("\n=== [Dynamic Mapping] Projects (Will be resolved by User BU) ===")
+print(f"{'Project Name':<50} | {'Hours':<10} | {'Status'}")
+print("-" * 80)
+for name, hours, status in mapped_results:
+    print(f"{name[:48]:<50} | {hours:<10.2f} | {status}")
+
+print("\n=== [No IO] Projects (Still Unassigned) ===")
 print(f"{'Project Name':<50} | {'Hours':<10} | {'Status'}")
 print("-" * 80)
 for name, hours, status in results:
