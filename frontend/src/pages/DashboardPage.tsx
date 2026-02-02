@@ -82,6 +82,7 @@ export const DashboardPage: React.FC = () => {
     // Team Dashboard state
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
+    const [teamCurrentDate, setTeamCurrentDate] = useState<Date>(new Date()); // Track current reference date for team dashboard
 
     // Calculate date ranges dynamically based on currentDate and viewMode
     const dateRange = useMemo(() => getDynamicDateRanges(currentDate, viewMode), [currentDate, viewMode]);
@@ -488,6 +489,56 @@ export const DashboardPage: React.FC = () => {
     const handleToday = () => {
         setCurrentDate(new Date());
     };
+
+    // Team Dashboard Date Navigation Handlers
+    const handleTeamPrevPeriod = () => {
+        switch (teamViewMode) {
+            case 'weekly':
+                setTeamCurrentDate(prev => subWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setTeamCurrentDate(prev => subMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setTeamCurrentDate(prev => subQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setTeamCurrentDate(prev => subYears(prev, 1));
+                break;
+        }
+    };
+
+    const handleTeamNextPeriod = () => {
+        switch (teamViewMode) {
+            case 'weekly':
+                setTeamCurrentDate(prev => addWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setTeamCurrentDate(prev => addMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setTeamCurrentDate(prev => addQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setTeamCurrentDate(prev => addYears(prev, 1));
+                break;
+        }
+    };
+
+    const handleTeamToday = () => {
+        setTeamCurrentDate(new Date());
+    };
+
+    // Calculate team dashboard date ranges
+    const teamDateRange = useMemo(() => {
+        const teamViewModeMap: Record<DashboardViewMode, ViewMode> = {
+            'weekly': 'weekly',
+            'monthly': 'monthly',
+            'quarterly': 'quarterly',
+            'yearly': 'yearly',
+        };
+        return getDynamicDateRanges(teamCurrentDate, teamViewModeMap[teamViewMode]);
+    }, [teamCurrentDate, teamViewMode]);
 
     // Get relative period label (e.g., "이번 주", "지난주", "2주 전")
     const getRelativePeriodLabel = (mode: ViewMode): string => {
@@ -948,11 +999,40 @@ export const DashboardPage: React.FC = () => {
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-6">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {/* Navigation Arrows */}
+                        <Button variant="outline" onClick={handleTeamPrevPeriod} size="sm" className="px-3">
+                            ←
+                        </Button>
+                        <Button variant="outline" onClick={handleTeamToday} size="sm">
+                            오늘
+                        </Button>
+                        <Button variant="outline" onClick={handleTeamNextPeriod} size="sm" className="px-3">
+                            →
+                        </Button>
+
+                        <div className="w-px h-6 bg-border mx-1" /> {/* Divider */}
+
+                        {/* Period Selection */}
+                        <Button variant={teamViewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('weekly')} size="sm">
+                            Weekly
+                        </Button>
+                        <Button variant={teamViewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('monthly')} size="sm">
+                            Monthly
+                        </Button>
+                        <Button variant={teamViewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('quarterly')} size="sm">
+                            Quarterly
+                        </Button>
+                        <Button variant={teamViewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('yearly')} size="sm">
+                            Yearly
+                        </Button>
+                    </div>
                     <TeamDashboardContent
                         teamScope={teamScope}
                         setTeamScope={setTeamScope}
                         teamViewMode={teamViewMode}
                         setTeamViewMode={setTeamViewMode}
+                        dateRange={teamDateRange}
                     />
                 </TabsContent>
 

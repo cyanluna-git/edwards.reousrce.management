@@ -351,9 +351,18 @@ export interface TeamDashboardData {
 
 export const getTeamDashboard = async (
   scope: TeamDashboardScope = 'department',
-  viewMode: DashboardViewMode = 'weekly'
+  viewMode: DashboardViewMode = 'weekly',
+  dateRange?: { start: string; end: string }
 ): Promise<TeamDashboardData> => {
-  const response = await apiClient.get(`/dashboard/team-summary?scope=${scope}&view_mode=${viewMode}`);
+  const params = new URLSearchParams({
+    scope,
+    view_mode: viewMode,
+  });
+  if (dateRange) {
+    params.append('start_date', dateRange.start);
+    params.append('end_date', dateRange.end);
+  }
+  const response = await apiClient.get(`/dashboard/team-summary?${params.toString()}`);
   return response.data;
 };
 

@@ -2,7 +2,7 @@
 Dashboard Service for personal dashboard data
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
@@ -147,7 +147,8 @@ class DashboardService:
         }
 
     def get_team_dashboard(
-        self, user_id: str, scope: str = "department", view_mode: str = "weekly"
+        self, user_id: str, scope: str = "department", view_mode: str = "weekly",
+        start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> dict:
         """
         Get team dashboard data based on user's organization.
@@ -178,30 +179,38 @@ class DashboardService:
             return {}
 
         # Get department through sub_team
-        user_department = user.sub_team.department if user.sub_team else None
-        user_department_id = user_department.id if user_department else None
+        user_department = None
+        user_department_id = None
+        if user.sub_team:
+            user_department = user.sub_team.department
+            if user_department:
+                user_department_id = user_department.id
 
         # Date range calculation
+        # Always define today for later use
         today = datetime.now().date()
-        if view_mode == "weekly":
-            start_date = today - timedelta(days=today.weekday())
-            end_date = start_date + timedelta(days=6)
-        elif view_mode == "monthly":
-            start_date = today.replace(day=1)
-            next_month = today.replace(day=28) + timedelta(days=4)
-            end_date = next_month.replace(day=1) - timedelta(days=1)
-        elif view_mode == "quarterly":
-            quarter = (today.month - 1) // 3
-            start_date = today.replace(month=quarter * 3 + 1, day=1)
-            if quarter == 3:
+        
+        # If start_date and end_date are provided, use them; otherwise calculate from view_mode
+        if start_date is None or end_date is None:
+            if view_mode == "weekly":
+                start_date = today - timedelta(days=today.weekday())
+                end_date = start_date + timedelta(days=6)
+            elif view_mode == "monthly":
+                start_date = today.replace(day=1)
+                next_month = today.replace(day=28) + timedelta(days=4)
+                end_date = next_month.replace(day=1) - timedelta(days=1)
+            elif view_mode == "quarterly":
+                quarter = (today.month - 1) // 3
+                start_date = today.replace(month=quarter * 3 + 1, day=1)
+                if quarter == 3:
+                    end_date = today.replace(month=12, day=31)
+                else:
+                    end_date = today.replace(
+                        month=(quarter + 1) * 3 + 1, day=1
+                    ) - timedelta(days=1)
+            else:  # yearly
+                start_date = today.replace(month=1, day=1)
                 end_date = today.replace(month=12, day=31)
-            else:
-                end_date = today.replace(
-                    month=(quarter + 1) * 3 + 1, day=1
-                ) - timedelta(days=1)
-        else:  # yearly
-            start_date = today.replace(month=1, day=1)
-            end_date = today.replace(month=12, day=31)
 
         # Determine team members based on scope
         team_query = self.db.query(User).filter(User.is_active == True)
@@ -221,7 +230,7 @@ class DashboardService:
             team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
             team_name = user_department.name if user_department else "Unknown"
             team_code = user_department.code if user_department else ""
-        elif scope == "business_unit" and user_department:
+        elif scope == "business_unit" and user_department and user_department.division_id:
             # Get all departments in the same division, then all sub_teams
             dept_ids = [
                 d.id
