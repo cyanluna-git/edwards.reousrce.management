@@ -489,6 +489,62 @@ export const DashboardPage: React.FC = () => {
         setCurrentDate(new Date());
     };
 
+    // Get relative period label (e.g., "이번 주", "지난주", "2주 전")
+    const getRelativePeriodLabel = (mode: ViewMode): string => {
+        const now = new Date();
+        const current = currentDate;
+
+        switch (mode) {
+            case 'weekly': {
+                const nowWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+                const currentWeekStart = startOfWeek(current, { weekStartsOn: 1 });
+                const weeksDiff = Math.round((nowWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+                if (weeksDiff === 0) return '이번 주 WorkLog';
+                if (weeksDiff === 1) return '지난주 WorkLog';
+                if (weeksDiff === -1) return '다음 주 WorkLog';
+                if (weeksDiff > 1) return `${weeksDiff}주 전 WorkLog`;
+                return `${Math.abs(weeksDiff)}주 후 WorkLog`;
+            }
+            case 'monthly': {
+                const nowMonthStart = startOfMonth(now);
+                const currentMonthStart = startOfMonth(current);
+                const monthsDiff = (nowMonthStart.getFullYear() - currentMonthStart.getFullYear()) * 12 +
+                    (nowMonthStart.getMonth() - currentMonthStart.getMonth());
+
+                if (monthsDiff === 0) return '이번 달 WorkLog';
+                if (monthsDiff === 1) return '지난달 WorkLog';
+                if (monthsDiff === -1) return '다음 달 WorkLog';
+                if (monthsDiff > 1) return `${monthsDiff}달 전 WorkLog`;
+                return `${Math.abs(monthsDiff)}달 후 WorkLog`;
+            }
+            case 'quarterly': {
+                const nowQuarterStart = startOfQuarter(now);
+                const currentQuarterStart = startOfQuarter(current);
+                const quartersDiff = Math.round((nowQuarterStart.getTime() - currentQuarterStart.getTime()) / (90 * 24 * 60 * 60 * 1000));
+
+                if (quartersDiff === 0) return '이번 분기 WorkLog';
+                if (quartersDiff === 1) return '지난 분기 WorkLog';
+                if (quartersDiff === -1) return '다음 분기 WorkLog';
+                if (quartersDiff > 1) return `${quartersDiff}분기 전 WorkLog`;
+                return `${Math.abs(quartersDiff)}분기 후 WorkLog`;
+            }
+            case 'yearly': {
+                const yearsDiff = now.getFullYear() - current.getFullYear();
+
+                if (yearsDiff === 0) return '올해 WorkLog';
+                if (yearsDiff === 1) return '작년 WorkLog';
+                if (yearsDiff === -1) return '내년 WorkLog';
+                if (yearsDiff > 1) return `${yearsDiff}년 전 WorkLog`;
+                return `${Math.abs(yearsDiff)}년 후 WorkLog`;
+            }
+            case 'halfYear':
+                return '최근 6개월 WorkLog';
+            default:
+                return 'WorkLog';
+        }
+    };
+
     if (isLoading) {
         return <div className="container mx-auto p-4"><div className="text-center py-12">로딩 중...</div></div>;
     }
@@ -545,11 +601,7 @@ export const DashboardPage: React.FC = () => {
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    {viewMode === 'weekly' && '이번 주 WorkLog'}
-                                    {viewMode === 'monthly' && '이번 달 WorkLog'}
-                                    {viewMode === 'quarterly' && '이번 분기 WorkLog'}
-                                    {viewMode === 'halfYear' && '최근 6개월 WorkLog'}
-                                    {viewMode === 'yearly' && '올해 WorkLog'}
+                                    {getRelativePeriodLabel(viewMode)}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -562,7 +614,7 @@ export const DashboardPage: React.FC = () => {
 
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">참여 프로젝트</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">프로젝트 수</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold">{projectList.length}개</div>
