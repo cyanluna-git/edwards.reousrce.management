@@ -327,7 +327,6 @@ export const UserEditModal: React.FC<{
     onClose: () => void;
     onSuccess: () => void;
 }> = ({ user, positions, onClose, onSuccess }) => {
-    const queryClient = useQueryClient();
     const { data: businessUnits = [] } = useQuery({
         queryKey: ['business-units'],
         queryFn: () => getBusinessUnits(),

@@ -57,10 +57,9 @@ def check_prerequisites():
     required_tools = ['docker', 'docker-compose']
     
     for tool in required_tools:
-        try:
-            subprocess.run(['which', tool], capture_output=True, check=True)
+        if shutil.which(tool):
             print_colored(f"  ✓ {tool}", Colors.GREEN)
-        except subprocess.CalledProcessError:
+        else:
             print_error(f"{tool} is required but not installed.")
             sys.exit(1)
     
@@ -206,9 +205,7 @@ def build_frontend(project_dir):
     
     try:
         # Check for pnpm
-        try:
-            subprocess.run(['which', 'pnpm'], capture_output=True, check=True)
-        except subprocess.CalledProcessError:
+        if not shutil.which('pnpm'):
             print_info("Installing pnpm globally...")
             subprocess.run(
                 ['npm', 'install', '-g', 'pnpm'],
@@ -222,7 +219,8 @@ def build_frontend(project_dir):
             ['pnpm', 'install'],
             cwd=str(frontend_dir),
             check=True,
-            capture_output=True
+            capture_output=True,
+            shell=(os.name == 'nt')
         )
         
         # Build
@@ -231,7 +229,8 @@ def build_frontend(project_dir):
             ['pnpm', 'build'],
             cwd=str(frontend_dir),
             check=True,
-            capture_output=True
+            capture_output=True,
+            shell=(os.name == 'nt')
         )
         
         print_info("Frontend build complete")
@@ -251,6 +250,7 @@ def build_docker_images(project_dir):
         print_error("docker-compose.yml not found")
         return False
     
+    original_cwd = os.getcwd()
     try:
         os.chdir(str(project_dir))
         
@@ -272,14 +272,13 @@ def build_docker_images(project_dir):
         )
         print_colored("  ✓ Frontend image built", Colors.GREEN)
         
-        os.chdir('..')
         return True
         
     except subprocess.CalledProcessError as e:
         print_error(f"Docker build failed: {e}")
         return False
     finally:
-        os.chdir('../..')
+        os.chdir(original_cwd)
 
 
 def export_docker_images(project_dir):
@@ -371,7 +370,8 @@ echo "You can now run: docker-compose up -d"
 '''
     
     load_images_path = images_dir / 'load_images.sh'
-    load_images_path.write_text(load_images_content)
+    with open(load_images_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(load_images_content)
     os.chmod(load_images_path, 0o755)
     print_colored("  ✓ load_images.sh created", Colors.GREEN)
     
@@ -408,7 +408,7 @@ Write-Host "You can now run: docker-compose up -d"
 '''
     
     load_images_ps1_path = images_dir / 'load_images.ps1'
-    load_images_ps1_path.write_text(load_images_ps1_content)
+    load_images_ps1_path.write_text(load_images_ps1_content, encoding='utf-8')
     print_colored("  ✓ load_images.ps1 created", Colors.GREEN)
     
     # Create DEPLOY_ON_VM.md
@@ -551,7 +551,7 @@ sudo systemctl start docker
 '''
     
     deploy_guide_path = project_dir / 'DEPLOY_ON_VM.md'
-    deploy_guide_path.write_text(deploy_guide)
+    deploy_guide_path.write_text(deploy_guide, encoding='utf-8')
     print_colored("  ✓ DEPLOY_ON_VM.md created", Colors.GREEN)
 
 
@@ -565,9 +565,15 @@ def create_archive(build_dir, project_dir):
     
     print_info(f"Compressing project to {archive_name}...")
     
+    def archive_filter(tarinfo):
+        # Exclude heavy directories that are not needed for Docker deployment
+        if "node_modules" in tarinfo.name or ".venv" in tarinfo.name or ".next" in tarinfo.name:
+            return None
+        return tarinfo
+    
     try:
         with tarfile.open(archive_path, 'w:gz') as tar:
-            tar.add(project_dir, arcname='edwards_project')
+            tar.add(project_dir, arcname='edwards_project', filter=archive_filter)
         
         size_mb = archive_path.stat().st_size / (1024 * 1024)
         print_colored(f"  ✓ Archive created: {archive_name}", Colors.GREEN)
