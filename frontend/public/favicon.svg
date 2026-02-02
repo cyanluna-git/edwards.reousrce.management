@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4f46e5;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Blue circular background -->
+  <circle cx="16" cy="16" r="16" fill="url(#bgGradient)"/>
+  <!-- White chart icon -->
+  <g stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M8 8v16h16"/>
+    <path d="M22 14v8"/>
+    <path d="M17 10v12"/>
+    <path d="M12 16v6"/>
+  </g>
+</svg>
