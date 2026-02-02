@@ -19,6 +19,7 @@ interface TeamDashboardContentProps {
     setTeamScope: (scope: TeamDashboardScope) => void;
     teamViewMode: DashboardViewMode;
     setTeamViewMode: (mode: DashboardViewMode) => void;
+    dateRange?: { start: string; end: string };
 }
 
 /**
@@ -31,8 +32,9 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     setTeamScope,
     teamViewMode,
     setTeamViewMode,
+    dateRange,
 }) => {
-    const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode);
+    const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange);
 
     // IMPORTANT: useMemo must be called BEFORE any early returns to satisfy Rules of Hooks
     // React requires hooks to be called in the same order on every render
@@ -93,13 +95,6 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                             {SCOPE_LABELS[scope].label}
                         </Button>
                     ))}
-                </div>
-                <div className="h-6 w-px bg-slate-200" />
-                <div className="flex gap-2">
-                    <Button variant={teamViewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('weekly')} size="sm">📅 이번 주</Button>
-                    <Button variant={teamViewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('monthly')} size="sm">📆 이번 달</Button>
-                    <Button variant={teamViewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('quarterly')} size="sm">📊 이번 분기</Button>
-                    <Button variant={teamViewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('yearly')} size="sm">🗓️ 올해</Button>
                 </div>
             </div>
 

@@ -468,6 +468,61 @@ def run_db_only():
     print()
 
 
+def check_port_available(port: int) -> bool:
+    """Check if a port is available"""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('localhost', port))
+            return True
+    except OSError:
+        return False
+
+
+def kill_process_on_port(port: int) -> bool:
+    """Kill process using the specified port"""
+    try:
+        import subprocess
+        import platform
+        
+        if platform.system() == "Windows":
+            # Windows
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if len(parts) > 0:
+                        pid = parts[-1]
+                        try:
+                            subprocess.run(["taskkill", "/F", "/PID", pid], check=False)
+                            return True
+                        except:
+                            pass
+        else:
+            # macOS/Linux
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pid = result.stdout.strip().split()[0]
+                try:
+                    subprocess.run(["kill", "-9", pid], check=False)
+                    return True
+                except:
+                    pass
+    except Exception:
+        pass
+    return False
+
+
 def run_local_backend():
     """Run backend with uvicorn locally (not in Docker)"""
     print_header("Edwards Local Backend Launcher")

@@ -3,6 +3,7 @@ Dashboard API endpoints
 """
 
 from datetime import date, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -41,6 +42,14 @@ async def get_team_dashboard(
         "weekly",
         description="기간 모드: weekly, monthly, quarterly, yearly",
     ),
+    start_date: Optional[date] = Query(
+        None,
+        description="시작 날짜 (YYYY-MM-DD). 제공되지 않으면 view_mode로 계산",
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="종료 날짜 (YYYY-MM-DD). 제공되지 않으면 view_mode로 계산",
+    ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -57,9 +66,23 @@ async def get_team_dashboard(
         - monthly: 이번 달
         - quarterly: 이번 분기
         - yearly: 올해
+    - **start_date**: 시작 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
+    - **end_date**: 종료 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
     """
-    service = DashboardService(db)
-    return service.get_team_dashboard(current_user.id, scope, view_mode)
+    try:
+        service = DashboardService(db)
+        return service.get_team_dashboard(
+            str(current_user.id), scope, view_mode, start_date, end_date
+        )
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] get_team_dashboard failed: {str(e)}")
+        print(traceback.format_exc())
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get team dashboard: {str(e)}"
+        )
 
 
 @router.get("/ai-summary/user")
