@@ -72,3 +72,6 @@ backend/logs/*.log
 # VitePress cache
 workthrough/.vitepress/cache/
 workthrough/.vitepress/dist/
+
+# Claude Code local settings
+.claude/settings.local.json

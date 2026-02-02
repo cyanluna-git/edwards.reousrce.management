@@ -226,7 +226,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                             <ProjectHierarchySelect
                                                 projectId={entry.project_id}
                                                 productLineId={null}
-                                                onProjectChange={(projectId) =>
+                                                onProjectChange={(projectId, _name, _category) =>
                                                     updateEntry(entry.id, { project_id: projectId })
                                                 }
                                                 onProductLineChange={() => {}}

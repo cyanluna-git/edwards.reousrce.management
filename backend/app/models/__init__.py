@@ -10,6 +10,8 @@ from app.models.organization import (
     ProjectRole,
 )
 from app.models.user import User, UserHistory
+from app.models.internal_io import InternalIO
+from app.models.recharge_io import RechargeIO
 from app.models.project import (
     Program,
     ProjectType,
@@ -23,6 +25,7 @@ from app.models.common import CommonCode, Holiday
 from app.models.scenario import ProjectScenario, ScenarioMilestone, ScenarioResourcePlan
 from app.models.hiring_plan import HiringPlan
 from app.models.work_type import WorkTypeCategory, WorkTypeLegacyMapping
+from app.models.ai_summary import AISummary
 
 
 __all__ = [
@@ -35,6 +38,10 @@ __all__ = [
     # User
     "User",
     "UserHistory",
+    # Internal IO
+    "InternalIO",
+    # Recharge IO
+    "RechargeIO",
     # Project
     "Program",
     "ProjectType",
@@ -57,4 +64,6 @@ __all__ = [
     # Work Type
     "WorkTypeCategory",
     "WorkTypeLegacyMapping",
+    # AI Summary
+    "AISummary",
 ]

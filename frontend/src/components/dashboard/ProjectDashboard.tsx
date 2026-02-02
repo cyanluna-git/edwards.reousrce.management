@@ -342,7 +342,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
                   return (
                     <div key={member.user_id} className="flex items-center gap-3">
                       <div className="w-24 truncate text-sm">
-                        <span className="font-medium">{member.korean_name || member.name}</span>
+                        <span className="font-medium">{member.name}</span>
                       </div>
                       <div className="flex-1 bg-slate-100 rounded-full h-4 overflow-hidden">
                         <div

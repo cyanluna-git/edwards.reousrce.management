@@ -2,9 +2,22 @@
 Application configuration and settings
 """
 
+from pathlib import Path
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+
+def find_env_file() -> str:
+    """Find .env file in current or parent directory."""
+    current = Path.cwd()
+    # Check current directory first
+    if (current / ".env").exists():
+        return str(current / ".env")
+    # Check parent directory (for running from backend/)
+    if (current.parent / ".env").exists():
+        return str(current.parent / ".env")
+    return ".env"
 
 
 class Settings(BaseSettings):
@@ -23,7 +36,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3004,http://localhost:5173"
+    CORS_ORIGINS: str = (
+        "http://localhost:3000,http://localhost:3004,http://localhost:5173"
+    )
 
     # AI Provider: "groq" or "gemini"
     AI_PROVIDER: str = "groq"
@@ -37,6 +52,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
     GEMINI_TIMEOUT: int = 30
+
+    # CSV Migration
+    CSV_BACKUP_PATH: str = "backups/latest"
+    MIGRATION_REPORT_PATH: str = "reports"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -56,7 +75,7 @@ class Settings(BaseSettings):
         return self
 
     class Config:
-        env_file = ".env"
+        env_file = find_env_file()
         case_sensitive = True
         extra = "ignore"  # Ignore extra fields in .env file
 

@@ -309,11 +309,18 @@ export interface TeamDashboardData {
       project_id: string;
       project_code: string;
       project_name: string;
+      category: string;
       hours: number;
     }>;
     project_vs_functional: {
       Project: number;
       Functional: number;
+    };
+    by_category?: {
+      Product: number;
+      Functional: number;
+      Support: number;
+      TeamInternal: number;
     };
   };
   member_contributions: Array<{
@@ -549,6 +556,7 @@ export interface UserDetails {
   department_id: string;
   sub_team_id: string | null;
   position_id: string;
+  primary_business_unit_id: string | null;
   role: string;
   is_active: boolean;
 }
@@ -688,6 +696,7 @@ export interface UserUpdate {
   department_id?: string;
   sub_team_id?: string | null;
   position_id?: string;
+  primary_business_unit_id?: string | null;
   role?: string;
   is_active?: boolean;
 }
@@ -699,6 +708,7 @@ export interface UserCreate {
   department_id: string;
   sub_team_id?: string | null;
   position_id: string;
+  primary_business_unit_id?: string | null;
   role?: string;
   is_active?: boolean;
   password: string;
@@ -825,6 +835,266 @@ export const getResourceAllocationMatrix = async (
   if (programId) params.append('program_id', programId);
 
   const response = await apiClient.get(`/resource-matrix/allocation?${params.toString()}`);
+  return response.data;
+};
+
+// Pivot Matrix API 
+export interface PivotColumn {
+  id: string;
+  label: string;
+  type: string;
+  name: string | null;
+  total_fte: number;
+}
+
+export interface PivotRow {
+  user_id: string | null;
+  user_name: string;
+  position_name: string | null;
+  department_name: string | null;
+  sub_team_name: string | null;
+  total_fte: number;
+  allocations: Record<string, number>;
+}
+
+export interface PivotMatrixResponse {
+  start_month: string;
+  end_month: string;
+  columns: PivotColumn[];
+  rows: PivotRow[];
+  grand_total: number;
+}
+
+export const getResourcePivotMatrix = async (
+  startMonth: string,
+  endMonth: string,
+  departmentId?: string,
+  programId?: string
+): Promise<PivotMatrixResponse> => {
+  const params = new URLSearchParams({
+    start_month: startMonth,
+    end_month: endMonth,
+  });
+  if (departmentId) params.append('department_id', departmentId);
+  if (programId) params.append('program_id', programId);
+
+  const response = await apiClient.get(`/resource-matrix/pivot?${params.toString()}`);
+  return response.data;
+};
+
+// ============ Internal IO API ============
+
+export interface InternalIOResponse {
+  id: string;
+  io_number: string;
+  name?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export interface InternalIOCreate {
+  io_number: string;
+  name?: string;
+  description?: string;
+}
+
+export interface InternalIOUpdate {
+  io_number?: string;
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getInternalIOs = async (params?: { search?: string; is_active?: boolean }): Promise<InternalIOResponse[]> => {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.is_active !== undefined) searchParams.append('is_active', String(params.is_active));
+  const queryString = searchParams.toString();
+  const response = await apiClient.get(`/internal-ios/${queryString ? `?${queryString}` : ''}`);
+  return response.data;
+};
+
+export const getInternalIO = async (id: string): Promise<InternalIOResponse> => {
+  const response = await apiClient.get(`/internal-ios/${id}`);
+  return response.data;
+};
+
+export const getInternalIOByNumber = async (ioNumber: string): Promise<InternalIOResponse> => {
+  const response = await apiClient.get(`/internal-ios/by-number/${ioNumber}`);
+  return response.data;
+};
+
+export const createInternalIO = async (data: InternalIOCreate): Promise<InternalIOResponse> => {
+  const response = await apiClient.post('/internal-ios/', data);
+  return response.data;
+};
+
+export const updateInternalIO = async (id: string, data: InternalIOUpdate): Promise<InternalIOResponse> => {
+  const response = await apiClient.put(`/internal-ios/${id}`, data);
+  return response.data;
+};
+
+export const deleteInternalIO = async (id: string): Promise<void> => {
+  await apiClient.delete(`/internal-ios/${id}`);
+};
+
+export const findOrCreateInternalIO = async (data: InternalIOCreate): Promise<InternalIOResponse> => {
+  const response = await apiClient.post('/internal-ios/find-or-create/', data);
+  return response.data;
+};
+
+// ============ Recharge IO API ============
+
+export interface BusinessUnitSimple {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface RechargeIOResponse {
+  id: string;
+  io_number: string;
+  name?: string;
+  description?: string;
+  is_active: boolean;
+  business_units?: BusinessUnitSimple[];
+}
+
+export interface RechargeIOCreate {
+  io_number: string;
+  name?: string;
+  description?: string;
+}
+
+export interface RechargeIOUpdate {
+  io_number?: string;
+  name?: string;
+  description?: string;
+  is_active?: boolean;
+}
+
+export const getRechargeIOs = async (params?: { search?: string; is_active?: boolean }): Promise<RechargeIOResponse[]> => {
+  const searchParams = new URLSearchParams();
+  if (params?.search) searchParams.append('search', params.search);
+  if (params?.is_active !== undefined) searchParams.append('is_active', String(params.is_active));
+  const queryString = searchParams.toString();
+  const response = await apiClient.get(`/recharge-ios/${queryString ? `?${queryString}` : ''}`);
+  return response.data;
+};
+
+export const getRechargeIO = async (id: string): Promise<RechargeIOResponse> => {
+  const response = await apiClient.get(`/recharge-ios/${id}`);
+  return response.data;
+};
+
+export const getRechargeIOByNumber = async (ioNumber: string): Promise<RechargeIOResponse> => {
+  const response = await apiClient.get(`/recharge-ios/by-number/${ioNumber}`);
+  return response.data;
+};
+
+export const createRechargeIO = async (data: RechargeIOCreate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.post('/recharge-ios/', data);
+  return response.data;
+};
+
+export const updateRechargeIO = async (id: string, data: RechargeIOUpdate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.put(`/recharge-ios/${id}`, data);
+  return response.data;
+};
+
+export const deleteRechargeIO = async (id: string): Promise<void> => {
+  await apiClient.delete(`/recharge-ios/${id}`);
+};
+
+export const findOrCreateRechargeIO = async (data: RechargeIOCreate): Promise<RechargeIOResponse> => {
+  const response = await apiClient.post('/recharge-ios/find-or-create/', data);
+  return response.data;
+};
+
+export const getRechargeIOsByBusinessUnit = async (buId: string): Promise<RechargeIOResponse[]> => {
+  const response = await apiClient.get(`/recharge-ios/by-business-unit/${buId}`);
+  return response.data;
+};
+
+// ============ AI Summary API ============
+
+export interface UserAISummary {
+  summary: string[];
+  generated_at: string;
+  from_cache?: boolean;
+  error?: string;
+}
+
+export interface TeamAISummary {
+  project_summary: string[];
+  member_summary: string[];
+  issues: string[];
+  generated_at: string;
+  from_cache?: boolean;
+  error?: string;
+}
+
+export const getUserAISummary = async (
+  period: 'weekly' | 'monthly' = 'weekly',
+  forceRegenerate: boolean = false
+): Promise<UserAISummary> => {
+  const response = await apiClient.get(
+    `/dashboard/ai-summary/user?period=${period}&force_regenerate=${forceRegenerate}`
+  );
+  return response.data;
+};
+
+export const getTeamAISummary = async (
+  scope: TeamDashboardScope = 'department',
+  period: 'weekly' | 'monthly' = 'weekly',
+  forceRegenerate: boolean = false
+): Promise<TeamAISummary> => {
+  const response = await apiClient.get(
+    `/dashboard/ai-summary/team?scope=${scope}&period=${period}&force_regenerate=${forceRegenerate}`
+  );
+  return response.data;
+};
+
+export interface AISummaryHistoryItem {
+  id: string;
+  period_start: string;
+  period_end: string;
+  summary: any;
+  generated_at: string;
+}
+
+export const getUserAISummaryHistory = async (limit: number = 5): Promise<AISummaryHistoryItem[]> => {
+  const response = await apiClient.get(`/dashboard/ai-summary/user/history?limit=${limit}`);
+  return response.data;
+};
+
+export const getTeamAISummaryHistory = async (
+  scope: TeamDashboardScope = 'department',
+  limit: number = 5
+): Promise<AISummaryHistoryItem[]> => {
+  const response = await apiClient.get(`/dashboard/ai-summary/team/history?scope=${scope}&limit=${limit}`);
+  return response.data;
+};
+
+// ============ Resource Matrix Drill-down ============
+
+export interface WorklogDetail {
+  date: string;
+  hours: number;
+  project_name: string;
+  io_number: string | null;
+  description: string | null;
+  fte_contribution: number;
+}
+
+export const getMatrixDetails = async (
+  userId: string,
+  month: string,
+  ioId: string
+): Promise<WorklogDetail[]> => {
+  const response = await apiClient.get('/resource-matrix/details', {
+    params: { user_id: userId, month, io_id: ioId }
+  });
   return response.data;
 };
 

@@ -230,14 +230,16 @@ def list_backups() -> list:
     ensure_backup_dir()
 
     backups = []
-    for f in BACKUP_DIR.glob("backup_*.sql*"):
-        stat = f.stat()
-        backups.append({
-            "name": f.name,
-            "path": str(f),
-            "size_mb": stat.st_size / 1024 / 1024,
-            "created": datetime.fromtimestamp(stat.st_mtime),
-        })
+    # Match both backup_* and edwards_backup_* patterns
+    for pattern in ["backup_*.sql*", "edwards_backup_*.sql*", "edwards_full_backup_*.sql*"]:
+        for f in BACKUP_DIR.glob(pattern):
+            stat = f.stat()
+            backups.append({
+                "name": f.name,
+                "path": str(f),
+                "size_mb": stat.st_size / 1024 / 1024,
+                "created": datetime.fromtimestamp(stat.st_mtime),
+            })
 
     # Sort by creation time, newest first
     backups.sort(key=lambda x: x["created"], reverse=True)

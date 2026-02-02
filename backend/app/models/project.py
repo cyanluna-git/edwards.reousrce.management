@@ -104,7 +104,13 @@ class Project(Base):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     program_id = Column(String(50), ForeignKey("programs.id"), nullable=False)
     project_type_id = Column(String(20), ForeignKey("project_types.id"), nullable=False)
-    code = Column(String(50), unique=True, nullable=False)  # IO Code
+
+    # Internal IO relationship (replaces old 'code' column)
+    internal_io_id = Column(String(36), ForeignKey("internal_ios.id"), nullable=True)
+
+    # Recharge IO - for cost recharging (separate table)
+    recharge_io_id = Column(String(36), ForeignKey("recharge_ios.id"), nullable=True)
+
     name = Column(String(300), nullable=False)  # NVARCHAR
     status = Column(
         String(20), default="Prospective"
@@ -129,8 +135,9 @@ class Project(Base):
 
     # Financial Routing (v2.0 - Recharge & Planning System)
     funding_entity_id = Column(String(50), nullable=True)  # FK to dim_funding_entity
-    recharge_status = Column(String(20), nullable=True)  # BILLABLE, NON_BILLABLE, INTERNAL
-    io_category_code = Column(String(100), nullable=True)  # Maps to IO Framework Programme
+    recharge_status = Column(
+        String(20), nullable=True
+    )  # BILLABLE, NON_BILLABLE, INTERNAL
     is_capitalizable = Column(Boolean, default=False)  # CAPEX vs OPEX
     gl_account_code = Column(String(50), nullable=True)  # General Ledger account
 
@@ -141,6 +148,8 @@ class Project(Base):
     program = relationship("Program", back_populates="projects")
     project_type = relationship("ProjectType", back_populates="projects")
     product_line = relationship("ProductLine", back_populates="projects")
+    internal_io = relationship("InternalIO", back_populates="projects")
+    recharge_io = relationship("RechargeIO", back_populates="projects")
 
     # 다대다 관계: 여러 제품군에 걸치는 프로젝트 지원 (NEW)
     product_lines = relationship(
@@ -156,6 +165,9 @@ class Project(Base):
     resource_plans = relationship("ResourcePlan", back_populates="project")
     scenarios = relationship(
         "ProjectScenario", back_populates="project", cascade="all, delete-orphan"
+    )
+    recharge_mappings = relationship(
+        "ProjectRechargeMapping", back_populates="project", cascade="all, delete-orphan"
     )
 
 
@@ -178,3 +190,26 @@ class ProjectMilestone(Base):
 
     # Relationships
     project = relationship("Project", back_populates="milestones")
+
+
+class ProjectRechargeMapping(Base):
+    """
+    Project + Business Unit -> Specific Recharge IO Mapping
+    Used for cost recharge allocation based on user's primary business unit.
+    """
+
+    __tablename__ = "project_recharge_mappings"
+
+    project_id = Column(String(36), ForeignKey("projects.id"), primary_key=True)
+    business_unit_id = Column(
+        String(50), ForeignKey("business_units.id"), primary_key=True
+    )
+    recharge_io_id = Column(String(36), ForeignKey("recharge_ios.id"), nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="recharge_mappings")
+    business_unit = relationship("BusinessUnit")
+    recharge_io = relationship("RechargeIO")

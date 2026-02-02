@@ -1,17 +1,73 @@
 import React, { useState, useMemo } from 'react';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, addWeeks, subWeeks, addMonths, addQuarters, subQuarters, addYears, subYears } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
-import { useWorkTypeCategories } from '@/hooks/useWorkTypeCategories';
+import { useWorkTypeCategories, type WorkTypeCategory } from '@/hooks/useWorkTypeCategories';
 import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { Construction } from 'lucide-react';
 import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
+import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
+
+// Type for category map entry with parent reference
+interface CategoryEntry extends WorkTypeCategory {
+    parent?: CategoryEntry;
+}
+
+/**
+ * Calculate date ranges dynamically based on reference date and view mode
+ */
+const getDynamicDateRanges = (referenceDate: Date, mode: ViewMode) => {
+    switch (mode) {
+        case 'weekly': {
+            const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
+            return {
+                start: format(weekStart, 'yyyy-MM-dd'),
+                end: format(weekEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'monthly': {
+            const monthStart = startOfMonth(referenceDate);
+            const monthEnd = endOfMonth(referenceDate);
+            return {
+                start: format(monthStart, 'yyyy-MM-dd'),
+                end: format(monthEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'quarterly': {
+            const quarterStart = startOfQuarter(referenceDate);
+            const quarterEnd = endOfQuarter(referenceDate);
+            return {
+                start: format(quarterStart, 'yyyy-MM-dd'),
+                end: format(quarterEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'yearly': {
+            const yearStart = startOfYear(referenceDate);
+            const yearEnd = endOfYear(referenceDate);
+            return {
+                start: format(yearStart, 'yyyy-MM-dd'),
+                end: format(yearEnd, 'yyyy-MM-dd'),
+            };
+        }
+        case 'halfYear': {
+            const halfYearStart = subMonths(startOfMonth(referenceDate), 5);
+            const halfYearEnd = endOfMonth(referenceDate);
+            return {
+                start: format(halfYearStart, 'yyyy-MM-dd'),
+                end: format(halfYearEnd, 'yyyy-MM-dd'),
+            };
+        }
+        default:
+            return getDynamicDateRanges(referenceDate, 'weekly');
+    }
+};
 
 // TeamDashboardContent component extracted to @/components/dashboard/TeamDashboardContent.tsx
 
@@ -20,158 +76,158 @@ export const DashboardPage: React.FC = () => {
     const { user } = useAuth();
     const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
+    const [currentDate, setCurrentDate] = useState<Date>(new Date()); // New: Track current reference date
     const [drillDownPath, setDrillDownPath] = useState<string[]>([]); // Stack of codes: ['ENG', 'ENG-SW']
 
     // Team Dashboard state
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
 
-    // ... (Date calculations) ...
-    const now = new Date();
-    const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
-    const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
-    const quarterStart = format(startOfQuarter(now), 'yyyy-MM-dd');
-    const quarterEnd = format(endOfQuarter(now), 'yyyy-MM-dd');
-    const halfYearStart = format(subMonths(startOfMonth(now), 5), 'yyyy-MM-dd'); // last 6 months
-    const halfYearEnd = format(endOfMonth(now), 'yyyy-MM-dd');
-    const yearStart = format(startOfYear(now), 'yyyy-MM-dd');
-    const yearEnd = format(endOfYear(now), 'yyyy-MM-dd');
-    
-    // Last 12 months for trend chart
-    const last12MonthsStart = format(subMonths(startOfMonth(now), 11), 'yyyy-MM-dd');
-    const last12MonthsEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    // Calculate date ranges dynamically based on currentDate and viewMode
+    const dateRange = useMemo(() => getDynamicDateRanges(currentDate, viewMode), [currentDate, viewMode]);
+    const { start: periodStart, end: periodEnd } = dateRange;
 
-    const { data: weeklyWorklogs = [], isLoading: weeklyLoading } = useWorklogsTable({
-        start_date: weekStart,
-        end_date: weekEnd,
-        user_id: user?.id,
-        limit: 100,
-        enabled: true, // Always load weekly data
-    });
+    // Calculate last 12 months range for trend chart (always current month minus 11)
+    const last12MonthsRange = useMemo(() => {
+        const end = endOfMonth(new Date());
+        const start = subMonths(startOfMonth(new Date()), 11);
+        return {
+            start: format(start, 'yyyy-MM-dd'),
+            end: format(end, 'yyyy-MM-dd'),
+        };
+    }, []);
 
-    const { data: monthlyWorklogs = [], isLoading: monthlyLoading } = useWorklogsTable({
-        start_date: monthStart,
-        end_date: monthEnd,
+    // Dynamic worklog data fetching based on current view
+    const { data: currentWorklogs = [], isLoading: currentLoading } = useWorklogsTable({
+        start_date: periodStart,
+        end_date: periodEnd,
         user_id: user?.id,
-        limit: 200,
-        enabled: true, // Always load monthly data
-    });
-
-    const { data: quarterlyWorklogs = [], isLoading: _quarterlyLoading } = useWorklogsTable({
-        start_date: quarterStart,
-        end_date: quarterEnd,
-        user_id: user?.id,
-        limit: 500,
-        enabled: viewMode === 'quarterly' || viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
-    });
-
-    const { data: halfYearWorklogs = [], isLoading: _halfYearLoading } = useWorklogsTable({
-        start_date: halfYearStart,
-        end_date: halfYearEnd,
-        user_id: user?.id,
-        limit: 1000,
-        enabled: viewMode === 'halfYear' || viewMode === 'yearly', // Load when needed
-    });
-
-    const { data: yearlyWorklogs = [], isLoading: _yearlyLoading } = useWorklogsTable({
-        start_date: yearStart,
-        end_date: yearEnd,
-        user_id: user?.id,
-        limit: 2000,
-        enabled: viewMode === 'yearly', // Load when needed
+        limit: viewMode === 'yearly' ? 2000 : viewMode === 'quarterly' ? 500 : 200,
+        enabled: true,
     });
 
     // Last 12 months data for trend chart
     const { data: last12MonthsWorklogs = [] } = useWorklogsTable({
-        start_date: last12MonthsStart,
-        end_date: last12MonthsEnd,
+        start_date: last12MonthsRange.start,
+        end_date: last12MonthsRange.end,
         user_id: user?.id,
         limit: 2000,
         enabled: true, // Always load for trend chart
     });
+    // Calculate total hours and project summary with useMemo to prevent infinite re-renders
+    const { totalHours, projectList } = useMemo(() => {
+        const total = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
 
-    const currentWorklogs = useMemo(() => {
-        switch (viewMode) {
-            case 'weekly': return weeklyWorklogs;
-            case 'monthly': return monthlyWorklogs;
-            case 'quarterly': return quarterlyWorklogs;
-            case 'halfYear': return halfYearWorklogs;
-            case 'yearly': return yearlyWorklogs;
-            default: return weeklyWorklogs;
-        }
-    }, [viewMode, weeklyWorklogs, monthlyWorklogs, quarterlyWorklogs, halfYearWorklogs, yearlyWorklogs]);
-    const totalHours = currentWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
+        // Group by project
+        const projectSummary = currentWorklogs.reduce((acc, wl) => {
+            const key = wl.project_id || 'non-project';
+            if (!acc[key]) {
+                // For worklogs without project, display as "Team" instead of "-"
+                const isTeamWork = !wl.project_id;
+                acc[key] = {
+                    project_id: wl.project_id || 'non-project',
+                    project_code: isTeamWork ? '' : (wl.project_code || ''),
+                    project_name: isTeamWork ? 'Team' : (wl.project_name || ''),
+                    hours: 0
+                };
+            }
+            acc[key].hours += wl.hours;
+            return acc;
+        }, {} as Record<string, { project_id: string; project_code: string; project_name: string; hours: number }>);
+        const allProjects = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
 
-    // Group by project
-    const projectSummary = currentWorklogs.reduce((acc, wl) => {
-        const key = wl.project_id || 'non-project';
-        if (!acc[key]) {
-            acc[key] = { project_id: wl.project_id || 'non-project', project_code: wl.project_code || '', project_name: wl.project_name || '', hours: 0 };
-        }
-        acc[key].hours += wl.hours;
-        return acc;
-    }, {} as Record<string, { project_id: string; project_code: string; project_name: string; hours: number }>);
-    const allProjects = Object.values(projectSummary).sort((a, b) => b.hours - a.hours);
+        // Top 5 projects + Others (but show all 6 if there are exactly 6)
+        const TOP_N = 5;
+        const topProjects = allProjects.slice(0, TOP_N);
+        const otherProjects = allProjects.slice(TOP_N);
+        const otherHours = otherProjects.reduce((sum, p) => sum + p.hours, 0);
 
-    // Top 5 projects + Others
-    const TOP_N = 5;
-    const topProjects = allProjects.slice(0, TOP_N);
-    const otherProjects = allProjects.slice(TOP_N);
-    const otherHours = otherProjects.reduce((sum, p) => sum + p.hours, 0);
-    const projectList = otherHours > 0
-        ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
-        : topProjects;
+        // Better UX: if there's only 1 "other" project, just show all 6 instead of grouping
+        const list = otherProjects.length === 1
+            ? allProjects // Show all 6 projects
+            : otherHours > 0
+                ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
+                : topProjects;
+
+        return { totalHours: total, projectList: list };
+    }, [currentWorklogs]);
 
     // Build Category Map for easy lookup [Code -> Category Object]
     const categoryMap = useMemo(() => {
-        const map: Record<string, any> = {};
-        const traverse = (cats: any[], parent?: any) => {
-            for (const cat of cats) {
-                // Store category with parent reference
-                map[cat.code] = { 
-                    ...cat, 
-                    parent: parent ? {
-                        id: parent.id,
-                        code: parent.code,
-                        name: parent.name,
-                        name_ko: parent.name_ko,
-                        level: parent.level,
-                        parent: parent.parent // Keep grandparent for L3
-                    } : undefined 
+        if (!categoryTree || categoryTree.length === 0) return {};
+
+        const map: Record<string, CategoryEntry> = {};
+
+        const traverse = (cats: WorkTypeCategory[], parentCat?: CategoryEntry) => {
+            cats.forEach(cat => {
+                // Use original object with parent reference - spread creates new object but preserves data structure
+                const entry: CategoryEntry = {
+                    ...cat,
+                    parent: parentCat
                 };
+                map[cat.code] = entry;
                 if (cat.children && cat.children.length > 0) {
-                    traverse(cat.children, map[cat.code]);
+                    traverse(cat.children, entry);
                 }
-            }
+            });
         };
+
         traverse(categoryTree);
         console.log('[Dashboard] Category Map sample:', Object.keys(map).slice(0, 5).map(k => ({ code: k, cat: map[k] })));
         return map;
     }, [categoryTree]);
 
-    // Calculate Project vs Functional Ratio
-    const projectVsFunctionalData = useMemo(() => {
-        // Debug: Log first worklog's project info
-        if (currentWorklogs.length > 0) {
-            console.log('Sample Worklog Project:', currentWorklogs[0].project);
-        }
+    // Calculate Work Type Distribution (4 categories)
+    // Product, Functional, Support: from project.category
+    // Team: worklogs without project_id (internal team activities)
+    const workTypeCategoryData = useMemo(() => {
+        const counts: Record<string, number> = {
+            Product: 0,
+            Functional: 0,
+            Support: 0,
+            Team: 0,
+        };
 
-        const counts = currentWorklogs.reduce((acc, wl) => {
-            const category = wl.project?.category || 'PROJECT';
-            const key = category === 'FUNCTIONAL' ? 'Functional Activity' : 'Project';
-            acc[key] = (acc[key] || 0) + wl.hours;
-            return acc;
-        }, {} as Record<string, number>);
+        currentWorklogs.forEach(wl => {
+            if (!wl.project_id) {
+                // No project assigned = Team internal work
+                counts.Team += wl.hours;
+            } else {
+                // Use project category
+                const category = wl.project?.category?.toUpperCase() || 'PRODUCT';
+                switch (category) {
+                    case 'FUNCTIONAL':
+                        counts.Functional += wl.hours;
+                        break;
+                    case 'SUPPORT':
+                        counts.Support += wl.hours;
+                        break;
+                    default: // PRODUCT or any other
+                        counts.Product += wl.hours;
+                        break;
+                }
+            }
+        });
 
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
-        return Object.entries(counts).map(([name, value]) => ({
-            name,
-            value,
-            percentage: total > 0 ? ((value / total) * 100).toFixed(0) : '0',
-            color: name === 'Project' ? '#3b82f6' : '#cbd5e1' // Blue vs Slate-300
-        })).sort((a, b) => b.value - a.value);
+
+        const categoryConfig: Record<string, { color: string; label: string }> = {
+            Product: { color: '#3b82f6', label: 'Product' },      // Blue
+            Functional: { color: '#f59e0b', label: 'Functional' }, // Amber
+            Support: { color: '#10b981', label: 'Support' },       // Green
+            Team: { color: '#94a3b8', label: 'Team' },             // Slate
+        };
+
+        return Object.entries(counts)
+            .filter(([_, value]) => value > 0) // Only show categories with hours
+            .map(([name, value]) => ({
+                name,
+                label: categoryConfig[name].label,
+                value,
+                percentage: total > 0 ? ((value / total) * 100).toFixed(0) : '0',
+                color: categoryConfig[name].color,
+            }))
+            .sort((a, b) => b.value - a.value);
     }, [currentWorklogs]);
 
     // Build Category ID Map [ID -> Code]
@@ -251,7 +307,7 @@ export const DashboardPage: React.FC = () => {
                     } else if (cat.level === 1) {
                         l1 = cat.code; l1Name = cat.name_ko || cat.name;
                     }
-                    
+
                     if (idx < 3) {
                         console.log(`[WL ${idx}] Resolved to L1: ${l1} (${l1Name})`);
                     }
@@ -333,11 +389,11 @@ export const DashboardPage: React.FC = () => {
 
         // Group by month and project (use project name for display)
         const monthlyData: Record<string, Record<string, number>> = {};
-        
+
         last12MonthsWorklogs.forEach(wl => {
             const monthKey = format(new Date(wl.date), 'yyyy-MM');
             const projectKey = wl.project_name || wl.project_code || '기타';
-            
+
             if (!monthlyData[monthKey]) {
                 monthlyData[monthKey] = {};
             }
@@ -353,6 +409,7 @@ export const DashboardPage: React.FC = () => {
         });
 
         const topProjects = Object.entries(projectTotals)
+            .filter(([project]) => project !== '기타') // Exclude '기타' from top 5 projects
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([project]) => project);
@@ -387,6 +444,107 @@ export const DashboardPage: React.FC = () => {
         setDrillDownPath(prev => prev.slice(0, -1));
     };
 
+    // Date Navigation Handlers
+    const handlePrevPeriod = () => {
+        switch (viewMode) {
+            case 'weekly':
+                setCurrentDate(prev => subWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setCurrentDate(prev => subMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setCurrentDate(prev => subQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setCurrentDate(prev => subYears(prev, 1));
+                break;
+            case 'halfYear':
+                setCurrentDate(prev => subMonths(prev, 6));
+                break;
+        }
+    };
+
+    const handleNextPeriod = () => {
+        switch (viewMode) {
+            case 'weekly':
+                setCurrentDate(prev => addWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setCurrentDate(prev => addMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setCurrentDate(prev => addQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setCurrentDate(prev => addYears(prev, 1));
+                break;
+            case 'halfYear':
+                setCurrentDate(prev => addMonths(prev, 6));
+                break;
+        }
+    };
+
+    const handleToday = () => {
+        setCurrentDate(new Date());
+    };
+
+    // Get relative period label (e.g., "이번 주", "지난주", "2주 전")
+    const getRelativePeriodLabel = (mode: ViewMode): string => {
+        const now = new Date();
+        const current = currentDate;
+
+        switch (mode) {
+            case 'weekly': {
+                const nowWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+                const currentWeekStart = startOfWeek(current, { weekStartsOn: 1 });
+                const weeksDiff = Math.round((nowWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
+
+                if (weeksDiff === 0) return '이번 주 WorkLog';
+                if (weeksDiff === 1) return '지난주 WorkLog';
+                if (weeksDiff === -1) return '다음 주 WorkLog';
+                if (weeksDiff > 1) return `${weeksDiff}주 전 WorkLog`;
+                return `${Math.abs(weeksDiff)}주 후 WorkLog`;
+            }
+            case 'monthly': {
+                const nowMonthStart = startOfMonth(now);
+                const currentMonthStart = startOfMonth(current);
+                const monthsDiff = (nowMonthStart.getFullYear() - currentMonthStart.getFullYear()) * 12 +
+                    (nowMonthStart.getMonth() - currentMonthStart.getMonth());
+
+                if (monthsDiff === 0) return '이번 달 WorkLog';
+                if (monthsDiff === 1) return '지난달 WorkLog';
+                if (monthsDiff === -1) return '다음 달 WorkLog';
+                if (monthsDiff > 1) return `${monthsDiff}달 전 WorkLog`;
+                return `${Math.abs(monthsDiff)}달 후 WorkLog`;
+            }
+            case 'quarterly': {
+                const nowQuarterStart = startOfQuarter(now);
+                const currentQuarterStart = startOfQuarter(current);
+                const quartersDiff = Math.round((nowQuarterStart.getTime() - currentQuarterStart.getTime()) / (90 * 24 * 60 * 60 * 1000));
+
+                if (quartersDiff === 0) return '이번 분기 WorkLog';
+                if (quartersDiff === 1) return '지난 분기 WorkLog';
+                if (quartersDiff === -1) return '다음 분기 WorkLog';
+                if (quartersDiff > 1) return `${quartersDiff}분기 전 WorkLog`;
+                return `${Math.abs(quartersDiff)}분기 후 WorkLog`;
+            }
+            case 'yearly': {
+                const yearsDiff = now.getFullYear() - current.getFullYear();
+
+                if (yearsDiff === 0) return '올해 WorkLog';
+                if (yearsDiff === 1) return '작년 WorkLog';
+                if (yearsDiff === -1) return '내년 WorkLog';
+                if (yearsDiff > 1) return `${yearsDiff}년 전 WorkLog`;
+                return `${Math.abs(yearsDiff)}년 후 WorkLog`;
+            }
+            case 'halfYear':
+                return '최근 6개월 WorkLog';
+            default:
+                return 'WorkLog';
+        }
+    };
+
     if (isLoading) {
         return <div className="container mx-auto p-4"><div className="text-center py-12">로딩 중...</div></div>;
     }
@@ -406,21 +564,35 @@ export const DashboardPage: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="user" className="space-y-6">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {/* Navigation Arrows */}
+                        <Button variant="outline" onClick={handlePrevPeriod} size="sm" className="px-3">
+                            ←
+                        </Button>
+                        <Button variant="outline" onClick={handleToday} size="sm">
+                            오늘
+                        </Button>
+                        <Button variant="outline" onClick={handleNextPeriod} size="sm" className="px-3">
+                            →
+                        </Button>
+
+                        <div className="w-px h-6 bg-border mx-1" /> {/* Divider */}
+
+                        {/* Period Selection */}
                         <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
-                            📅 이번 주
+                            Weekly
                         </Button>
                         <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
-                            📆 이번 달
+                            Monthly
                         </Button>
                         <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
-                            📊 이번 분기
+                            Quarterly
                         </Button>
                         <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
-                            📈 최근 6개월
+                            Half Year
                         </Button>
                         <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
-                            🗓️ 올해
+                            Yearly
                         </Button>
                     </div>
 
@@ -429,28 +601,20 @@ export const DashboardPage: React.FC = () => {
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                                    {viewMode === 'weekly' && '이번 주 WorkLog'}
-                                    {viewMode === 'monthly' && '이번 달 WorkLog'}
-                                    {viewMode === 'quarterly' && '이번 분기 WorkLog'}
-                                    {viewMode === 'halfYear' && '최근 6개월 WorkLog'}
-                                    {viewMode === 'yearly' && '올해 WorkLog'}
+                                    {getRelativePeriodLabel(viewMode)}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold">{totalHours.toFixed(0)}h</div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    {viewMode === 'weekly' && `${weekStart} ~ ${weekEnd}`}
-                                    {viewMode === 'monthly' && `${monthStart} ~ ${monthEnd}`}
-                                    {viewMode === 'quarterly' && `${quarterStart} ~ ${quarterEnd}`}
-                                    {viewMode === 'halfYear' && `${halfYearStart} ~ ${halfYearEnd}`}
-                                    {viewMode === 'yearly' && `${yearStart} ~ ${yearEnd}`}
+                                    {periodStart} ~ {periodEnd}
                                 </p>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">참여 프로젝트</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">프로젝트 수</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold">{projectList.length}개</div>
@@ -469,45 +633,48 @@ export const DashboardPage: React.FC = () => {
                         </Card>
                     </div>
 
+                    {/* AI Weekly Summary Card */}
+                    <div className="mb-4">
+                        <WeeklySummaryCard mode="user" period={viewMode === 'weekly' ? 'weekly' : 'monthly'} />
+                    </div>
+
                     {/* Charts Row */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         {/* Left Column: Project vs Functional & Project List */}
                         <div className="space-y-4 lg:col-span-1">
-                            {/* Project vs Functional Ratio (Horizontal Bar) */}
+                            {/* Work Type Category Distribution (Horizontal Bar) */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} Project vs Functional</CardTitle>
+                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비중</CardTitle>
                                 </CardHeader>
-                                <CardContent className="flex flex-col justify-center h-[160px]">
-                                    {projectVsFunctionalData.length === 0 ? (
+                                <CardContent className="flex flex-col justify-center h-[180px]">
+                                    {workTypeCategoryData.length === 0 ? (
                                         <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
                                     ) : (
                                         <div className="space-y-4">
                                             {/* Horizontal Bar */}
-                                            <div className="w-full h-10 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                                {projectVsFunctionalData.map((item, idx) => (
+                                            <div className="w-full h-10 bg-slate-100 rounded-lg overflow-hidden flex shadow-inner">
+                                                {workTypeCategoryData.map((item, idx) => (
                                                     <div
                                                         key={idx}
                                                         style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                                        className="h-full flex items-center justify-center text-white font-bold text-base transition-all duration-500 relative group"
-                                                        title={`${item.name}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
+                                                        className="h-full flex items-center justify-center text-white font-bold text-sm transition-all duration-500 relative group"
+                                                        title={`${item.label}: ${item.value.toFixed(0)}h (${item.percentage}%)`}
                                                     >
-                                                        {parseInt(item.percentage) > 10 && (
+                                                        {parseInt(item.percentage) > 12 && (
                                                             <span className="drop-shadow-md">{item.percentage}%</span>
                                                         )}
                                                     </div>
                                                 ))}
                                             </div>
 
-                                            {/* Legend & Details */}
-                                            <div className="flex justify-between px-2 text-sm">
-                                                {projectVsFunctionalData.map((item, idx) => (
-                                                    <div key={idx} className="flex flex-col items-center">
-                                                        <div className="flex items-center gap-2 mb-0.5">
-                                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                                            <span className="font-medium">{item.name}</span>
-                                                        </div>
-                                                        <div className="font-bold">{item.value.toFixed(0)}h</div>
+                                            {/* Legend & Details - Grid layout for 4 categories */}
+                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                {workTypeCategoryData.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                                        <span className="font-medium truncate">{item.label}</span>
+                                                        <span className="text-muted-foreground ml-auto">{item.value.toFixed(0)}h</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -530,7 +697,7 @@ export const DashboardPage: React.FC = () => {
                                                 <div key={proj.project_id} className="flex items-center gap-3">
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-sm font-medium truncate" title={proj.project_name}>
-                                                            {proj.project_code} - {proj.project_name}
+                                                            {proj.project_code ? `${proj.project_code} - ${proj.project_name}` : proj.project_name}
                                                         </div>
                                                         <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
                                                             <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${Math.min((proj.hours / totalHours) * 100, 100)}%` }} />
@@ -569,7 +736,7 @@ export const DashboardPage: React.FC = () => {
                                             <span className="text-muted-foreground text-sm font-normal">상세</span>
                                         </>
                                     ) : (
-                                        <>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비율</>
+                                        <>업무 유형별 비율</>
                                     )}
                                 </CardTitle>
                                 {drillDownPath.length < 2 && (
@@ -577,55 +744,50 @@ export const DashboardPage: React.FC = () => {
                                 )}
                             </CardHeader>
                             <CardContent>
-                                {weeklyLoading && viewMode === 'weekly' ? (
-                                    <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
-                                ) : monthlyLoading && viewMode === 'monthly' ? (
+                                {currentLoading ? (
                                     <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
                                 ) : activeChartData.length === 0 ? (
                                     <div className="text-center py-4 text-muted-foreground">
                                         데이터가 없습니다.
                                         <div className="text-xs mt-2">
-                                            {viewMode === 'weekly' && `(${weekStart} ~ ${weekEnd})`}
-                                            {viewMode === 'monthly' && `(${monthStart} ~ ${monthEnd})`}
+                                            ({periodStart} ~ {periodEnd})
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col lg:flex-row items-center gap-6 justify-center">
-                                        <div className="w-80 h-80 transition-all duration-300 flex-shrink-0">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={activeChartData}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={80}
-                                                        outerRadius={120}
-                                                        paddingAngle={2}
-                                                        dataKey="value"
-                                                        animationDuration={400}
-                                                        onClick={(data) => {
-                                                            if (drillDownPath.length < 2 && data.code) {
-                                                                setDrillDownPath(prev => [...prev, data.code]);
-                                                            }
-                                                        }}
-                                                        style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
-                                                    >
-                                                        {activeChartData.map((entry, index) => (
-                                                            <Cell
-                                                                key={`cell-${index}`}
-                                                                fill={entry.color}
-                                                                className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
-                                                            />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip
-                                                        formatter={(value: number | undefined) => [
-                                                            `${(value ?? 0).toFixed(0)}h`,
-                                                            '시간'
-                                                        ]}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
+                                        <div className="w-80 h-80 min-h-[320px] transition-all duration-300 flex-shrink-0 flex items-center justify-center">
+                                            <PieChart width={320} height={320}>
+                                                <Pie
+                                                    data={activeChartData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={80}
+                                                    outerRadius={120}
+                                                    paddingAngle={2}
+                                                    dataKey="value"
+                                                    animationDuration={400}
+                                                    onClick={(data) => {
+                                                        if (drillDownPath.length < 2 && data.code) {
+                                                            setDrillDownPath(prev => [...prev, data.code]);
+                                                        }
+                                                    }}
+                                                    style={{ cursor: drillDownPath.length < 2 ? 'pointer' : 'default' }}
+                                                >
+                                                    {activeChartData.map((entry, index) => (
+                                                        <Cell
+                                                            key={`cell-${index}`}
+                                                            fill={entry.color}
+                                                            className={drillDownPath.length < 2 ? 'hover:opacity-80 transition-opacity' : ''}
+                                                        />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip
+                                                    formatter={(value: number | undefined) => [
+                                                        `${(value ?? 0).toFixed(0)}h`,
+                                                        '시간'
+                                                    ]}
+                                                />
+                                            </PieChart>
                                         </div>
                                         <div className="flex-1 space-y-3 min-w-[280px]">
                                             {activeChartData.map((item, idx) => (
@@ -664,8 +826,8 @@ export const DashboardPage: React.FC = () => {
                                 <CardTitle>월별 Top-5 프로젝트 투입 시간 추이</CardTitle>
                                 <p className="text-xs text-muted-foreground mt-1">최근 12개월</p>
                             </CardHeader>
-                            <CardContent>
-                                <ResponsiveContainer width="100%" height={400}>
+                            <CardContent className="h-[400px] min-h-[400px]">
+                                <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={monthlyProjectTrendData.chartData}>
                                         <defs>
                                             {monthlyProjectTrendData.topProjects.map((project, idx) => {
@@ -673,30 +835,30 @@ export const DashboardPage: React.FC = () => {
                                                 const color = colors[idx % colors.length];
                                                 return (
                                                     <linearGradient key={project} id={`colorProject${idx}`} x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor={color} stopOpacity={0.8}/>
-                                                        <stop offset="95%" stopColor={color} stopOpacity={0.3}/>
+                                                        <stop offset="5%" stopColor={color} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={color} stopOpacity={0.3} />
                                                     </linearGradient>
                                                 );
                                             })}
                                             <linearGradient id="colorOthers" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.6}/>
-                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2}/>
+                                                <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.6} />
+                                                <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.2} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                        <XAxis 
-                                            dataKey="month" 
+                                        <XAxis
+                                            dataKey="month"
                                             tick={{ fontSize: 12 }}
                                             tickFormatter={(value) => {
                                                 const [, month] = value.split('-');
                                                 return `${month}월`;
                                             }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             label={{ value: '투입 시간 (h)', angle: -90, position: 'insideLeft' }}
                                             tick={{ fontSize: 12 }}
                                         />
-                                        <Tooltip 
+                                        <Tooltip
                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
                                             formatter={(value, name) => [`${(value as number)?.toFixed(0) ?? 0}h`, name]}
                                             labelFormatter={(label) => {
@@ -704,7 +866,7 @@ export const DashboardPage: React.FC = () => {
                                                 return `${year}년 ${month}월`;
                                             }}
                                         />
-                                        <Legend 
+                                        <Legend
                                             wrapperStyle={{ paddingTop: '20px' }}
                                             iconType="rect"
                                         />

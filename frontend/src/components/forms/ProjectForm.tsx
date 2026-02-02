@@ -59,15 +59,6 @@ export const RECHARGE_STATUS_OPTIONS = [
     { value: 'INTERNAL', label: 'Internal' },
 ];
 
-export const IO_CATEGORY_OPTIONS = [
-    { value: 'NPI', label: 'NPI (New Product Introduction)' },
-    { value: 'FIELD_FAILURE', label: 'Field Failure Escalation' },
-    { value: 'OPS_SUPPORT', label: 'Operations Support' },
-    { value: 'SUSTAINING', label: 'Sustaining Engineering' },
-    { value: 'CIP', label: 'CIP (Continuous Improvement)' },
-    { value: 'OTHER', label: 'Other (Miscellaneous)' },
-];
-
 // ============================================================
 // Types
 // ============================================================
@@ -95,7 +86,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             return {
                 program_id: project.program_id || undefined,
                 project_type_id: project.project_type_id || undefined,
-                code: project.code || '',
+                internal_io_id: project.internal_io_id || undefined,
                 name: project.name || '',
                 status: project.status || 'Prospective',
                 scale: project.scale || undefined,
@@ -111,7 +102,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 // Financial fields
                 funding_entity_id: project.funding_entity_id || undefined,
                 recharge_status: project.recharge_status || undefined,
-                io_category_code: project.io_category_code || undefined,
                 is_capitalizable: project.is_capitalizable || false,
                 owner_department_id: project.owner_department_id || undefined,
             };
@@ -183,19 +173,13 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 SECTION 1: Basic Info
             ═══════════════════════════════════════════════════════════════ */}
             <div className="space-y-3">
-                {/* Row 1: Project Name (+ Code in create mode) */}
-                <div className={`grid gap-3 ${!isEditMode ? 'grid-cols-[1fr_150px]' : 'grid-cols-1'}`}>
+                {/* Row 1: Project Name */}
+                <div className="grid gap-3 grid-cols-1">
                     <div>
                         <Label htmlFor="name" className="text-xs">Project Name</Label>
                         <Input id="name" {...register('name', { required: 'Project Name is required' })} className="h-8" />
                         {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
                     </div>
-                    {!isEditMode && (
-                        <div>
-                            <Label htmlFor="code" className="text-xs">Code (optional)</Label>
-                            <Input id="code" {...register('code')} placeholder="Auto" className="h-8" />
-                        </div>
-                    )}
                 </div>
 
                 {/* Row 2: Category, Status, Scale */}
@@ -500,7 +484,7 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             <div className="border-t pt-3">
                 <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Classification</h4>
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                     {/* Funding Entity */}
                     <div>
                         <Label className="text-xs">Funding Entity</Label>
@@ -537,29 +521,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                                     </SelectTrigger>
                                     <SelectContent>
                                         {RECHARGE_STATUS_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </div>
-
-                    {/* IO Category */}
-                    <div>
-                        <Label className="text-xs">IO Category</Label>
-                        <Controller
-                            name="io_category_code"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger className="h-8">
-                                        <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {IO_CATEGORY_OPTIONS.map((opt) => (
                                             <SelectItem key={opt.value} value={opt.value}>
                                                 {opt.label}
                                             </SelectItem>

@@ -19,6 +19,16 @@ class BusinessUnit(BaseModel):
         from_attributes = True
 
 
+# Schema for Department (부서)
+class Department(BaseModel):
+    id: str
+    name: str
+    code: str
+
+    class Config:
+        from_attributes = True
+
+
 # Schema for Program
 class Program(BaseModel):
     id: str
@@ -69,6 +79,63 @@ class ProductLineUpdate(BaseModel):
     description: Optional[str] = None
 
 
+# Schema for InternalIO
+class InternalIOBase(BaseModel):
+    io_number: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    business_unit_id: Optional[str] = None  # BU별 분리된 IO 지원
+
+
+class InternalIOCreate(InternalIOBase):
+    pass
+
+
+class InternalIOUpdate(BaseModel):
+    io_number: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    business_unit_id: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class InternalIO(InternalIOBase):
+    id: str
+    is_active: bool = True
+    business_unit: Optional[BusinessUnit] = None  # Nested BU info
+
+    class Config:
+        from_attributes = True
+
+
+# Schema for RechargeIO
+class RechargeIOBase(BaseModel):
+    io_number: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class RechargeIOCreate(RechargeIOBase):
+    business_unit_ids: Optional[List[str]] = None  # BU IDs for M:N relationship
+
+
+class RechargeIOUpdate(BaseModel):
+    io_number: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    business_unit_ids: Optional[List[str]] = None  # Update BU mappings
+
+
+class RechargeIO(RechargeIOBase):
+    id: str
+    is_active: bool = True
+    business_units: List[BusinessUnit] = []  # M:N relationship
+
+    class Config:
+        from_attributes = True
+
+
 # Base schema for Project
 class ProjectBase(BaseModel):
     program_id: Optional[str] = (
@@ -77,12 +144,13 @@ class ProjectBase(BaseModel):
     project_type_id: Optional[str] = (
         None  # Optional - Scale field covers this functionality
     )
-    code: Optional[str] = None  # Optional - auto-generated if not provided
+    internal_io_id: Optional[str] = None  # FK to internal_ios table
+    recharge_io_id: Optional[str] = None  # FK to recharge_ios table
     name: str
     status: str = (
         "Prospective"  # Prospective, Planned, InProgress, OnHold, Cancelled, Completed
     )
-    category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL
+    category: Optional[str] = "PRODUCT"  # PRODUCT, FUNCTIONAL, SUPPORT
     scale: Optional[str] = None  # CIP, A&D, Simple, Complex, Platform
     product_line_id: Optional[str] = None  # Family grouping
     owner_department_id: Optional[str] = None  # NEW: Required for FUNCTIONAL projects
@@ -103,7 +171,8 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     program_id: Optional[str] = None
     project_type_id: Optional[str] = None
-    code: Optional[str] = None
+    internal_io_id: Optional[str] = None
+    recharge_io_id: Optional[str] = None
     name: Optional[str] = None
     status: Optional[str] = None
     category: Optional[str] = None
@@ -124,6 +193,9 @@ class Project(ProjectBase):
     program: Optional[Program] = None
     project_type: Optional[ProjectType] = None
     product_line: Optional[ProductLine] = None
+    owner_department: Optional[Department] = None  # Nested department for FUNCTIONAL projects
+    internal_io: Optional[InternalIO] = None  # Nested IO info
+    recharge_io: Optional[RechargeIO] = None  # Nested recharge IO info
     pm: Optional[User] = None
     recent_activity_score: Optional[float] = 0.0
 

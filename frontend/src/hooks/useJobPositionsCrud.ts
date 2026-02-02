@@ -21,6 +21,7 @@ export function useJobPositionsList(includeInactive = false) {
     return useQuery<JobPosition[], Error>({
         queryKey: jobPositionKeys.list(includeInactive),
         queryFn: () => getJobPositionsList(includeInactive),
+        staleTime: 30 * 60 * 1000, // Reference data - cache for 30 minutes
     });
 }
 

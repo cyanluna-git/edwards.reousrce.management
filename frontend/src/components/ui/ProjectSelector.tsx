@@ -65,7 +65,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
 
         Object.entries(groupedProjects).forEach(([area, projectList]) => {
             const matchedProjects = projectList.filter(
-                p => p.code.toLowerCase().includes(query) ||
+                p => (p.internal_io?.io_number || '').toLowerCase().includes(query) ||
                     p.name.toLowerCase().includes(query)
             );
             if (matchedProjects.length > 0) {
@@ -141,7 +141,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             >
                 <span className={selectedProject ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedProject
-                        ? `${selectedProject.code} - ${selectedProject.name}`
+                        ? `${selectedProject.internal_io?.io_number || selectedProject.id.slice(0, 8)} - ${selectedProject.name}`
                         : placeholder
                     }
                 </span>
@@ -242,7 +242,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                                                         className={`px-8 py-1.5 cursor-pointer text-sm hover:bg-blue-50 transition-colors ${project.id === value ? 'bg-blue-100 text-blue-700 font-medium' : ''}`}
                                                         onClick={() => handleSelectProject(project.id)}
                                                     >
-                                                        {project.code} - {project.name}
+                                                        {project.internal_io?.io_number || project.id.slice(0, 8)} - {project.name}
                                                     </div>
                                                 ))}
                                             </div>
