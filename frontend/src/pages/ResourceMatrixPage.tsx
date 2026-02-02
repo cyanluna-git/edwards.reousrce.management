@@ -56,9 +56,9 @@ export const ResourceMatrixPage: React.FC = () => {
     };
 
     return (
-        <div className="p-4 space-y-4 h-full flex flex-col">
+        <div className="h-full flex flex-col gap-2 p-2">
             {/* Header & Controls Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
                 <div>
                     <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-blue-600" />
@@ -78,34 +78,27 @@ export const ResourceMatrixPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Badge variant="secondary" className="px-1.5 py-0 h-5 text-[10px] bg-green-100 text-green-700 border-green-200">RCH</Badge>
-                            <span className="text-xs text-slate-600">Recharge</span>
+                            <span className="text-xs text-slate-600">Research</span>
                         </div>
                     </div>
 
-                    {/* Navigation */}
-                    <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-md border border-slate-200">
+                    {/* Month Navigation */}
+                    <div className="flex items-center gap-2">
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-slate-200"
+                            variant="outline"
+                            size="sm"
+                            className="h-10 w-10 p-0"
                             onClick={() => handleMonthChange(-1)}
                         >
                             <ChevronLeft className="h-4 w-4 text-slate-600" />
                         </Button>
-
-                        <div className="flex items-center gap-2 px-2">
-                            <input
-                                type="month"
-                                value={selectedMonth}
-                                onChange={(e) => setSelectedMonth(e.target.value)}
-                                className="h-8 bg-transparent border-0 text-sm font-semibold text-slate-700 focus:ring-0 cursor-pointer min-w-[140px] text-center"
-                            />
-                        </div>
-
+                        <span className="text-sm font-medium text-slate-700 whitespace-nowrap min-w-[120px] text-center">
+                            {selectedMonth}
+                        </span>
                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-slate-200"
+                            variant="outline"
+                            size="sm"
+                            className="h-10 w-10 p-0"
                             onClick={() => handleMonthChange(1)}
                         >
                             <ChevronRight className="h-4 w-4 text-slate-600" />
@@ -124,7 +117,7 @@ export const ResourceMatrixPage: React.FC = () => {
             </div>
 
             {/* Info Strip (Mobile/Compact) */}
-            <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+            <div className="flex items-center justify-between text-xs text-slate-500 px-1 flex-shrink-0">
                 <div className="flex lg:hidden items-center gap-3">
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400"></span> INT</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-400"></span> RCH</span>
@@ -135,9 +128,9 @@ export const ResourceMatrixPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Content Area - Maximized */}
-            <Card className="flex-1 overflow-hidden border-slate-200 shadow-sm flex flex-col">
-                <CardContent className="p-0 flex-1 overflow-hidden">
+            {/* Main Content Area - Full Height */}
+            <Card className="flex-1 min-h-0 overflow-hidden border-slate-200 shadow-sm flex flex-col">
+                <CardContent className="p-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-auto">
                         <ResourcePivotTable
                             startMonth={selectedMonth}

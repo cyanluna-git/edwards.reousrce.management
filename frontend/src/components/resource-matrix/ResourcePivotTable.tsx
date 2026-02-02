@@ -140,7 +140,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     }
 
     return (
-        <div className="overflow-auto max-h-[calc(100vh-300px)] border rounded-lg shadow-sm">
+        <div className="h-full overflow-auto border rounded-lg shadow-sm">
             <table className="border-collapse w-full text-sm">
                 {/* Sticky Header */}
                 <thead className="sticky top-0 bg-slate-50 z-20 shadow-sm">
