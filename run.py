@@ -473,6 +473,17 @@ def run_local_backend():
     print_header("Edwards Local Backend Launcher")
 
     load_env_file()
+    
+    # Override DATABASE_URL for local execution if it points to 'db'
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    db_port = os.getenv("DB_PORT", "5434").strip()
+    if "@db:5432" in db_url:
+        new_db_url = db_url.replace("@db:5432", f"@localhost:{db_port}")
+        os.environ["DATABASE_URL"] = new_db_url
+        print_colored(f"[INFO] Adjusting DATABASE_URL for local execution: {new_db_url}", Colors.YELLOW)
+    else:
+        # Even if not adjusting, ensure we use the stripped version
+        os.environ["DATABASE_URL"] = db_url
 
     print()
     print_colored("Configuration:", Colors.CYAN)
@@ -522,11 +533,16 @@ def run_local_backend():
     # Determine the activation script based on platform and venv location
     if sys.platform == "win32":
         activate_path = selected_venv / "Scripts" / "activate"
-        activate_cmd = f"{activate_path} && cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        # On Windows, we use set to set the environment variable before running uvicorn
+        # Note: No space before && to avoid trailing space in variable value
+        set_env = f"set DATABASE_URL={os.environ.get('DATABASE_URL', '')}&&" if "DATABASE_URL" in os.environ else ""
+        activate_cmd = f"{activate_path} && {set_env} cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True)
     else:
         activate_path = selected_venv / "bin" / "activate"
-        activate_cmd = f"source {activate_path} && cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        # On Linux/macOS, we can just prefix the command with the environment variable
+        export_env = f"export DATABASE_URL={os.environ.get('DATABASE_URL', '')} && " if "DATABASE_URL" in os.environ else ""
+        activate_cmd = f"source {activate_path} && {export_env}cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True, executable="/bin/bash")
 
 
@@ -563,9 +579,17 @@ def run_local_frontend():
     print()
 
     # Run pnpm dev
-    subprocess.run(
-        ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")], cwd=frontend_dir
-    )
+    if sys.platform == "win32":
+        subprocess.run(
+            ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            cwd=frontend_dir,
+            shell=True,
+        )
+    else:
+        subprocess.run(
+            ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            cwd=frontend_dir,
+        )
 
 
 def run_dev():

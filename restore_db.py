@@ -112,10 +112,16 @@ def restore_database(backup_file: str):
     print()
     
     # Confirm restoration
-    response = input(f"{Colors.YELLOW}⚠️  This will DESTROY and REPLACE the entire '{os.getenv('POSTGRES_DB', 'edwards')}' database. Continue? (yes/no): {Colors.RESET}")
-    if response.lower() not in ['yes', 'y']:
-        print_colored("[INFO] Restore cancelled.", Colors.YELLOW)
-        sys.exit(0)
+    force = os.environ.get('FORCE_RESTORE', 'false').lower() == 'true'
+    if not force:
+        try:
+            response = input(f"{Colors.YELLOW}WARNING: This will DESTROY and REPLACE the entire '{os.getenv('POSTGRES_DB', 'edwards')}' database. Continue? (yes/no): {Colors.RESET}")
+        except UnicodeEncodeError:
+            response = input(f"WARNING: This will DESTROY and REPLACE the entire '{os.getenv('POSTGRES_DB', 'edwards')}' database. Continue? (yes/no): ")
+        
+        if response.lower() not in ['yes', 'y']:
+            print_colored("[INFO] Restore cancelled.", Colors.YELLOW)
+            sys.exit(0)
     
     print()
     
