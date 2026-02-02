@@ -480,19 +480,28 @@ def run_local_backend():
     print_colored(f"  Database URL: {os.getenv('DATABASE_URL', 'N/A')}", Colors.WHITE)
     print()
 
-    # Check if venv exists
-    venv_path = Path("backend/venv")
-    if not venv_path.exists():
+    # Check if venv exists (either in backend/venv or root .venv)
+    venv_backend = Path("backend/venv")
+    venv_root = Path(".venv")
+    
+    selected_venv = None
+    if venv_root.exists():
+        selected_venv = venv_root
+    elif venv_backend.exists():
+        selected_venv = venv_backend
+
+    if not selected_venv:
         print_colored("[ERROR] Virtual environment not found!", Colors.RED)
         print_colored("[INFO] Please create venv first:", Colors.YELLOW)
-        print_colored("  cd backend", Colors.WHITE)
-        print_colored("  python -m venv venv", Colors.WHITE)
+        print_colored("  python -m venv .venv", Colors.WHITE)
         print_colored(
-            "  source venv/bin/activate  # or venv\\Scripts\\activate on Windows",
+            "  .venv\\Scripts\\activate on Windows or source .venv/bin/activate on Linux",
             Colors.WHITE,
         )
-        print_colored("  pip install -r requirements.txt", Colors.WHITE)
+        print_colored("  pip install -r backend/requirements.txt", Colors.WHITE)
         sys.exit(1)
+
+    print_colored(f"[INFO] Using virtual environment: {selected_venv}", Colors.GREEN)
 
     # Check if DB is running
     if check_docker():
@@ -510,12 +519,14 @@ def run_local_backend():
     # Change to backend directory and run uvicorn
     backend_dir = Path("backend")
 
-    # Determine the activation script based on platform
+    # Determine the activation script based on platform and venv location
     if sys.platform == "win32":
-        activate_cmd = f"cd {backend_dir} && venv\\Scripts\\activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        activate_path = selected_venv / "Scripts" / "activate"
+        activate_cmd = f"{activate_path} && cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True)
     else:
-        activate_cmd = f"cd {backend_dir} && source venv/bin/activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        activate_path = selected_venv / "bin" / "activate"
+        activate_cmd = f"source {activate_path} && cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True, executable="/bin/bash")
 
 
