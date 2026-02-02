@@ -1,14 +1,14 @@
 """
 Data Transformer Service
 
-Transforms data from Power BI (or CSV) format to PostgreSQL schema format.
-Modularizes transformation logic from migrate_sharepoint_data.py for reuse.
+Transforms data from CSV format to PostgreSQL schema format.
+Modularizes transformation logic for reuse.
 
-Power BI Tables → PostgreSQL Tables:
-- db_users → users
-- db_projects → projects
-- db_worktype → work_type_categories (via legacy mapping)
-- tb_worklog → worklogs
+CSV Tables → PostgreSQL Tables:
+- db_users.csv → users
+- db_projects.csv → projects
+- db_worktype.csv → work_type_categories (via legacy mapping)
+- tb_worklog.csv → worklogs
 """
 
 import uuid
@@ -32,11 +32,11 @@ class TransformResult:
 
 
 class FieldMapper:
-    """Maps Power BI column names to PostgreSQL column names."""
+    """Maps CSV column names to PostgreSQL column names."""
 
-    # Power BI → PostgreSQL field mappings for each entity type
+    # CSV → PostgreSQL field mappings for each entity type
     USER_MAPPING = {
-        # Power BI column → PostgreSQL column
+        # CSV column → PostgreSQL column
         "Person.id": "source_id",  # Original ID for reference
         "Person.email": "email",
         "email": "email",

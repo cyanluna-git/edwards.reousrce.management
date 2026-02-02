@@ -127,5 +127,6 @@ export function useWorklogsTable(params: WorkLogTableParams & { enabled?: boolea
         queryKey: [WORKLOGS_TABLE_KEY, queryParams],
         queryFn: () => getWorklogsTable(queryParams),
         enabled,
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes to prevent frequent refetching
     });
 }

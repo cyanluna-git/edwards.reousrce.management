@@ -103,7 +103,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
         }
     };
 
-    const handleProjectChange = (projectId: string | null) => {
+    const handleProjectChange = (projectId: string | null, _projectName?: string, _category?: string) => {
         setValue('project_id', projectId);
         if (projectId) {
             setValue('product_line_id', null);

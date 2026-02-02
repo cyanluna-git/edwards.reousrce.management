@@ -20,6 +20,7 @@ import {
     DialogFooter,
 } from '@/components/ui';
 import {
+    getBusinessUnits,
     getDepartments,
     getDivisions,
     getSubTeams,
@@ -34,7 +35,7 @@ import { OrganizationSelect } from '@/components/OrganizationSelect';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { usePermissions } from '@/hooks/usePermissions';
 
-type SortColumn = 'name' | 'email' | 'division' | 'department' | 'subteam' | 'position' | 'role' | 'status';
+type SortColumn = 'name' | 'email' | 'division' | 'department' | 'subteam' | 'position' | 'primary_bu' | 'role' | 'status';
 type SortDirection = 'asc' | 'desc';
 
 export const ResourcesTab: React.FC = () => {
@@ -55,6 +56,11 @@ export const ResourcesTab: React.FC = () => {
     const { data: departments = [] } = useQuery({
         queryKey: ['departments'],
         queryFn: () => getDepartments(),
+    });
+
+    const { data: businessUnits = [] } = useQuery({
+        queryKey: ['business-units'],
+        queryFn: () => getBusinessUnits(),
     });
 
     const { data: users = [], isLoading } = useQuery({
@@ -85,10 +91,15 @@ export const ResourcesTab: React.FC = () => {
     };
 
     const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || '-';
-    
+
     const getSubTeamName = (subTeamId: string | null) => {
         if (!subTeamId) return '-';
         return allSubTeams.find(st => st.id === subTeamId)?.name || '-';
+    };
+
+    const getBuName = (buId: string | null) => {
+        if (!buId) return '-';
+        return businessUnits.find(bu => bu.id === buId)?.name || '-';
     };
 
     const getPositionName = (posId: string) => positions.find(p => p.id === posId)?.name || posId;
@@ -146,6 +157,10 @@ export const ResourcesTab: React.FC = () => {
                 case 'position':
                     valueA = getPositionName(a.position_id).toLowerCase();
                     valueB = getPositionName(b.position_id).toLowerCase();
+                    break;
+                case 'primary_bu':
+                    valueA = getBuName(a.primary_business_unit_id).toLowerCase();
+                    valueB = getBuName(b.primary_business_unit_id).toLowerCase();
                     break;
                 case 'role':
                     valueA = (a.role || '').toLowerCase();
@@ -241,6 +256,7 @@ export const ResourcesTab: React.FC = () => {
                                 <SortableHeader column="department" className="text-left">Department</SortableHeader>
                                 <SortableHeader column="subteam" className="text-left">SubTeam</SortableHeader>
                                 <SortableHeader column="position" className="text-left">Position</SortableHeader>
+                                <SortableHeader column="primary_bu" className="text-left">Primary BU</SortableHeader>
                                 <SortableHeader column="role" className="text-left">Role</SortableHeader>
                                 <SortableHeader column="status" className="text-center">Status</SortableHeader>
                                 <th className="text-right py-2 px-3">Actions</th>
@@ -258,6 +274,7 @@ export const ResourcesTab: React.FC = () => {
                                     <td className="py-2 px-3">{getDeptName(user.department_id)}</td>
                                     <td className="py-2 px-3 text-muted-foreground">{getSubTeamName(user.sub_team_id)}</td>
                                     <td className="py-2 px-3">{getPositionName(user.position_id)}</td>
+                                    <td className="py-2 px-3">{getBuName(user.primary_business_unit_id)}</td>
                                     <td className="py-2 px-3">
                                         <span className={`px-2 py-0.5 rounded text-xs ${user.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}>
                                             {user.role}
@@ -310,6 +327,11 @@ export const UserEditModal: React.FC<{
     onClose: () => void;
     onSuccess: () => void;
 }> = ({ user, positions, onClose, onSuccess }) => {
+    const { data: businessUnits = [] } = useQuery({
+        queryKey: ['business-units'],
+        queryFn: () => getBusinessUnits(),
+    });
+
     const isNewUser = !user.id;
     const [formData, setFormData] = useState({
         email: user.email || '',
@@ -318,6 +340,7 @@ export const UserEditModal: React.FC<{
         department_id: user.department_id || '',
         sub_team_id: user.sub_team_id || '',
         position_id: user.position_id || (positions[0]?.id || ''),
+        primary_business_unit_id: user.primary_business_unit_id || '',
         role: user.role || 'USER',
         is_active: user.is_active ?? true,
     });
@@ -342,6 +365,7 @@ export const UserEditModal: React.FC<{
                 department_id: formData.department_id,
                 sub_team_id: formData.sub_team_id || null,
                 position_id: formData.position_id,
+                primary_business_unit_id: formData.primary_business_unit_id || null,
                 role: formData.role,
                 is_active: formData.is_active,
                 password: 'Welcome2024!', // Default password
@@ -354,6 +378,7 @@ export const UserEditModal: React.FC<{
                 department_id: formData.department_id,
                 sub_team_id: formData.sub_team_id || null,
                 position_id: formData.position_id,
+                primary_business_unit_id: formData.primary_business_unit_id || null,
                 role: formData.role,
                 is_active: formData.is_active,
             });
@@ -403,10 +428,10 @@ export const UserEditModal: React.FC<{
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email {isNewUser && '*'}</label>
-                        <input 
-                            type="email" 
+                        <input
+                            type="email"
                             className={`w-full border rounded px-3 py-2 ${isNewUser ? '' : 'bg-gray-50'}`}
-                            value={isNewUser ? formData.email : user.email} 
+                            value={isNewUser ? formData.email : user.email}
                             onChange={isNewUser ? (e) => setFormData({ ...formData, email: e.target.value }) : undefined}
                             disabled={!isNewUser}
                             placeholder={isNewUser ? "user@edwardsvacuum.com" : undefined}
@@ -433,6 +458,19 @@ export const UserEditModal: React.FC<{
                         >
                             {positions.map((p) => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Primary Business Unit</label>
+                        <select
+                            className="w-full border rounded px-3 py-2"
+                            value={formData.primary_business_unit_id}
+                            onChange={(e) => setFormData({ ...formData, primary_business_unit_id: e.target.value })}
+                        >
+                            <option value="">- 선택 -</option>
+                            {businessUnits.map((bu) => (
+                                <option key={bu.id} value={bu.id}>{bu.name}</option>
                             ))}
                         </select>
                     </div>

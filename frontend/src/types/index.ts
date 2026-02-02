@@ -50,12 +50,20 @@ export interface User {
     korean_name?: string
     sub_team_id?: string
     position_id: string
+    department_id?: string
+    primary_business_unit_id?: string  // 주 활동 사업영역
     role: UserRole
     is_active: boolean
     hire_date?: string
     termination_date?: string
+    department?: {
+        id: string
+        name: string
+        code?: string
+    }
     sub_team?: SubTeam
     position?: JobPosition
+    primary_business_unit?: BusinessUnit  // Nested BU
 }
 
 export interface UserHistory {
@@ -100,14 +108,64 @@ export interface ProductLine {
 export type ProjectStatus = 'Prospective' | 'Planned' | 'InProgress' | 'OnHold' | 'Cancelled' | 'Completed'
 export type ProjectScale = 'CIP' | 'A&D' | 'Simple' | 'Complex' | 'Platform'
 
+// Internal IO (Internal Order) - for financial tracking
+export interface InternalIO {
+    id: string
+    io_number: string
+    name?: string
+    description?: string
+    business_unit_id?: string  // BU별 분리된 IO
+    business_unit?: BusinessUnit
+    is_active: boolean
+}
+
+export interface InternalIOCreate {
+    io_number: string
+    name?: string
+    description?: string
+}
+
+export interface InternalIOUpdate {
+    io_number?: string
+    name?: string
+    description?: string
+    is_active?: boolean
+}
+
+// Recharge IO - for cost recharging
+export interface RechargeIO {
+    id: string
+    io_number: string
+    name?: string
+    description?: string
+    is_active: boolean
+    business_units: BusinessUnit[]  // M:N relationship
+}
+
+export interface RechargeIOCreate {
+    io_number: string
+    name?: string
+    description?: string
+    business_unit_ids?: string[]  // BU IDs for M:N
+}
+
+export interface RechargeIOUpdate {
+    io_number?: string
+    name?: string
+    description?: string
+    is_active?: boolean
+    business_unit_ids?: string[]  // Update BU mappings
+}
+
 export interface ProjectBase {
     program_id: string
     project_type_id: string
-    code: string
+    internal_io_id?: string  // FK to internal_ios table
+    recharge_io_id?: string  // FK to recharge_ios table
     name: string
     status: ProjectStatus
     scale?: ProjectScale
-    category?: 'PRODUCT' | 'FUNCTIONAL'
+    category?: 'PRODUCT' | 'FUNCTIONAL' | 'SUPPORT'
     product_line_id?: string
     owner_department_id?: string  // NEW: Functional project owner
     pm_id?: string
@@ -119,7 +177,6 @@ export interface ProjectBase {
     // Financial Routing (v2.0 - Recharge & Planning System)
     funding_entity_id?: string  // FK to dim_funding_entity
     recharge_status?: 'BILLABLE' | 'NON_BILLABLE' | 'INTERNAL'
-    io_category_code?: string  // Maps to IO Framework Programme
     is_capitalizable?: boolean  // CAPEX vs OPEX
     gl_account_code?: string  // General Ledger account
 }
@@ -128,16 +185,17 @@ export interface ProjectBase {
 export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
-    program_id?: string
-    project_type_id?: string
-    code?: string
+    program_id?: string | null
+    project_type_id?: string | null
+    internal_io_id?: string | null
+    recharge_io_id?: string | null
     name?: string
     status?: ProjectStatus
     scale?: ProjectScale
-    category?: 'PRODUCT' | 'FUNCTIONAL'
-    product_line_id?: string
-    owner_department_id?: string
-    pm_id?: string
+    category?: 'PRODUCT' | 'FUNCTIONAL' | 'SUPPORT'
+    product_line_id?: string | null
+    owner_department_id?: string | null
+    pm_id?: string | null
     start_month?: string
     end_month?: string
     customer?: string
@@ -146,7 +204,6 @@ export interface ProjectUpdate {
     // Financial Routing
     funding_entity_id?: string
     recharge_status?: 'BILLABLE' | 'NON_BILLABLE' | 'INTERNAL'
-    io_category_code?: string
     is_capitalizable?: boolean
     gl_account_code?: string
 }
@@ -156,6 +213,9 @@ export interface Project extends ProjectBase {
     program?: Program
     project_type?: ProjectType
     product_line?: ProductLine
+    owner_department?: Department  // Nested department for FUNCTIONAL projects
+    internal_io?: InternalIO  // Nested IO info
+    recharge_io?: RechargeIO  // Nested recharge IO info
     pm?: User
     recent_activity_score?: number;
 }

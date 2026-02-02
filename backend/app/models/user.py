@@ -26,6 +26,12 @@ class User(Base):
     department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
     sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
+
+    # 주 활동 사업영역 (BU 기반 자동 라우팅용)
+    primary_business_unit_id = Column(
+        String(50), ForeignKey("business_units.id"), nullable=True, index=True
+    )
+
     role = Column(String(20), default="USER")  # ADMIN, PM, FM, USER
     is_active = Column(Boolean, default=True)
     hire_date = Column(DateTime, nullable=True)
@@ -37,6 +43,7 @@ class User(Base):
     department = relationship("Department", foreign_keys=[department_id])
     sub_team = relationship("SubTeam", back_populates="users")
     position = relationship("JobPosition", back_populates="users")
+    primary_business_unit = relationship("BusinessUnit", foreign_keys=[primary_business_unit_id])
     history = relationship("UserHistory", back_populates="user")
     worklogs = relationship("WorkLog", back_populates="user")
     managed_projects = relationship("Project", back_populates="pm")

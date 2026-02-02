@@ -5,7 +5,17 @@
       "Bash(python backend/scripts/update_worklog_projects.py:*)",
       "Bash(docker compose build:*)",
       "Bash(docker compose:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "mcp__acp__Bash",
+      "mcp__acp__Write",
+      "Bash(source:*)",
+      "Bash(python -m scripts.ai_migrate_worklogs:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5434/edwards\" /Users/cyanluna-pro16/dev/edwards/engineering.management/edwards.reousrce.management/.venv/bin/python:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(python:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }

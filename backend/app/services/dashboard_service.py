@@ -2,7 +2,7 @@
 Dashboard Service for personal dashboard data
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.organization import Department, SubTeam
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
+from app.utils import get_io_number
 
 
 class DashboardService:
@@ -52,9 +53,12 @@ class DashboardService:
         projects_map = {}
         if worklog_project_ids:
             projects = (
-                self.db.query(Project).filter(Project.id.in_(worklog_project_ids)).all()
+                self.db.query(Project)
+                .options(joinedload(Project.internal_io))
+                .filter(Project.id.in_(worklog_project_ids))
+                .all()
             )
-            projects_map = {p.id: {"code": p.code, "name": p.name} for p in projects}
+            projects_map = {p.id: {"code": get_io_number(p), "name": p.name} for p in projects}
 
         weekly_summary = {
             "week_start": str(week_start),
@@ -120,7 +124,7 @@ class DashboardService:
                 my_projects.append(
                     {
                         "id": project.id,
-                        "code": project.code,
+                        "code": get_io_number(project),
                         "name": project.name,
                         "status": project.status,
                         "milestones": key_milestones,
@@ -143,7 +147,8 @@ class DashboardService:
         }
 
     def get_team_dashboard(
-        self, user_id: str, scope: str = "department", view_mode: str = "weekly"
+        self, user_id: str, scope: str = "department", view_mode: str = "weekly",
+        start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> dict:
         """
         Get team dashboard data based on user's organization.
@@ -174,30 +179,38 @@ class DashboardService:
             return {}
 
         # Get department through sub_team
-        user_department = user.sub_team.department if user.sub_team else None
-        user_department_id = user_department.id if user_department else None
+        user_department = None
+        user_department_id = None
+        if user.sub_team:
+            user_department = user.sub_team.department
+            if user_department:
+                user_department_id = user_department.id
 
         # Date range calculation
+        # Always define today for later use
         today = datetime.now().date()
-        if view_mode == "weekly":
-            start_date = today - timedelta(days=today.weekday())
-            end_date = start_date + timedelta(days=6)
-        elif view_mode == "monthly":
-            start_date = today.replace(day=1)
-            next_month = today.replace(day=28) + timedelta(days=4)
-            end_date = next_month.replace(day=1) - timedelta(days=1)
-        elif view_mode == "quarterly":
-            quarter = (today.month - 1) // 3
-            start_date = today.replace(month=quarter * 3 + 1, day=1)
-            if quarter == 3:
+        
+        # If start_date and end_date are provided, use them; otherwise calculate from view_mode
+        if start_date is None or end_date is None:
+            if view_mode == "weekly":
+                start_date = today - timedelta(days=today.weekday())
+                end_date = start_date + timedelta(days=6)
+            elif view_mode == "monthly":
+                start_date = today.replace(day=1)
+                next_month = today.replace(day=28) + timedelta(days=4)
+                end_date = next_month.replace(day=1) - timedelta(days=1)
+            elif view_mode == "quarterly":
+                quarter = (today.month - 1) // 3
+                start_date = today.replace(month=quarter * 3 + 1, day=1)
+                if quarter == 3:
+                    end_date = today.replace(month=12, day=31)
+                else:
+                    end_date = today.replace(
+                        month=(quarter + 1) * 3 + 1, day=1
+                    ) - timedelta(days=1)
+            else:  # yearly
+                start_date = today.replace(month=1, day=1)
                 end_date = today.replace(month=12, day=31)
-            else:
-                end_date = today.replace(
-                    month=(quarter + 1) * 3 + 1, day=1
-                ) - timedelta(days=1)
-        else:  # yearly
-            start_date = today.replace(month=1, day=1)
-            end_date = today.replace(month=12, day=31)
 
         # Determine team members based on scope
         team_query = self.db.query(User).filter(User.is_active == True)
@@ -217,7 +230,7 @@ class DashboardService:
             team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
             team_name = user_department.name if user_department else "Unknown"
             team_code = user_department.code if user_department else ""
-        elif scope == "business_unit" and user_department:
+        elif scope == "business_unit" and user_department and user_department.division_id:
             # Get all departments in the same division, then all sub_teams
             dept_ids = [
                 d.id
@@ -275,46 +288,70 @@ class DashboardService:
         project_ids = list(project_hours.keys())
         projects_map = {}
         if project_ids:
-            projects = self.db.query(Project).filter(Project.id.in_(project_ids)).all()
+            projects = (
+                self.db.query(Project)
+                .options(joinedload(Project.internal_io))
+                .filter(Project.id.in_(project_ids))
+                .all()
+            )
             projects_map = {
-                p.id: {"code": p.code, "name": p.name, "category": p.category}
+                p.id: {"code": get_io_number(p), "name": p.name, "category": p.category}
                 for p in projects
             }
 
-        # Build project summary (top 5 + others)
+        # Build project summary (all projects with category info)
         sorted_projects = sorted(
             project_hours.items(), key=lambda x: x[1], reverse=True
         )
         project_summary = []
-        for pid, hours in sorted_projects[:5]:
-            proj = projects_map.get(pid, {})
-            project_summary.append(
-                {
-                    "project_id": pid,
-                    "project_code": proj.get("code", ""),
-                    "project_name": proj.get("name", ""),
-                    "hours": float(hours),
-                }
-            )
-        if len(sorted_projects) > 5:
-            other_hours = sum(h for _, h in sorted_projects[5:])
-            project_summary.append(
-                {
-                    "project_id": "others",
-                    "project_code": "기타",
-                    "project_name": f"{len(sorted_projects) - 5}개 프로젝트",
-                    "hours": float(other_hours),
-                }
-            )
-
-        # Project vs Functional ratio
-        project_func_ratio = {"Project": 0.0, "Functional": 0.0}
-        for pid, hours in project_hours.items():
-            cat = projects_map.get(pid, {}).get("category", "PROJECT")
-            if cat == "FUNCTIONAL":
-                project_func_ratio["Functional"] += hours
+        for pid, hours in sorted_projects:
+            if pid is None:
+                # Team-internal work (no project)
+                project_summary.append(
+                    {
+                        "project_id": None,
+                        "project_code": "TEAM",
+                        "project_name": "팀 업무",
+                        "category": "TEAM",  # Special category for team-internal work
+                        "hours": float(hours),
+                    }
+                )
             else:
-                project_func_ratio["Project"] += hours
+                proj = projects_map.get(pid, {})
+                project_summary.append(
+                    {
+                        "project_id": pid,
+                        "project_code": proj.get("code", ""),
+                        "project_name": proj.get("name", ""),
+                        "category": proj.get("category", "PRODUCT"),  # Include category
+                        "hours": float(hours),
+                    }
+                )
+
+        # Category-based hours distribution (Product, Functional, Support, TeamInternal)
+        category_hours = {
+            "Product": 0.0,
+            "Functional": 0.0,
+            "Support": 0.0,
+            "TeamInternal": 0.0,  # project_id가 NULL인 경우
+        }
+        for pid, hours in project_hours.items():
+            if pid is None:
+                category_hours["TeamInternal"] += hours
+            else:
+                cat = projects_map.get(pid, {}).get("category", "PRODUCT")
+                if cat == "FUNCTIONAL":
+                    category_hours["Functional"] += hours
+                elif cat == "SUPPORT":
+                    category_hours["Support"] += hours
+                else:  # PRODUCT 또는 기타
+                    category_hours["Product"] += hours
+
+        # Legacy compatibility: project_vs_functional (Project = Product, Functional = Functional + Support + TeamInternal)
+        project_func_ratio = {
+            "Project": category_hours["Product"],
+            "Functional": category_hours["Functional"] + category_hours["Support"] + category_hours["TeamInternal"],
+        }
 
         # Member contributions
         member_contributions = []
@@ -455,7 +492,8 @@ class DashboardService:
             "team_worklogs": {
                 "total_hours": float(total_team_hours),
                 "by_project": project_summary,
-                "project_vs_functional": project_func_ratio,
+                "project_vs_functional": project_func_ratio,  # Legacy
+                "by_category": category_hours,  # New: Product, Functional, Support, TeamInternal
             },
             "member_contributions": member_contributions,
             "sub_org_contributions": sub_org_contributions,

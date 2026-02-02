@@ -32,6 +32,8 @@ from app.api.endpoints import (
     divisions,
     resource_matrix,
     ai_worklog,
+    internal_ios,
+    recharge_ios,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -49,9 +51,14 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# Ensure localhost:3004 is always allowed for development
+cors_origins = settings.cors_origins_list
+if "http://localhost:3004" not in cors_origins:
+    cors_origins.append("http://localhost:3004")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -136,6 +143,12 @@ app.include_router(
 )
 app.include_router(
     ai_worklog.router, prefix="/api/ai", tags=["AI WorkLog"]
+)
+app.include_router(
+    internal_ios.router, prefix="/api/internal-ios", tags=["Internal IOs"]
+)
+app.include_router(
+    recharge_ios.router, prefix="/api/recharge-ios", tags=["Recharge IOs"]
 )
 
 

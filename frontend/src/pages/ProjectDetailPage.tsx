@@ -39,7 +39,6 @@ import {
   ArrowLeft,
   DollarSign,
   RefreshCw,
-  Folder,
   TrendingUp,
   BarChart3,
   Info
@@ -330,7 +329,7 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Project Details Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">{project.name} ({project.code})</CardTitle>
+          <CardTitle className="text-2xl font-bold">{project.name} {project.internal_io?.io_number && `(${project.internal_io.io_number})`}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
@@ -428,16 +427,6 @@ export const ProjectDetailPage: React.FC = () => {
                     'bg-gray-100 text-gray-500 border border-gray-200'
                   }`}>
                     {project.recharge_status || 'Not Set'}
-                  </span>
-                </PropertyRow>
-
-                <PropertyRow icon={Folder} label="IO Category">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
-                    project.io_category_code
-                      ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                      : 'bg-gray-100 text-gray-500 border border-gray-200'
-                  }`}>
-                    {project.io_category_code || 'Not Set'}
                   </span>
                 </PropertyRow>
 

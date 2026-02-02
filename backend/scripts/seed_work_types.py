@@ -299,19 +299,6 @@ L2_CATEGORIES = {
     ],
     "ABS": [
         {"code": "ABS-LVE", "name": "Leave", "name_ko": "휴가", "sort_order": 1},
-        {"code": "ABS-SIC", "name": "Sick Leave", "name_ko": "병가", "sort_order": 2},
-        {
-            "code": "ABS-TRN",
-            "name": "Training Leave",
-            "name_ko": "교육휴가",
-            "sort_order": 3,
-        },
-        {
-            "code": "ABS-ETC",
-            "name": "Other Absence",
-            "name_ko": "기타부재",
-            "sort_order": 4,
-        },
     ],
 }
 

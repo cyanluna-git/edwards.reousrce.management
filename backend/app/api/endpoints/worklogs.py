@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.utils import get_io_number
 from app.schemas.worklog import (
     WorkLog,
     WorkLogCreate,
@@ -63,7 +64,7 @@ async def list_worklogs(
             "is_business_trip": wl.is_business_trip,
             "created_at": wl.created_at,
             "updated_at": wl.updated_at,
-            "project_code": wl.project.code if wl.project else None,
+            "project_code": get_io_number(wl.project) if wl.project else None,
             "project_name": wl.project.name if wl.project else None,
             "project": wl.project,
             "work_type_category": (
@@ -137,7 +138,7 @@ async def list_worklogs_table(
             "is_business_trip": wl.is_business_trip,
             "created_at": wl.created_at,
             "updated_at": wl.updated_at,
-            "project_code": wl.project.code if wl.project else None,
+            "project_code": get_io_number(wl.project) if wl.project else None,
             "project_name": wl.project.name if wl.project else None,
             "user_name": wl.user.name if wl.user else None,
             "user_korean_name": wl.user.korean_name if wl.user else None,
@@ -176,7 +177,7 @@ async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db
             "is_business_trip": new_worklog.is_business_trip,
             "created_at": new_worklog.created_at,
             "updated_at": new_worklog.updated_at,
-            "project_code": new_worklog.project.code if new_worklog.project else None,
+            "project_code": get_io_number(new_worklog.project) if new_worklog.project else None,
             "project_name": new_worklog.project.name if new_worklog.project else None,
             "project": new_worklog.project,
         }
@@ -222,7 +223,7 @@ async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
         "is_business_trip": worklog.is_business_trip,
         "created_at": worklog.created_at,
         "updated_at": worklog.updated_at,
-        "project_code": worklog.project.code if worklog.project else None,
+        "project_code": get_io_number(worklog.project) if worklog.project else None,
         "project_name": worklog.project.name if worklog.project else None,
         "project": worklog.project,
     }
@@ -260,7 +261,7 @@ async def update_worklog(
             "created_at": updated_worklog.created_at,
             "updated_at": updated_worklog.updated_at,
             "project_code": (
-                updated_worklog.project.code if updated_worklog.project else None
+                get_io_number(updated_worklog.project) if updated_worklog.project else None
             ),
             "project_name": (
                 updated_worklog.project.name if updated_worklog.project else None
@@ -311,7 +312,7 @@ async def copy_last_week_worklogs(
                 "is_business_trip": wl.is_business_trip,
                 "created_at": wl.created_at,
                 "updated_at": wl.updated_at,
-                "project_code": wl.project.code if wl.project else None,
+                "project_code": get_io_number(wl.project) if wl.project else None,
                 "project_name": wl.project.name if wl.project else None,
                 "project": wl.project,
             }
