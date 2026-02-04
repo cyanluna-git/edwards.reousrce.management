@@ -19,7 +19,7 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       const response = await loginUser(email, password);
-      login(response.access_token);
+      login(response.access_token, response.refresh_token);
       // The redirection will be handled by the App component
     } catch (err: any) {
       console.error(err);

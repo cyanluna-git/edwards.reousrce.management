@@ -10,6 +10,7 @@ class Token(BaseModel):
     """JWT Token response"""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 
@@ -65,6 +66,6 @@ class PasswordChangeResponse(BaseModel):
 
 
 class TokenRefreshRequest(BaseModel):
-    """Token refresh request - uses current token from header"""
+    """Token refresh request - uses refresh token"""
 
-    pass
+    refresh_token: str

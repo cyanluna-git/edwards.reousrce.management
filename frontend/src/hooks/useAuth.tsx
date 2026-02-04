@@ -4,11 +4,12 @@ import { apiClient } from '@/api/client';
 import type { User } from '@/types';
 
 const AUTH_TOKEN_KEY = 'authToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (token: string) => void;
+  login: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsAuthenticated(false);
       localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
   };
 
@@ -41,14 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (token: string) => {
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
+  const login = (accessToken: string, refreshToken: string) => {
+    localStorage.setItem(AUTH_TOKEN_KEY, accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
     setIsAuthenticated(true);
     fetchCurrentUser();
   };
 
   const logout = () => {
     localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
     setIsAuthenticated(false);
     setUser(null);
   };
