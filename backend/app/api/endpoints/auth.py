@@ -196,7 +196,17 @@ async def change_password(
 
     # Update password
     current_user.hashed_password = get_password_hash(password_data.new_password)
+    db.add(current_user)
+    db.flush()
     db.commit()
+
+    # Verify the change persisted
+    db.refresh(current_user)
+    if not verify_password(password_data.new_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Password change failed to persist. Please try again.",
+        )
 
     return PasswordChangeResponse(
         message="Password changed successfully",

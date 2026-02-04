@@ -52,11 +52,13 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't try to refresh if the failing request is the refresh endpoint itself
-      if (originalRequest.url === '/auth/refresh') {
-        localStorage.removeItem(AUTH_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        window.location.href = '/login';
+      // Don't try to refresh for auth endpoints that handle their own 401s
+      if (originalRequest.url === '/auth/refresh' || originalRequest.url === '/auth/login') {
+        if (originalRequest.url === '/auth/refresh') {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          localStorage.removeItem(REFRESH_TOKEN_KEY);
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
 
