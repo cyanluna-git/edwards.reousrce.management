@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { MainLayout } from './components/layout';
-import { LoginPage } from './pages';
+import { LandingPage, LoginPage } from './pages';
 
 import './App.css';
 
@@ -60,8 +60,9 @@ function App() {
           </Route>
         ) : (
           <>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="*" element={<Navigate to="/login" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </>
         )}
       </Routes>

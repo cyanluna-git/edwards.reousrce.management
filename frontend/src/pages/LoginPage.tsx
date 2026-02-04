@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loginUser } from '@/api/client';
-import { BarChart3, Mail, Lock, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BarChart3, Mail, Lock, Loader2, Info } from 'lucide-react';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -141,7 +142,14 @@ export function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 text-center">
+          <div className="mt-8 text-center space-y-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+              포털 소개
+            </Link>
             <p className="text-xs text-slate-500">
               &copy; {new Date().getFullYear()} Edwards Korea Engineering. All rights reserved.
             </p>
