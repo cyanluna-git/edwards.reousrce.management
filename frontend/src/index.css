@@ -73,3 +73,41 @@ tbody.virtualized {
   content-visibility: auto;
   contain-intrinsic-size: auto 400px;
 }
+
+/* Landing page animations */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+.fade-in-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes bounce-down {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-bounce-down {
+  animation: bounce-down 1.5s ease-in-out infinite;
+}
+
+/* Accessibility: respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .animate-bounce-down {
+    animation: none;
+  }
+}

@@ -2,19 +2,22 @@
 Service layer for worklog-related business logic
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import date, timedelta
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, cast, Date
 
 from app.models.resource import WorkLog
 from app.models.project import Project
+from app.models.work_type import WorkTypeCategory
 from app.utils import get_io_number
 from app.schemas.worklog import (
     WorkLogCreate,
     WorkLogUpdate,
     DailySummary,
     ProjectSummary,
+    FrequentItem,
+    FrequentSelections,
 )
 
 
@@ -232,6 +235,91 @@ class WorkLogService:
                 self.db.refresh(wl)
 
         return new_worklogs
+
+    def get_frequent_selections(
+        self, user_id: str, limit: int = 5, days: int = 90
+    ) -> FrequentSelections:
+        """Get user's most frequently used work types and projects from worklog history."""
+        cutoff_date = date.today() - timedelta(days=days)
+
+        # Frequent work types
+        wt_rows = (
+            self.db.query(
+                WorkLog.work_type_category_id,
+                func.count().label("cnt"),
+            )
+            .filter(
+                WorkLog.user_id == user_id,
+                WorkLog.work_type_category_id.isnot(None),
+                cast(WorkLog.date, Date) >= cutoff_date,
+            )
+            .group_by(WorkLog.work_type_category_id)
+            .order_by(func.count().desc())
+            .limit(limit)
+            .all()
+        )
+
+        # Fetch category names
+        wt_ids = [row[0] for row in wt_rows]
+        wt_labels: Dict[int, str] = {}
+        if wt_ids:
+            cats = (
+                self.db.query(WorkTypeCategory)
+                .filter(WorkTypeCategory.id.in_(wt_ids))
+                .all()
+            )
+            for cat in cats:
+                wt_labels[cat.id] = cat.name_ko or cat.name
+
+        work_types = [
+            FrequentItem(
+                id=str(row[0]),
+                label=wt_labels.get(row[0], "Unknown"),
+                count=row[1],
+            )
+            for row in wt_rows
+        ]
+
+        # Frequent projects (including product_line selections)
+        proj_rows = (
+            self.db.query(
+                WorkLog.project_id,
+                func.count().label("cnt"),
+            )
+            .filter(
+                WorkLog.user_id == user_id,
+                WorkLog.project_id.isnot(None),
+                cast(WorkLog.date, Date) >= cutoff_date,
+            )
+            .group_by(WorkLog.project_id)
+            .order_by(func.count().desc())
+            .limit(limit)
+            .all()
+        )
+
+        # Fetch project names
+        proj_ids = [row[0] for row in proj_rows]
+        proj_labels: Dict[str, str] = {}
+        if proj_ids:
+            projs = (
+                self.db.query(Project)
+                .filter(Project.id.in_(proj_ids))
+                .all()
+            )
+            for p in projs:
+                io = get_io_number(p)
+                proj_labels[p.id] = f"{io} - {p.name}" if io else p.name
+
+        projects = [
+            FrequentItem(
+                id=str(row[0]),
+                label=proj_labels.get(row[0], "Unknown"),
+                count=row[1],
+            )
+            for row in proj_rows
+        ]
+
+        return FrequentSelections(work_types=work_types, projects=projects)
 
     def get_daily_summary(self, user_id: str, target_date: date) -> DailySummary:
         """Get daily worklog summary for a user."""

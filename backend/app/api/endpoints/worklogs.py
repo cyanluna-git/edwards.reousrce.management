@@ -17,6 +17,7 @@ from app.schemas.worklog import (
     DailySummary,
     CopyWeekRequest,
     WorkLogWithUser,
+    FrequentSelections,
 )
 from app.services.worklog_service import WorkLogService
 
@@ -183,6 +184,23 @@ async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db
         }
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/frequent", response_model=FrequentSelections)
+async def get_frequent_selections(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+    limit: int = Query(5, ge=1, le=10),
+    days: int = Query(90, ge=7, le=365),
+):
+    """
+    Get user's most frequently used work types and projects
+    based on worklog history within the specified number of days.
+    """
+    service = WorkLogService(db)
+    return service.get_frequent_selections(
+        user_id=current_user.id, limit=limit, days=days
+    )
 
 
 @router.get("/summary/daily", response_model=DailySummary)

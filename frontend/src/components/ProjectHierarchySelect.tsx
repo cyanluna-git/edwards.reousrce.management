@@ -7,11 +7,12 @@
  * 3. Support project selection (non-project regular work with auto-routing)
  * 4. No selection (general team work)
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProjectHierarchy, useProductLineHierarchy, HierarchyNode } from '@/hooks/useProjectHierarchy';
 import { useAuth } from '@/hooks/useAuth';
 import { useRechargeIOsByBusinessUnit } from '@/hooks/useRechargeIOs';
-import { ChevronDown, ChevronRight, Folder, Package, Briefcase, Building2, Wrench, Info } from 'lucide-react';
+import { useFrequentSelections } from '@/hooks/useFrequentSelections';
+import { ChevronDown, ChevronRight, Folder, Package, Briefcase, Building2, Wrench, Info, Clock } from 'lucide-react';
 
 export type SelectionMode = 'project' | 'product_line' | 'support' | 'none';
 
@@ -46,6 +47,7 @@ export function ProjectHierarchySelect({
     const userPrimaryBuId = user?.primary_business_unit_id;
     const { data: buRechargeIOs } = useRechargeIOsByBusinessUnit(userPrimaryBuId);
 
+    const { topItems } = useFrequentSelections('project', user?.id);
 
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -53,6 +55,34 @@ export function ProjectHierarchySelect({
     const [selectionMode, setSelectionMode] = useState<SelectionMode>(
         projectId ? 'project' : productLineId ? 'product_line' : 'none'
     );
+
+    // Collect all non-leaf node IDs for expand-all
+    const allParentNodeIds = useMemo(() => {
+        const ids: string[] = [];
+        const collectIds = (nodes: HierarchyNode[]) => {
+            for (const node of nodes) {
+                if (node.children && node.children.length > 0) {
+                    ids.push(node.id);
+                    collectIds(node.children);
+                }
+            }
+        };
+        if (projectHierarchy) {
+            collectIds(projectHierarchy.product_projects);
+            collectIds(projectHierarchy.functional_projects);
+        }
+        if (productLineHierarchy) {
+            collectIds(productLineHierarchy);
+        }
+        return ids;
+    }, [projectHierarchy, productLineHierarchy]);
+
+    // Expand all nodes when dropdown opens
+    useEffect(() => {
+        if (isOpen && allParentNodeIds.length > 0) {
+            setExpandedNodes(new Set(allParentNodeIds));
+        }
+    }, [isOpen, allParentNodeIds]);
 
     // Find selected item name
     const selectedName = useMemo(() => {
@@ -94,6 +124,41 @@ export function ProjectHierarchySelect({
         return null;
     }, [projectId, productLineId, projectHierarchy, productLineHierarchy]);
 
+    // Build a lookup for valid project/product-line IDs with their display info
+    const validItemLookup = useMemo(() => {
+        const lookup = new Map<string, { type: 'project' | 'product_line' | 'support'; name: string; node: HierarchyNode; category?: string }>();
+        if (projectHierarchy) {
+            for (const bu of projectHierarchy.product_projects) {
+                for (const pl of bu.children || []) {
+                    for (const proj of pl.children || []) {
+                        lookup.set(proj.id, { type: 'project', name: `${proj.code} - ${proj.name}`, node: proj });
+                    }
+                }
+            }
+            for (const dept of projectHierarchy.functional_projects) {
+                for (const proj of dept.children || []) {
+                    lookup.set(proj.id, { type: 'project', name: `${proj.code} - ${proj.name}`, node: proj });
+                }
+            }
+            for (const proj of projectHierarchy.support_projects || []) {
+                lookup.set(proj.id, { type: 'support', name: proj.name, node: proj, category: 'SUPPORT' });
+            }
+        }
+        if (productLineHierarchy) {
+            for (const bu of productLineHierarchy) {
+                for (const pl of bu.children || []) {
+                    lookup.set(pl.id, { type: 'product_line', name: pl.name, node: pl });
+                }
+            }
+        }
+        return lookup;
+    }, [projectHierarchy, productLineHierarchy]);
+
+    // Frequent items filtered to only those existing in current hierarchy
+    const validFrequentItems = useMemo(() => {
+        return topItems.filter(item => validItemLookup.has(item.id));
+    }, [topItems, validItemLookup]);
+
     const toggleNode = (nodeId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setExpandedNodes(prev => {
@@ -108,7 +173,8 @@ export function ProjectHierarchySelect({
     };
 
     const handleSelectProject = (project: HierarchyNode, category?: string) => {
-        onProjectChange(project.id, `${project.code} - ${project.name}`, category);
+        const displayName = `${project.code} - ${project.name}`;
+        onProjectChange(project.id, displayName, category);
         onProductLineChange(null);
         setSelectionMode(category === 'SUPPORT' ? 'support' : 'project');
         setIsOpen(false);
@@ -129,6 +195,18 @@ export function ProjectHierarchySelect({
         setSelectionMode('product_line');
         setIsOpen(false);
         setSearchTerm('');
+    };
+
+    const handleFrequentClick = (id: string) => {
+        const info = validItemLookup.get(id);
+        if (!info) return;
+        if (info.type === 'product_line') {
+            handleSelectProductLine(info.node);
+        } else if (info.type === 'support') {
+            handleSelectSupportProject(info.node);
+        } else {
+            handleSelectProject(info.node);
+        }
     };
 
     const handleSelectNone = () => {
@@ -193,15 +271,11 @@ export function ProjectHierarchySelect({
     const findMatchingRechargeIO = (supportProjectName: string) => {
         if (!buRechargeIOs || buRechargeIOs.length === 0) return null;
 
-        // Extract the key part of the support project name for matching
-        // e.g., "SUN Operations Support" should match "[ABT/IS] SUN Operations Support"
         const normalizedName = supportProjectName.toLowerCase().trim();
 
         return buRechargeIOs.find(io => {
             const ioName = io.name?.toLowerCase() || '';
-            // Check if RechargeIO name contains the support project name
             return ioName.includes(normalizedName) ||
-                // Also check reverse: support name contains key parts of IO name
                 normalizedName.split(' ').every(word =>
                     word.length <= 3 || ioName.includes(word)
                 );
@@ -355,6 +429,38 @@ export function ProjectHierarchySelect({
                                 autoFocus
                             />
                         </div>
+
+                        {/* Frequent Selections */}
+                        {!searchTerm && validFrequentItems.length > 0 && (
+                            <div className="px-3 py-2 border-b bg-slate-50/80">
+                                <div className="flex items-center gap-1 mb-1.5">
+                                    <Clock className="h-3 w-3 text-slate-400" />
+                                    <span className="text-xs text-slate-400 font-medium">자주 사용</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                    {validFrequentItems.map(item => {
+                                        const info = validItemLookup.get(item.id);
+                                        const isSelected =
+                                            (info?.type === 'product_line' && productLineId === item.id) ||
+                                            (info?.type !== 'product_line' && projectId === item.id);
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                type="button"
+                                                onClick={() => handleFrequentClick(item.id)}
+                                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${
+                                                    isSelected
+                                                        ? 'bg-blue-100 border-blue-300 text-blue-700'
+                                                        : 'bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200'
+                                                }`}
+                                            >
+                                                {item.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="max-h-[340px] overflow-y-auto">
                             {/* Product Projects Section */}

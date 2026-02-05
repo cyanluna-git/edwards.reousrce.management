@@ -34,6 +34,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     setTeamViewMode: _setTeamViewMode,
     dateRange,
 }) => {
+    void _setTeamViewMode; // Reserved for future use
     const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange);
 
     // IMPORTANT: useMemo must be called BEFORE any early returns to satisfy Rules of Hooks

@@ -12,8 +12,32 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.services.dashboard_service import DashboardService
 from app.services.summary_service import SummaryService
+from app.schemas.dashboard import MyFTEResponse
 
 router = APIRouter()
+
+
+@router.get("/my-fte", response_model=MyFTEResponse)
+async def get_my_fte(
+    year: int = Query(..., description="Year (e.g., 2026)"),
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get user's FTE breakdown for a specific month.
+    Compares planned FTE (from ResourcePlan) vs actual FTE (from WorkLog).
+
+    Categories:
+    - **Product/Functional**: Shows planned vs actual comparison
+      - Planned: Projects with ResourcePlan entries
+      - Unplanned: Projects with worklogs but no ResourcePlan
+    - **Support**: Only shows actual FTE (ad-hoc nature, no planning expected)
+
+    FTE calculation: hours / 160 (standard working hours per month)
+    """
+    service = DashboardService(db)
+    return service.get_my_fte(str(current_user.id), year, month)
 
 
 @router.get("/my-summary")
