@@ -439,6 +439,38 @@ export const getTeamDashboard = async (
   return response.data;
 };
 
+// My FTE Types
+export interface MyFTEProjectItem {
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  category: 'PRODUCT' | 'FUNCTIONAL' | 'SUPPORT';
+  planned_fte: number | null;
+  actual_fte: number;
+  utilization_percent: number | null;
+}
+
+export interface MyFTEResponse {
+  year: number;
+  month: number;
+  working_hours_per_month: number;
+  summary: {
+    planned_fte: number;
+    actual_fte: number;
+    utilization_percent: number | null;
+  };
+  product_functional: {
+    planned: MyFTEProjectItem[];
+    unplanned: MyFTEProjectItem[];
+  };
+  support: MyFTEProjectItem[];
+}
+
+export const getMyFTE = async (year: number, month: number): Promise<MyFTEResponse> => {
+  const response = await apiClient.get(`/dashboard/my-fte?year=${year}&month=${month}`);
+  return response.data;
+};
+
 // ============ Job Positions API ============
 
 export interface JobPositionCreate {

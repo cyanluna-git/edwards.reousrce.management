@@ -11,6 +11,7 @@ import { Construction } from 'lucide-react';
 import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
+import { MyFTECard } from '@/components/dashboard/MyFTECard';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
@@ -950,52 +951,13 @@ export const DashboardPage: React.FC = () => {
                         </Card>
                     )}
 
-
-                    {/* My Projects Timeline */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>참여 프로젝트 현황</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {data.my_projects.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">참여 중인 프로젝트가 없습니다.</div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {data.my_projects.map(project => (
-                                        <div key={project.id} className="border rounded-lg p-4">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-medium">{project.code} - {project.name}</h3>
-                                                    <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${project.status === 'WIP' ? 'bg-green-100 text-green-700' :
-                                                        project.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                                                            project.status === 'Hold' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
-                                                        }`}>
-                                                        {project.status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {project.milestones.length > 0 && (
-                                                <div className="flex gap-4 mt-3 text-sm">
-                                                    {project.milestones.map((m, idx) => (
-                                                        <div key={idx} className="flex items-center gap-2">
-                                                            <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${m.status === 'Completed' ? 'bg-green-500 text-white' :
-                                                                m.status === 'At risk' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
-                                                                }`}>
-                                                                {m.name.substring(0, 2)}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {m.target_date ? format(new Date(m.target_date), 'yy-MMM') : '-'}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* My FTE Card - Monthly View */}
+                    {viewMode === 'monthly' && (
+                        <MyFTECard
+                            year={currentDate.getFullYear()}
+                            month={currentDate.getMonth() + 1}
+                        />
+                    )}
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-6">
