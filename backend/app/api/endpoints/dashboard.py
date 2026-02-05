@@ -3,6 +3,7 @@ Dashboard API endpoints
 """
 
 from datetime import date, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -11,8 +12,32 @@ from app.core.security import get_current_user
 from app.models.user import User
 from app.services.dashboard_service import DashboardService
 from app.services.summary_service import SummaryService
+from app.schemas.dashboard import MyFTEResponse
 
 router = APIRouter()
+
+
+@router.get("/my-fte", response_model=MyFTEResponse)
+async def get_my_fte(
+    year: int = Query(..., description="Year (e.g., 2026)"),
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get user's FTE breakdown for a specific month.
+    Compares planned FTE (from ResourcePlan) vs actual FTE (from WorkLog).
+
+    Categories:
+    - **Product/Functional**: Shows planned vs actual comparison
+      - Planned: Projects with ResourcePlan entries
+      - Unplanned: Projects with worklogs but no ResourcePlan
+    - **Support**: Only shows actual FTE (ad-hoc nature, no planning expected)
+
+    FTE calculation: hours / 160 (standard working hours per month)
+    """
+    service = DashboardService(db)
+    return service.get_my_fte(str(current_user.id), year, month)
 
 
 @router.get("/my-summary")
@@ -41,6 +66,14 @@ async def get_team_dashboard(
         "weekly",
         description="기간 모드: weekly, monthly, quarterly, yearly",
     ),
+    start_date: Optional[date] = Query(
+        None,
+        description="시작 날짜 (YYYY-MM-DD). 제공되지 않으면 view_mode로 계산",
+    ),
+    end_date: Optional[date] = Query(
+        None,
+        description="종료 날짜 (YYYY-MM-DD). 제공되지 않으면 view_mode로 계산",
+    ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -57,9 +90,23 @@ async def get_team_dashboard(
         - monthly: 이번 달
         - quarterly: 이번 분기
         - yearly: 올해
+    - **start_date**: 시작 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
+    - **end_date**: 종료 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
     """
-    service = DashboardService(db)
-    return service.get_team_dashboard(current_user.id, scope, view_mode)
+    try:
+        service = DashboardService(db)
+        return service.get_team_dashboard(
+            str(current_user.id), scope, view_mode, start_date, end_date
+        )
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] get_team_dashboard failed: {str(e)}")
+        print(traceback.format_exc())
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get team dashboard: {str(e)}"
+        )
 
 
 @router.get("/ai-summary/user")

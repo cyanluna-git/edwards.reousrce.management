@@ -2,7 +2,7 @@
 Dashboard Service for personal dashboard data
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
@@ -12,11 +12,184 @@ from app.models.organization import Department, SubTeam
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
 from app.utils import get_io_number
+from app.schemas.dashboard import (
+    MyFTEResponse,
+    MyFTESummary,
+    MyFTEProductFunctional,
+    MyFTEProjectItem,
+)
+
+
+WORKING_HOURS_PER_MONTH = 160  # Standard FTE = 160 hours/month
 
 
 class DashboardService:
     def __init__(self, db: Session):
         self.db = db
+
+    def get_my_fte(self, user_id: str, year: int, month: int) -> MyFTEResponse:
+        """
+        Get user's FTE breakdown for a specific month.
+
+        FTE Calculation (same as Resource Matrix):
+            FTE = (Project Hours) / (Total Project Hours excluding Team Work)
+
+        This ensures each user's total FTE across all projects sums to 1.0
+        """
+        from calendar import monthrange
+
+        # Calculate month date range
+        _, last_day = monthrange(year, month)
+        month_start = date(year, month, 1)
+        month_end = date(year, month, last_day)
+
+        # 1. Get ResourcePlans for this user/month (planned FTE - normalized)
+        resource_plans = (
+            self.db.query(ResourcePlan)
+            .options(joinedload(ResourcePlan.project))
+            .filter(
+                and_(
+                    ResourcePlan.user_id == user_id,
+                    ResourcePlan.year == year,
+                    ResourcePlan.month == month,
+                )
+            )
+            .all()
+        )
+
+        # Build planned hours map: project_id -> planned_hours
+        planned_map: dict[str, float] = {}
+        planned_projects: dict[str, Project] = {}
+        for rp in resource_plans:
+            pid = rp.project_id
+            planned_map[pid] = planned_map.get(pid, 0) + (rp.planned_hours or 0)
+            if rp.project:
+                planned_projects[pid] = rp.project
+
+        # Total planned hours for normalization
+        total_planned_hours = sum(planned_map.values())
+
+        # 2. Get WorkLogs for this user/month (actual hours)
+        # Exclude Team work (project_id IS NULL)
+        worklogs = (
+            self.db.query(
+                WorkLog.project_id,
+                func.sum(WorkLog.hours).label("total_hours"),
+            )
+            .filter(
+                and_(
+                    WorkLog.user_id == user_id,
+                    WorkLog.date >= month_start,
+                    WorkLog.date <= month_end,
+                    WorkLog.project_id.isnot(None),  # Exclude Team work (no project)
+                )
+            )
+            .group_by(WorkLog.project_id)
+            .all()
+        )
+
+        # Build actual hours map: project_id -> actual_hours
+        actual_map: dict[str, float] = {}
+        for wl in worklogs:
+            actual_map[wl.project_id] = float(wl.total_hours or 0)
+
+        # Total actual project hours for normalization (denominator)
+        total_actual_hours = sum(actual_map.values())
+
+        # 3. Get project details for projects in actual_map but not in planned_map
+        unplanned_project_ids = [
+            pid for pid in actual_map.keys() if pid not in planned_projects
+        ]
+        if unplanned_project_ids:
+            unplanned_projects = (
+                self.db.query(Project)
+                .filter(Project.id.in_(unplanned_project_ids))
+                .all()
+            )
+            for proj in unplanned_projects:
+                planned_projects[proj.id] = proj
+
+        # 4. Categorize and build response items
+        product_functional_planned: list[MyFTEProjectItem] = []
+        product_functional_unplanned: list[MyFTEProjectItem] = []
+        support_items: list[MyFTEProjectItem] = []
+
+        # All project IDs (union of planned and actual)
+        all_project_ids = set(planned_map.keys()) | set(actual_map.keys())
+
+        for pid in all_project_ids:
+            project = planned_projects.get(pid)
+            if not project:
+                continue
+
+            planned_hours = planned_map.get(pid, 0)
+            actual_hours = actual_map.get(pid, 0)
+
+            # Calculate normalized FTE (same as Resource Matrix)
+            # planned_fte = project planned hours / total planned hours
+            # actual_fte = project actual hours / total actual hours
+            planned_fte = None
+            if total_planned_hours > 0 and planned_hours > 0:
+                planned_fte = planned_hours / total_planned_hours
+
+            actual_fte = 0.0
+            if total_actual_hours > 0:
+                actual_fte = actual_hours / total_actual_hours
+
+            # Skip projects where both planned and actual FTE round to 0.00
+            rounded_planned = round(planned_fte, 2) if planned_fte else 0
+            rounded_actual = round(actual_fte, 2)
+            if rounded_planned == 0 and rounded_actual == 0:
+                continue
+
+            # Calculate utilization (only if planned > 0)
+            # Utilization = actual_fte / planned_fte * 100
+            utilization = None
+            if planned_fte and planned_fte > 0:
+                utilization = round((actual_fte / planned_fte) * 100, 1)
+
+            category = (project.category or "PRODUCT").upper()
+            item = MyFTEProjectItem(
+                project_id=pid,
+                project_code=get_io_number(project),
+                project_name=project.name or "",
+                category=category,
+                planned_fte=round(planned_fte, 2) if planned_fte else None,
+                actual_fte=round(actual_fte, 2),
+                utilization_percent=utilization,
+            )
+
+            if category == "SUPPORT":
+                support_items.append(item)
+            elif planned_hours > 0:
+                product_functional_planned.append(item)
+            else:
+                product_functional_unplanned.append(item)
+
+        # Sort by actual_fte descending
+        product_functional_planned.sort(key=lambda x: x.actual_fte, reverse=True)
+        product_functional_unplanned.sort(key=lambda x: x.actual_fte, reverse=True)
+        support_items.sort(key=lambda x: x.actual_fte, reverse=True)
+
+        # 5. Calculate summary
+        # Total FTE should be 1.0 (100% of project time)
+        summary = MyFTESummary(
+            planned_fte=1.0 if total_planned_hours > 0 else 0.0,
+            actual_fte=1.0 if total_actual_hours > 0 else 0.0,
+            utilization_percent=None,  # N/A for normalized FTE
+        )
+
+        return MyFTEResponse(
+            year=year,
+            month=month,
+            working_hours_per_month=WORKING_HOURS_PER_MONTH,
+            summary=summary,
+            product_functional=MyFTEProductFunctional(
+                planned=product_functional_planned,
+                unplanned=product_functional_unplanned,
+            ),
+            support=support_items,
+        )
 
     def get_my_dashboard(self, user_id: str) -> dict:
         """Get personal dashboard data for the current user"""
@@ -147,7 +320,8 @@ class DashboardService:
         }
 
     def get_team_dashboard(
-        self, user_id: str, scope: str = "department", view_mode: str = "weekly"
+        self, user_id: str, scope: str = "department", view_mode: str = "weekly",
+        start_date: Optional[date] = None, end_date: Optional[date] = None
     ) -> dict:
         """
         Get team dashboard data based on user's organization.
@@ -178,30 +352,38 @@ class DashboardService:
             return {}
 
         # Get department through sub_team
-        user_department = user.sub_team.department if user.sub_team else None
-        user_department_id = user_department.id if user_department else None
+        user_department = None
+        user_department_id = None
+        if user.sub_team:
+            user_department = user.sub_team.department
+            if user_department:
+                user_department_id = user_department.id
 
         # Date range calculation
+        # Always define today for later use
         today = datetime.now().date()
-        if view_mode == "weekly":
-            start_date = today - timedelta(days=today.weekday())
-            end_date = start_date + timedelta(days=6)
-        elif view_mode == "monthly":
-            start_date = today.replace(day=1)
-            next_month = today.replace(day=28) + timedelta(days=4)
-            end_date = next_month.replace(day=1) - timedelta(days=1)
-        elif view_mode == "quarterly":
-            quarter = (today.month - 1) // 3
-            start_date = today.replace(month=quarter * 3 + 1, day=1)
-            if quarter == 3:
+        
+        # If start_date and end_date are provided, use them; otherwise calculate from view_mode
+        if start_date is None or end_date is None:
+            if view_mode == "weekly":
+                start_date = today - timedelta(days=today.weekday())
+                end_date = start_date + timedelta(days=6)
+            elif view_mode == "monthly":
+                start_date = today.replace(day=1)
+                next_month = today.replace(day=28) + timedelta(days=4)
+                end_date = next_month.replace(day=1) - timedelta(days=1)
+            elif view_mode == "quarterly":
+                quarter = (today.month - 1) // 3
+                start_date = today.replace(month=quarter * 3 + 1, day=1)
+                if quarter == 3:
+                    end_date = today.replace(month=12, day=31)
+                else:
+                    end_date = today.replace(
+                        month=(quarter + 1) * 3 + 1, day=1
+                    ) - timedelta(days=1)
+            else:  # yearly
+                start_date = today.replace(month=1, day=1)
                 end_date = today.replace(month=12, day=31)
-            else:
-                end_date = today.replace(
-                    month=(quarter + 1) * 3 + 1, day=1
-                ) - timedelta(days=1)
-        else:  # yearly
-            start_date = today.replace(month=1, day=1)
-            end_date = today.replace(month=12, day=31)
 
         # Determine team members based on scope
         team_query = self.db.query(User).filter(User.is_active == True)
@@ -221,7 +403,7 @@ class DashboardService:
             team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
             team_name = user_department.name if user_department else "Unknown"
             team_code = user_department.code if user_department else ""
-        elif scope == "business_unit" and user_department:
+        elif scope == "business_unit" and user_department and user_department.division_id:
             # Get all departments in the same division, then all sub_teams
             dept_ids = [
                 d.id

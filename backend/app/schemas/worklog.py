@@ -92,6 +92,21 @@ class CopyWeekRequest(BaseModel):
     target_week_start: date  # Monday of target week
 
 
+class FrequentItem(BaseModel):
+    """Frequently used item (work type or project)"""
+
+    id: str
+    label: str
+    count: int
+
+
+class FrequentSelections(BaseModel):
+    """Response schema for user's frequently used work types and projects"""
+
+    work_types: List[FrequentItem]
+    projects: List[FrequentItem]
+
+
 class WorkLogWithUser(WorkLog):
     """WorkLog with user information for table display"""
 

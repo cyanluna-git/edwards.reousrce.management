@@ -78,6 +78,30 @@ export const getDailySummary = async (userId: string, date: string): Promise<Dai
 };
 
 /**
+ * Frequent selections response
+ */
+export interface FrequentItem {
+    id: string;
+    label: string;
+    count: number;
+}
+
+export interface FrequentSelections {
+    work_types: FrequentItem[];
+    projects: FrequentItem[];
+}
+
+/**
+ * Get user's frequently used work types and projects
+ */
+export const getFrequentSelections = async (limit = 5, days = 90): Promise<FrequentSelections> => {
+    const response = await apiClient.get('/worklogs/frequent', {
+        params: { limit, days }
+    });
+    return response.data;
+};
+
+/**
  * WorkLog with user info for table display
  */
 export interface WorkLogWithUser extends WorkLog {

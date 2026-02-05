@@ -11,6 +11,7 @@ import { Construction } from 'lucide-react';
 import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
+import { MyFTECard } from '@/components/dashboard/MyFTECard';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
@@ -82,6 +83,7 @@ export const DashboardPage: React.FC = () => {
     // Team Dashboard state
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
+    const [teamCurrentDate, setTeamCurrentDate] = useState<Date>(new Date()); // Track current reference date for team dashboard
 
     // Calculate date ranges dynamically based on currentDate and viewMode
     const dateRange = useMemo(() => getDynamicDateRanges(currentDate, viewMode), [currentDate, viewMode]);
@@ -488,6 +490,56 @@ export const DashboardPage: React.FC = () => {
     const handleToday = () => {
         setCurrentDate(new Date());
     };
+
+    // Team Dashboard Date Navigation Handlers
+    const handleTeamPrevPeriod = () => {
+        switch (teamViewMode) {
+            case 'weekly':
+                setTeamCurrentDate(prev => subWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setTeamCurrentDate(prev => subMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setTeamCurrentDate(prev => subQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setTeamCurrentDate(prev => subYears(prev, 1));
+                break;
+        }
+    };
+
+    const handleTeamNextPeriod = () => {
+        switch (teamViewMode) {
+            case 'weekly':
+                setTeamCurrentDate(prev => addWeeks(prev, 1));
+                break;
+            case 'monthly':
+                setTeamCurrentDate(prev => addMonths(prev, 1));
+                break;
+            case 'quarterly':
+                setTeamCurrentDate(prev => addQuarters(prev, 1));
+                break;
+            case 'yearly':
+                setTeamCurrentDate(prev => addYears(prev, 1));
+                break;
+        }
+    };
+
+    const handleTeamToday = () => {
+        setTeamCurrentDate(new Date());
+    };
+
+    // Calculate team dashboard date ranges
+    const teamDateRange = useMemo(() => {
+        const teamViewModeMap: Record<DashboardViewMode, ViewMode> = {
+            'weekly': 'weekly',
+            'monthly': 'monthly',
+            'quarterly': 'quarterly',
+            'yearly': 'yearly',
+        };
+        return getDynamicDateRanges(teamCurrentDate, teamViewModeMap[teamViewMode]);
+    }, [teamCurrentDate, teamViewMode]);
 
     // Get relative period label (e.g., "이번 주", "지난주", "2주 전")
     const getRelativePeriodLabel = (mode: ViewMode): string => {
@@ -899,60 +951,50 @@ export const DashboardPage: React.FC = () => {
                         </Card>
                     )}
 
-
-                    {/* My Projects Timeline */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>참여 프로젝트 현황</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {data.my_projects.length === 0 ? (
-                                <div className="text-center py-4 text-muted-foreground">참여 중인 프로젝트가 없습니다.</div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {data.my_projects.map(project => (
-                                        <div key={project.id} className="border rounded-lg p-4">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <h3 className="font-medium">{project.code} - {project.name}</h3>
-                                                    <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded ${project.status === 'WIP' ? 'bg-green-100 text-green-700' :
-                                                        project.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                                                            project.status === 'Hold' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-700'
-                                                        }`}>
-                                                        {project.status}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            {project.milestones.length > 0 && (
-                                                <div className="flex gap-4 mt-3 text-sm">
-                                                    {project.milestones.map((m, idx) => (
-                                                        <div key={idx} className="flex items-center gap-2">
-                                                            <span className={`w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${m.status === 'Completed' ? 'bg-green-500 text-white' :
-                                                                m.status === 'At risk' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'
-                                                                }`}>
-                                                                {m.name.substring(0, 2)}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                {m.target_date ? format(new Date(m.target_date), 'yy-MMM') : '-'}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* My FTE Card - Monthly View */}
+                    {viewMode === 'monthly' && (
+                        <MyFTECard
+                            year={currentDate.getFullYear()}
+                            month={currentDate.getMonth() + 1}
+                        />
+                    )}
                 </TabsContent>
 
                 <TabsContent value="team" className="space-y-6">
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {/* Navigation Arrows */}
+                        <Button variant="outline" onClick={handleTeamPrevPeriod} size="sm" className="px-3">
+                            ←
+                        </Button>
+                        <Button variant="outline" onClick={handleTeamToday} size="sm">
+                            오늘
+                        </Button>
+                        <Button variant="outline" onClick={handleTeamNextPeriod} size="sm" className="px-3">
+                            →
+                        </Button>
+
+                        <div className="w-px h-6 bg-border mx-1" /> {/* Divider */}
+
+                        {/* Period Selection */}
+                        <Button variant={teamViewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('weekly')} size="sm">
+                            Weekly
+                        </Button>
+                        <Button variant={teamViewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('monthly')} size="sm">
+                            Monthly
+                        </Button>
+                        <Button variant={teamViewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('quarterly')} size="sm">
+                            Quarterly
+                        </Button>
+                        <Button variant={teamViewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('yearly')} size="sm">
+                            Yearly
+                        </Button>
+                    </div>
                     <TeamDashboardContent
                         teamScope={teamScope}
                         setTeamScope={setTeamScope}
                         teamViewMode={teamViewMode}
                         setTeamViewMode={setTeamViewMode}
+                        dateRange={teamDateRange}
                     />
                 </TabsContent>
 

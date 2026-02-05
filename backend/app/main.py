@@ -51,9 +51,14 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# Ensure localhost:3004 is always allowed for development
+cors_origins = settings.cors_origins_list
+if "http://localhost:3004" not in cors_origins:
+    cors_origins.append("http://localhost:3004")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -468,11 +468,77 @@ def run_db_only():
     print()
 
 
+def check_port_available(port: int) -> bool:
+    """Check if a port is available"""
+    import socket
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('localhost', port))
+            return True
+    except OSError:
+        return False
+
+
+def kill_process_on_port(port: int) -> bool:
+    """Kill process using the specified port"""
+    try:
+        import subprocess
+        import platform
+        
+        if platform.system() == "Windows":
+            # Windows
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    if len(parts) > 0:
+                        pid = parts[-1]
+                        try:
+                            subprocess.run(["taskkill", "/F", "/PID", pid], check=False)
+                            return True
+                        except:
+                            pass
+        else:
+            # macOS/Linux
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                pid = result.stdout.strip().split()[0]
+                try:
+                    subprocess.run(["kill", "-9", pid], check=False)
+                    return True
+                except:
+                    pass
+    except Exception:
+        pass
+    return False
+
+
 def run_local_backend():
     """Run backend with uvicorn locally (not in Docker)"""
     print_header("Edwards Local Backend Launcher")
 
     load_env_file()
+    
+    # Override DATABASE_URL for local execution if it points to 'db'
+    db_url = os.getenv("DATABASE_URL", "").strip()
+    db_port = os.getenv("DB_PORT", "5434").strip()
+    if "@db:5432" in db_url:
+        new_db_url = db_url.replace("@db:5432", f"@localhost:{db_port}")
+        os.environ["DATABASE_URL"] = new_db_url
+        print_colored(f"[INFO] Adjusting DATABASE_URL for local execution: {new_db_url}", Colors.YELLOW)
+    else:
+        # Even if not adjusting, ensure we use the stripped version
+        os.environ["DATABASE_URL"] = db_url
 
     print()
     print_colored("Configuration:", Colors.CYAN)
@@ -480,19 +546,28 @@ def run_local_backend():
     print_colored(f"  Database URL: {os.getenv('DATABASE_URL', 'N/A')}", Colors.WHITE)
     print()
 
-    # Check if venv exists
-    venv_path = Path("backend/venv")
-    if not venv_path.exists():
+    # Check if venv exists (either in backend/venv or root .venv)
+    venv_backend = Path("backend/venv")
+    venv_root = Path(".venv")
+    
+    selected_venv = None
+    if venv_root.exists():
+        selected_venv = venv_root
+    elif venv_backend.exists():
+        selected_venv = venv_backend
+
+    if not selected_venv:
         print_colored("[ERROR] Virtual environment not found!", Colors.RED)
         print_colored("[INFO] Please create venv first:", Colors.YELLOW)
-        print_colored("  cd backend", Colors.WHITE)
-        print_colored("  python -m venv venv", Colors.WHITE)
+        print_colored("  python -m venv .venv", Colors.WHITE)
         print_colored(
-            "  source venv/bin/activate  # or venv\\Scripts\\activate on Windows",
+            "  .venv\\Scripts\\activate on Windows or source .venv/bin/activate on Linux",
             Colors.WHITE,
         )
-        print_colored("  pip install -r requirements.txt", Colors.WHITE)
+        print_colored("  pip install -r backend/requirements.txt", Colors.WHITE)
         sys.exit(1)
+
+    print_colored(f"[INFO] Using virtual environment: {selected_venv}", Colors.GREEN)
 
     # Check if DB is running
     if check_docker():
@@ -510,12 +585,19 @@ def run_local_backend():
     # Change to backend directory and run uvicorn
     backend_dir = Path("backend")
 
-    # Determine the activation script based on platform
+    # Determine the activation script based on platform and venv location
     if sys.platform == "win32":
-        activate_cmd = f"cd {backend_dir} && venv\\Scripts\\activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        activate_path = selected_venv / "Scripts" / "activate"
+        # On Windows, we use set to set the environment variable before running uvicorn
+        # Note: No space before && to avoid trailing space in variable value
+        set_env = f"set DATABASE_URL={os.environ.get('DATABASE_URL', '')}&&" if "DATABASE_URL" in os.environ else ""
+        activate_cmd = f"{activate_path} && {set_env} cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True)
     else:
-        activate_cmd = f"cd {backend_dir} && source venv/bin/activate && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
+        activate_path = selected_venv / "bin" / "activate"
+        # On Linux/macOS, we can just prefix the command with the environment variable
+        export_env = f"export DATABASE_URL={os.environ.get('DATABASE_URL', '')} && " if "DATABASE_URL" in os.environ else ""
+        activate_cmd = f"source {activate_path} && {export_env}cd {backend_dir} && uvicorn app.main:app --reload --port {os.getenv('BACKEND_PORT', '8004')}"
         subprocess.run(activate_cmd, shell=True, executable="/bin/bash")
 
 
@@ -552,9 +634,17 @@ def run_local_frontend():
     print()
 
     # Run pnpm dev
-    subprocess.run(
-        ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")], cwd=frontend_dir
-    )
+    if sys.platform == "win32":
+        subprocess.run(
+            ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            cwd=frontend_dir,
+            shell=True,
+        )
+    else:
+        subprocess.run(
+            ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            cwd=frontend_dir,
+        )
 
 
 def run_dev():
