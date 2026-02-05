@@ -370,7 +370,7 @@ export const UserEditModal: React.FC<{
                 primary_business_unit_id: formData.primary_business_unit_id || null,
                 role: formData.role,
                 is_active: formData.is_active,
-                password: 'Welcome2024!', // Default password
+                password: 'edwards@!', // Default password
             });
         } else {
             // Update existing user
@@ -396,7 +396,7 @@ export const UserEditModal: React.FC<{
                 <DialogHeader>
                     <DialogTitle>{isNewUser ? '신규 사용자 추가' : `Edit Member: ${user.name}`}</DialogTitle>
                     <DialogDescription>
-                        {isNewUser ? '신규 사용자를 생성합니다. 기본 패스워드는 "Welcome2024!" 입니다.' : '사용자 정보를 수정합니다.'}
+                        {isNewUser ? '신규 사용자를 생성합니다. 기본 패스워드는 "edwards@!" 입니다.' : '사용자 정보를 수정합니다.'}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
