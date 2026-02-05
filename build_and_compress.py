@@ -257,7 +257,7 @@ def build_docker_images(project_dir):
         # Build backend image
         print_info("Building backend Docker image...")
         subprocess.run(
-            ['docker-compose', 'build', 'backend', '--no-cache'],
+            ['docker-compose', 'build', 'backend'],
             check=True,
             capture_output=False  # Show output directly to see errors
         )

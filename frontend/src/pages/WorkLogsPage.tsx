@@ -257,7 +257,6 @@ export function WorkLogsPage() {
                 onClose={() => setIsLeaveModalOpen(false)}
                 onSubmit={handleLeaveSubmit}
                 userId={user?.id || ''}
-                defaultProjectId="8a45fd77-809a-442c-8000-f82a0597964d"
                 isLoading={createMutation.isPending}
             />
 

@@ -23,7 +23,6 @@ interface LeaveEntryModalProps {
     onClose: () => void;
     onSubmit: (worklogs: WorkLogCreate[]) => void;
     userId: string;
-    defaultProjectId?: string; // Non-Project ID
     isLoading?: boolean;
 }
 
@@ -32,7 +31,6 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
     onClose,
     onSubmit,
     userId,
-    defaultProjectId = '8a45fd77-809a-442c-8000-f82a0597964d', // General/Non-Project UUID
     isLoading = false,
 }) => {
     const [leaveType, setLeaveType] = useState<LeaveType>('full');
@@ -72,7 +70,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
             worklogs.push({
                 date: singleDate,
                 user_id: userId,
-                project_id: defaultProjectId,
+                // project_id: defaultProjectId, // Removed: Leave entries should not have a project
                 work_type_category_id: 38, // ABS-LVE (휴가)
                 hours: leaveType === 'half' ? 4 : 8,
                 description: leaveType === 'half' ? '반휴' : '휴가',
@@ -85,7 +83,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                 worklogs.push({
                     date: format(day, 'yyyy-MM-dd'),
                     user_id: userId,
-                    project_id: defaultProjectId,
+                    // project_id: defaultProjectId, // Removed: Leave entries should not have a project
                     work_type_category_id: 38, // ABS-LVE (휴가)
                     hours: 8,
                     description: '연속휴가',
