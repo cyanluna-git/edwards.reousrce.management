@@ -71,7 +71,7 @@ export const ResourcesTab: React.FC = () => {
     const { data: positions = [] } = useJobPositionsList();
 
     // Get all sub-teams for all departments
-    const departmentIds = Array.from(new Set(users.map(u => u.department_id)));
+    const departmentIds = Array.from(new Set(users.map(u => u.department_id).filter((id): id is string => !!id)));
     const { data: allSubTeams = [] } = useQuery({
         queryKey: ['all-sub-teams', departmentIds],
         queryFn: async () => {
@@ -83,14 +83,20 @@ export const ResourcesTab: React.FC = () => {
         enabled: departmentIds.length > 0,
     });
 
-    const getDivisionName = (deptId: string) => {
-        const dept = departments.find(d => d.id === deptId);
+    const getDivisionName = (user: UserDetails) => {
+        if (user.division_id) {
+            return divisions.find(d => d.id === user.division_id)?.name || '-';
+        }
+        const dept = departments.find(d => d.id === user.department_id);
         if (!dept) return '-';
         const div = divisions.find(d => d.id === dept.division_id);
         return div?.name || '-';
     };
 
-    const getDeptName = (deptId: string) => departments.find(d => d.id === deptId)?.name || '-';
+    const getDeptName = (deptId: string | null) => {
+        if (!deptId) return '-';
+        return departments.find(d => d.id === deptId)?.name || '-';
+    };
 
     const getSubTeamName = (subTeamId: string | null) => {
         if (!subTeamId) return '-';
@@ -143,8 +149,8 @@ export const ResourcesTab: React.FC = () => {
                     valueB = (b.email || '').toLowerCase();
                     break;
                 case 'division':
-                    valueA = getDivisionName(a.department_id).toLowerCase();
-                    valueB = getDivisionName(b.department_id).toLowerCase();
+                    valueA = getDivisionName(a).toLowerCase();
+                    valueB = getDivisionName(b).toLowerCase();
                     break;
                 case 'department':
                     valueA = getDeptName(a.department_id).toLowerCase();
@@ -270,7 +276,7 @@ export const ResourcesTab: React.FC = () => {
                                         {user.korean_name && <div className="text-xs text-muted-foreground">{user.korean_name}</div>}
                                     </td>
                                     <td className="py-2 px-3 text-muted-foreground">{user.email}</td>
-                                    <td className="py-2 px-3">{getDivisionName(user.department_id)}</td>
+                                    <td className="py-2 px-3">{getDivisionName(user)}</td>
                                     <td className="py-2 px-3">{getDeptName(user.department_id)}</td>
                                     <td className="py-2 px-3 text-muted-foreground">{getSubTeamName(user.sub_team_id)}</td>
                                     <td className="py-2 px-3">{getPositionName(user.position_id)}</td>
@@ -339,6 +345,7 @@ export const UserEditModal: React.FC<{
         email: user.email || '',
         name: user.name || '',
         korean_name: user.korean_name || '',
+        division_id: user.division_id || '',
         department_id: user.department_id || '',
         sub_team_id: user.sub_team_id || '',
         position_id: user.position_id || (positions[0]?.id || ''),
@@ -364,7 +371,8 @@ export const UserEditModal: React.FC<{
                 email: formData.email,
                 name: formData.name,
                 korean_name: formData.korean_name || null,
-                department_id: formData.department_id,
+                division_id: formData.division_id || null,
+                department_id: formData.department_id || null,
                 sub_team_id: formData.sub_team_id || null,
                 position_id: formData.position_id,
                 primary_business_unit_id: formData.primary_business_unit_id || null,
@@ -377,7 +385,8 @@ export const UserEditModal: React.FC<{
             updateMutation.mutate({
                 name: formData.name,
                 korean_name: formData.korean_name || null,
-                department_id: formData.department_id,
+                division_id: formData.division_id || null,
+                department_id: formData.department_id || null,
                 sub_team_id: formData.sub_team_id || null,
                 position_id: formData.position_id,
                 primary_business_unit_id: formData.primary_business_unit_id || null,
@@ -442,10 +451,16 @@ export const UserEditModal: React.FC<{
                     <div>
                         <label className="block text-sm font-medium mb-1">조직 *</label>
                         <OrganizationSelect
+                            divisionId={formData.division_id}
                             departmentId={formData.department_id}
                             subTeamId={formData.sub_team_id || null}
-                            onChange={(deptId, stId, _displayName) => {
-                                setFormData({ ...formData, department_id: deptId, sub_team_id: stId || '' });
+                            onChange={(divId, deptId, stId, _displayName) => {
+                                setFormData({
+                                    ...formData,
+                                    division_id: divId || '',
+                                    department_id: deptId || '',
+                                    sub_team_id: stId || ''
+                                });
                             }}
                             placeholder="조직 선택..."
                             className="w-full"

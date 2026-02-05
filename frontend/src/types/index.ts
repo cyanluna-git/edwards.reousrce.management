@@ -48,14 +48,16 @@ export interface User {
     email: string
     name: string
     korean_name?: string
+    division_id?: string  // NEW
+    department_id?: string  // Changed: Optional
     sub_team_id?: string
     position_id: string
-    department_id?: string
     primary_business_unit_id?: string  // 주 활동 사업영역
     role: UserRole
     is_active: boolean
     hire_date?: string
     termination_date?: string
+    division?: Division  // NEW
     department?: {
         id: string
         name: string
@@ -69,8 +71,9 @@ export interface User {
 export interface UserHistory {
     id: number
     user_id: string
-    department_id: number
-    sub_team_id?: number
+    division_id?: string  // NEW
+    department_id?: string  // Changed: Optional
+    sub_team_id?: string | number
     position_id: string
     start_date: string
     end_date?: string

@@ -47,6 +47,7 @@ class UserService:
         # Create initial history record
         initial_history = UserHistory(
             user_id=db_user.id,
+            division_id=db_user.division_id,
             department_id=db_user.department_id,
             sub_team_id=db_user.sub_team_id,
             position_id=db_user.position_id,
@@ -69,7 +70,7 @@ class UserService:
         is_active: Optional[bool] = None
     ) -> List[User]:
         """Retrieve multiple users with filters and pagination."""
-        query = self.db.query(User).options(joinedload(User.sub_team))
+        query = self.db.query(User).options(joinedload(User.sub_team), joinedload(User.division))
 
         if department_id is not None:
             query = query.filter(User.department_id == department_id)
@@ -84,6 +85,7 @@ class UserService:
         update_data = user_in.model_dump(exclude_unset=True)
 
         # Capture pre-update values for history logging
+        old_division_id = user.division_id
         old_department_id = user.department_id
         old_sub_team_id = user.sub_team_id
         old_position_id = user.position_id
@@ -101,17 +103,19 @@ class UserService:
 
         # Log history changes after applying updates
         self.db.flush()
+        new_division_id = user.division_id
         new_department_id = user.department_id
         new_sub_team_id = user.sub_team_id
         new_position_id = user.position_id
-        org_changed = (old_department_id != new_department_id) or (
+        org_changed = (old_division_id != new_division_id) or (old_department_id != new_department_id) or (
             old_sub_team_id != new_sub_team_id
         ) or (old_position_id != new_position_id)
         
         if org_changed:
             self._log_history_change(
                 user_id=cast(str, user.id),
-                department_id=cast(str, new_department_id),
+                division_id=cast(Optional[str], new_division_id),
+                department_id=cast(Optional[str], new_department_id),
                 sub_team_id=cast(Optional[str], new_sub_team_id),
                 position_id=cast(str, new_position_id),
             )
@@ -123,8 +127,9 @@ class UserService:
         self,
         *,
         user_id: str,
-        department_id: str,
-        sub_team_id: Optional[str],
+        division_id: Optional[str] = None,
+        department_id: Optional[str] = None,
+        sub_team_id: Optional[str] = None,
         position_id: str,
         change_type: str = "TRANSFER",
         remarks: str = "User profile updated.",
@@ -144,6 +149,7 @@ class UserService:
         # Create a new history record
         new_history = UserHistory(
             user_id=user_id,
+            division_id=division_id,
             department_id=department_id,
             sub_team_id=sub_team_id,
             position_id=position_id,

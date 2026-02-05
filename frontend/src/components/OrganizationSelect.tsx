@@ -8,9 +8,10 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getDivisions, getDepartments, getSubTeams, type SubTeam, type Division } from '@/api/client';
 
 interface OrganizationSelectProps {
-    departmentId?: string;
+    divisionId?: string | null;
+    departmentId?: string | null;
     subTeamId?: string | null;
-    onChange: (departmentId: string, subTeamId: string | null, displayName: string) => void;
+    onChange: (divisionId: string | null, departmentId: string | null, subTeamId: string | null, displayName: string) => void;
     placeholder?: string;
     className?: string;
 }
@@ -29,6 +30,7 @@ interface OrgTree {
 }
 
 export function OrganizationSelect({
+    divisionId,
     departmentId,
     subTeamId,
     onChange,
@@ -78,27 +80,33 @@ export function OrganizationSelect({
 
     // Get display name for selected value - show full hierarchy path
     const selectedDisplay = useMemo(() => {
-        if (!departmentId) return null;
-
-        const dept = departments.find(d => d.id === departmentId);
-        if (!dept) return null;
-
-        // Find Division name
-        const div = divisions.find(d => d.id === dept.division_id);
-        const divName = div?.name || '';
-
-        // Build full path: Division > Department > SubTeam
-        let path = divName ? `${divName} > ${dept.name}` : dept.name;
-
         if (subTeamId) {
             const st = allSubTeams.find(s => s.id === subTeamId);
             if (st) {
-                path += ` > ${st.name}`;
+                const dept = departments.find(d => d.id === st.department_id);
+                if (dept) {
+                    const div = divisions.find(d => d.id === dept.division_id);
+                    return div ? `${div.name} > ${dept.name} > ${st.name}` : `${dept.name} > ${st.name}`;
+                }
+                return st.name;
             }
         }
 
-        return path;
-    }, [departmentId, subTeamId, departments, divisions, allSubTeams]);
+        if (departmentId) {
+            const dept = departments.find(d => d.id === departmentId);
+            if (dept) {
+                const div = divisions.find(d => d.id === dept.division_id);
+                return div ? `${div.name} > ${dept.name}` : dept.name;
+            }
+        }
+
+        if (divisionId) {
+            const div = divisions.find(d => d.id === divisionId);
+            return div?.name || null;
+        }
+
+        return null;
+    }, [divisionId, departmentId, subTeamId, departments, divisions, allSubTeams]);
 
     // Filter based on search
     const filteredTree = useMemo(() => {
@@ -118,14 +126,25 @@ export function OrganizationSelect({
         );
     }, [orgTree, searchTerm]);
 
-    const handleSelectDept = (deptId: string, deptName: string) => {
-        onChange(deptId, null, deptName);
+    const handleSelectDivision = (divId: string, divName: string) => {
+        onChange(divId, null, null, divName);
         setIsOpen(false);
         setSearchTerm('');
     };
 
-    const handleSelectSubTeam = (deptId: string, stId: string, displayName: string) => {
-        onChange(deptId, stId, displayName);
+    const handleSelectDept = (divId: string, deptId: string, deptName: string) => {
+        const div = divisions.find(d => d.id === divId);
+        const displayName = div ? `${div.name} > ${deptName}` : deptName;
+        onChange(divId, deptId, null, displayName);
+        setIsOpen(false);
+        setSearchTerm('');
+    };
+
+    const handleSelectSubTeam = (divId: string, deptId: string, stId: string, stName: string) => {
+        const div = divisions.find(d => d.id === divId);
+        const dept = departments.find(d => d.id === deptId);
+        const displayName = `${div?.name || ''} > ${dept?.name || ''} > ${stName}`.replace(/^ > /, '');
+        onChange(divId, deptId, stId, displayName);
         setIsOpen(false);
         setSearchTerm('');
     };
@@ -185,8 +204,10 @@ export function OrganizationSelect({
                                         expandedL1={expandedL1}
                                         onToggle={() => setExpandedL0(expandedL0 === l0.id ? null : l0.id)}
                                         onToggleL1={(l1Id) => setExpandedL1(expandedL1 === l1Id ? null : l1Id)}
+                                        onSelectDiv={handleSelectDivision}
                                         onSelectDept={handleSelectDept}
                                         onSelectSubTeam={handleSelectSubTeam}
+                                        selectedDivId={divisionId}
                                         selectedDeptId={departmentId}
                                         selectedSubTeamId={subTeamId}
                                     />
@@ -200,34 +221,48 @@ export function OrganizationSelect({
     );
 }
 
-// L0 Item Component (with lazy-loaded sub-teams)
+// L0 Item Component (Division)
 const L0Item: React.FC<{
     item: OrgTree;
     isExpanded: boolean;
     expandedL1: string | null;
     onToggle: () => void;
     onToggleL1: (l1Id: string) => void;
-    onSelectDept: (deptId: string, deptName: string) => void;
-    onSelectSubTeam: (deptId: string, stId: string, displayName: string) => void;
-    selectedDeptId?: string;
+    onSelectDiv: (divId: string, divName: string) => void;
+    onSelectDept: (divId: string, deptId: string, deptName: string) => void;
+    onSelectSubTeam: (divId: string, deptId: string, stId: string, stName: string) => void;
+    selectedDivId?: string | null;
+    selectedDeptId?: string | null;
     selectedSubTeamId?: string | null;
-}> = ({ item, isExpanded, expandedL1, onToggle, onToggleL1, onSelectDept, onSelectSubTeam, selectedDeptId, selectedSubTeamId }) => {
+}> = ({ item, isExpanded, expandedL1, onToggle, onToggleL1, onSelectDiv, onSelectDept, onSelectSubTeam, selectedDivId, selectedDeptId, selectedSubTeamId }) => {
+    const isSelected = selectedDivId === item.id && !selectedDeptId && !selectedSubTeamId;
+
     return (
         <div>
-            {/* L0 Header */}
-            <button
-                type="button"
-                onClick={onToggle}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-left"
-            >
-                {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-slate-500" />
-                ) : (
-                    <ChevronRight className="h-4 w-4 text-slate-500" />
-                )}
-                <span>{item.name}</span>
-                <span className="text-xs text-muted-foreground ml-auto">{item.children.length} teams</span>
-            </button>
+            {/* L0 Row */}
+            <div className={`flex items-center hover:bg-slate-100 ${isSelected ? 'bg-blue-50' : 'bg-slate-50'}`}>
+                {/* Expand/Collapse Button */}
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    className="pl-3 pr-1 py-2"
+                >
+                    {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-slate-500" />
+                    ) : (
+                        <ChevronRight className="h-4 w-4 text-slate-500" />
+                    )}
+                </button>
+                {/* Selectable Division Header */}
+                <button
+                    type="button"
+                    onClick={() => onSelectDiv(item.id, item.name)}
+                    className={`flex-1 py-2 text-sm font-semibold text-left ${isSelected ? 'text-blue-700' : 'text-slate-800'}`}
+                >
+                    <span>{item.name}</span>
+                    <span className="text-[10px] text-muted-foreground ml-2 font-normal">{item.children.length} depts</span>
+                </button>
+            </div>
 
             {/* L1 Items */}
             {isExpanded && (
@@ -235,6 +270,7 @@ const L0Item: React.FC<{
                     {item.children.map((l1) => (
                         <L1Item
                             key={l1.id}
+                            divId={item.id}
                             item={l1}
                             isExpanded={expandedL1 === l1.id}
                             onToggle={() => onToggleL1(l1.id)}
@@ -252,14 +288,15 @@ const L0Item: React.FC<{
 
 // L1 Item Component (Department with lazy-loaded sub-teams)
 const L1Item: React.FC<{
+    divId: string;
     item: OrgTree['children'][0];
     isExpanded: boolean;
     onToggle: () => void;
-    onSelectDept: (deptId: string, deptName: string) => void;
-    onSelectSubTeam: (deptId: string, stId: string, displayName: string) => void;
-    selectedDeptId?: string;
+    onSelectDept: (divId: string, deptId: string, deptName: string) => void;
+    onSelectSubTeam: (divId: string, deptId: string, stId: string, stName: string) => void;
+    selectedDeptId?: string | null;
     selectedSubTeamId?: string | null;
-}> = ({ item, isExpanded, onToggle, onSelectDept, onSelectSubTeam, selectedDeptId, selectedSubTeamId }) => {
+}> = ({ divId, item, isExpanded, onToggle, onSelectDept, onSelectSubTeam, selectedDeptId, selectedSubTeamId }) => {
     // Lazy load sub-teams when expanded
     const { data: subTeams = [] } = useQuery({
         queryKey: ['sub-teams', item.id],
@@ -277,7 +314,7 @@ const L1Item: React.FC<{
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                    className="pl-4 pr-1 py-2 hover:bg-slate-50"
+                    className="pl-6 pr-1 py-2 hover:bg-slate-50"
                 >
                     {isExpanded ? (
                         <ChevronDown className="h-3 w-3 text-slate-400" />
@@ -288,7 +325,7 @@ const L1Item: React.FC<{
                 {/* Selectable Department */}
                 <button
                     type="button"
-                    onClick={() => onSelectDept(item.id, item.name)}
+                    onClick={() => onSelectDept(divId, item.id, item.name)}
                     className={`flex-1 flex items-center gap-2 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${isSelected ? 'bg-blue-100 text-blue-700' : ''}`}
                 >
                     <span>{item.name}</span>
@@ -304,8 +341,8 @@ const L1Item: React.FC<{
                             <button
                                 key={st.id}
                                 type="button"
-                                onClick={() => onSelectSubTeam(item.id, st.id, `${item.name} > ${st.name}`)}
-                                className={`w-full flex items-center gap-2 pl-12 pr-3 py-1.5 text-xs hover:bg-blue-50 text-left ${isStSelected ? 'bg-blue-100 text-blue-700' : 'text-slate-600'}`}
+                                onClick={() => onSelectSubTeam(divId, item.id, st.id, st.name)}
+                                className={`w-full flex items-center gap-2 pl-14 pr-3 py-1.5 text-xs hover:bg-blue-50 text-left ${isStSelected ? 'bg-blue-100 text-blue-700' : 'text-slate-600'}`}
                             >
                                 <span className="text-slate-400 text-[10px]">└</span>
                                 <span>{st.name}</span>

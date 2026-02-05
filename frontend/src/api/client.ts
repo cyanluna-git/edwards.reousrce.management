@@ -667,7 +667,8 @@ export interface UserDetails {
   name: string;
   korean_name: string | null;
   email: string;
-  department_id: string;
+  division_id: string | null;
+  department_id: string | null;
   sub_team_id: string | null;
   position_id: string;
   primary_business_unit_id: string | null;
@@ -678,7 +679,8 @@ export interface UserDetails {
 export interface UserHistoryEntry {
   id: number;
   user_id: string;
-  department_id: string;
+  division_id: string | null;
+  department_id: string | null;
   sub_team_id: string | null;
   position_id: string;
   start_date: string;
@@ -807,7 +809,8 @@ export const deleteUserHistory = async (userId: string, historyId: number): Prom
 export interface UserUpdate {
   name?: string;
   korean_name?: string | null;
-  department_id?: string;
+  division_id?: string | null;
+  department_id?: string | null;
   sub_team_id?: string | null;
   position_id?: string;
   primary_business_unit_id?: string | null;
@@ -819,7 +822,8 @@ export interface UserCreate {
   email: string;
   name: string;
   korean_name?: string | null;
-  department_id: string;
+  division_id?: string | null;
+  department_id?: string | null;
   sub_team_id?: string | null;
   position_id: string;
   primary_business_unit_id?: string | null;

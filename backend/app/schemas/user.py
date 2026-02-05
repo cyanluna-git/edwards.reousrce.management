@@ -13,7 +13,8 @@ class UserBase(BaseModel):
     email: EmailStr
     name: str
     korean_name: Optional[str] = None
-    department_id: str
+    division_id: Optional[str] = None  # NEW
+    department_id: Optional[str] = None  # Changed: Optional
     sub_team_id: Optional[str] = None
     position_id: str
     primary_business_unit_id: Optional[str] = None  # 주 활동 사업영역
@@ -34,6 +35,7 @@ class UserUpdate(BaseModel):
     email: Optional[EmailStr] = None
     name: Optional[str] = None
     korean_name: Optional[str] = None
+    division_id: Optional[str] = None  # NEW
     department_id: Optional[str] = None
     sub_team_id: Optional[str] = None
     position_id: Optional[str] = None

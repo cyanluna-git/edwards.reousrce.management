@@ -12,6 +12,18 @@ export default defineConfig({
         text: '개발 기록',
         items: [
           {
+            text: '2026-02-05 본부 선택 기능 및 사용자 이력 강화',
+            link: '/2026-02-05-division-selection-and-user-history'
+          },
+          {
+            text: '2026-02-05 My FTE Dashboard 구현',
+            link: '/2026-02-05-my-fte-dashboard'
+          },
+          {
+            text: '2026-02-04 Worklog Form UX 개선',
+            link: '/2026-02-04-worklog-form-ux-improvement'
+          },
+          {
             text: '2026-01-31 프로젝트 인라인 편집 테이블',
             link: '/2026-01-31_17_00_project-inline-editing-table'
           },

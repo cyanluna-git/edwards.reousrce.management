@@ -23,7 +23,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     name = Column(String(100), nullable=False)  # English name
     korean_name = Column(String(100), nullable=True)  # Korean name
-    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
+    division_id = Column(String(50), ForeignKey("divisions.id"), nullable=True)  # NEW: Division
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=True)  # Changed: Nullable
     sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
 
@@ -40,6 +41,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
+    division = relationship("Division", foreign_keys=[division_id])
     department = relationship("Department", foreign_keys=[department_id])
     sub_team = relationship("SubTeam", back_populates="users")
     position = relationship("JobPosition", back_populates="users")
@@ -62,7 +64,8 @@ class UserHistory(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
-    department_id = Column(String(50), ForeignKey("departments.id"), nullable=False)
+    division_id = Column(String(50), ForeignKey("divisions.id"), nullable=True)  # NEW: Division
+    department_id = Column(String(50), ForeignKey("departments.id"), nullable=True)  # Changed: Nullable
     sub_team_id = Column(String(50), ForeignKey("sub_teams.id"), nullable=True)
     position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
     start_date = Column(DateTime, nullable=False)
