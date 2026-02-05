@@ -31,7 +31,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     teamScope,
     setTeamScope,
     teamViewMode,
-    setTeamViewMode,
+    setTeamViewMode: _setTeamViewMode,
     dateRange,
 }) => {
     const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange);

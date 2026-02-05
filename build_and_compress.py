@@ -259,7 +259,7 @@ def build_docker_images(project_dir):
         subprocess.run(
             ['docker-compose', 'build', 'backend', '--no-cache'],
             check=True,
-            capture_output=True
+            capture_output=False  # Show output directly to see errors
         )
         print_colored("  ✓ Backend image built", Colors.GREEN)
         
@@ -268,7 +268,7 @@ def build_docker_images(project_dir):
         subprocess.run(
             ['docker-compose', 'build', 'frontend', '--no-cache'],
             check=True,
-            capture_output=True
+            capture_output=False  # Show output directly to see errors
         )
         print_colored("  ✓ Frontend image built", Colors.GREEN)
         
@@ -658,17 +658,10 @@ def main():
         # Copy project files
         project_dir = copy_project_files(build_dir)
         
-        # Build backend
-        if not build_backend(project_dir):
-            print_warn("Backend build encountered issues, continuing...")
-        
-        # Build frontend
-        if not build_frontend(project_dir):
-            print_warn("Frontend build encountered issues, continuing...")
-        
-        # Build Docker images
+        # Build Docker images (Main Build Step)
         if not build_docker_images(project_dir):
-            print_warn("Docker images build encountered issues, continuing...")
+            print_error("Docker build failed! Aborting process.")
+            sys.exit(1)
         
         # Export Docker images
         images_dir = export_docker_images(project_dir)
