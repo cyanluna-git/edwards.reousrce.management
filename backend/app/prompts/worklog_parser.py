@@ -53,16 +53,20 @@ class WorklogParserPrompt:
 
 ## Rules
 1. Separate multiple tasks into individual entries
-2. Match project by name/code from the list above
+2. Match project by name/code from the list above (only Planned/InProgress projects are listed)
 3. Select the most appropriate work_type from the list
 4. Polish the description - convert casual speech to professional summary
    - Example: "OQC 인프라 DB 설계했고" → "OQC 인프라 데이터베이스 설계"
    - Example: "Justin이랑 HRS 관련 미팅" → "HRS 프로젝트 미팅"
-5. If no exact match, set id to null and provide name only
+5. If no exact project match, set project_id to null and provide project_name only
 6. IMPORTANT: Return work_type_id as the actual ID from the list, not code
+7. **Team/organizational tasks** that are NOT tied to a specific project MUST have project_id: null and project_name: null
+   - Examples: 1:1 meetings, team meetings, training, self-study, admin tasks, leave/absence
+   - Only assign a project when the task is clearly related to a specific project
 
 ## Output Format (JSON only, no explanation)
-{{"entries":[{{"project_id":"project_id_or_null","project_name":"project_name","work_type_id":"work_type_id_or_null","work_type_name":"work_type_name","description":"polished_description","hours":hours_number,"confidence":0_to_1}}]}}
+{{"entries":[{{"project_id":"project_id_or_null","project_name":"project_name_or_null","work_type_id":"work_type_id_or_null","work_type_name":"work_type_name","description":"polished_description","hours":hours_number,"confidence":0_to_1}}]}}
+Note: project_id AND project_name must BOTH be null for team/organizational tasks.
 
 {hints_section}"""
 

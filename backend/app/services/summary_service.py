@@ -4,7 +4,7 @@ AI-powered weekly work summary generation with DB caching
 """
 
 from datetime import date, datetime, timedelta
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List
 from uuid import uuid4
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, desc
@@ -13,25 +13,52 @@ from app.models.resource import WorkLog
 from app.models.project import Project
 from app.models.user import User
 from app.models.ai_summary import AISummary
-from app.services.gemini_client import GeminiClient, gemini_client
-from app.services.groq_client import GroqClient, groq_client
+from app.services.llm import LLMClient, get_llm_client
 from app.core.config import settings
 
 
 class SummaryService:
     """Service for generating AI-powered work summaries with caching"""
 
+    # English system prompts for token efficiency and language-adaptive output
+
+    USER_SUMMARY_SYSTEM_PROMPT = """You are an engineering work analyst. Analyze the worklog data and produce a structured summary.
+
+## Analysis Framework
+1. **Focus areas**: Which projects consumed the most effort and why
+2. **Work pattern**: Balance across Product / Functional / Support / Team categories
+3. **Key activities**: Notable deliverables or milestones from descriptions
+4. **Observations**: Unusual patterns (e.g., overtime, single-project concentration, low utilization)
+
+## Response Rules
+- Respond in the SAME LANGUAGE as the worklog descriptions (Korean descriptions -> Korean summary, English -> English, mixed -> follow the dominant language)
+- 3-5 concise bullet points, each 1-2 sentences max
+- Be specific: reference project names and hours, not vague statements
+- JSON only: {"summary": ["bullet 1", "bullet 2", ...]}"""
+
+    TEAM_SUMMARY_SYSTEM_PROMPT = """You are an engineering team work analyst. Analyze the team worklog data from three perspectives.
+
+## Analysis Framework
+1. **Project progress** (2-3 items): Top projects by effort, cross-functional involvement, phase indicators from descriptions
+2. **Member contributions** (Top 3): Individual focus areas, workload distribution, potential bottlenecks
+3. **Risks and observations**: Unbalanced workload, missing coverage, overtime patterns, single points of failure
+
+## Response Rules
+- Respond in the SAME LANGUAGE as the worklog descriptions (Korean -> Korean, English -> English, mixed -> dominant language)
+- Be specific: cite project names, member names, and hours
+- JSON only:
+{
+  "project_summary": ["project insight 1", "..."],
+  "member_summary": ["member: insight", "..."],
+  "issues": ["risk or observation 1", "..."]
+}"""
+
     def __init__(
-        self, db: Session, client: Optional[Union[GeminiClient, GroqClient]] = None
+        self, db: Session, client: Optional[LLMClient] = None
     ):
         self.db = db
-        # Select AI provider based on config (same as ai_worklog_service)
-        if client:
-            self.client = client
-        elif settings.AI_PROVIDER == "gemini":
-            self.client = gemini_client
-        else:
-            self.client = groq_client
+        # Select AI provider via factory (supports groq, gemini, pcas)
+        self.client = client or get_llm_client()
 
     def _get_cached_summary(
         self,
@@ -129,7 +156,7 @@ class SummaryService:
 
         if not worklogs:
             return {
-                "summary": ["이 기간에 입력된 worklog가 없습니다."],
+                "summary": ["No worklogs found for this period."],
                 "generated_at": date.today().isoformat(),
             }
 
@@ -138,10 +165,7 @@ class SummaryService:
 
         # Build prompt and generate summary
         prompt = self._build_user_prompt(summary_data, start_date, end_date)
-        system_prompt = """당신은 업무 분석 전문가입니다. 
-주어진 worklog 데이터를 분석하여 한국어로 3-5개 bullet point 요약을 생성하세요.
-각 요약은 간결하고 핵심적인 정보만 포함하세요.
-JSON 형식으로 응답하세요: {"summary": ["bullet 1", "bullet 2", ...]}"""
+        system_prompt = self.USER_SUMMARY_SYSTEM_PROMPT
 
         try:
             result = await self.client.generate_json(prompt, system_prompt)
@@ -160,7 +184,7 @@ JSON 형식으로 응답하세요: {"summary": ["bullet 1", "bullet 2", ...]}"""
             return response
         except Exception as e:
             return {
-                "summary": [f"요약 생성 중 오류 발생: {str(e)}"],
+                "summary": [f"Summary generation failed: {str(e)}"],
                 "generated_at": date.today().isoformat(),
                 "error": str(e),
             }
@@ -206,7 +230,7 @@ JSON 형식으로 응답하세요: {"summary": ["bullet 1", "bullet 2", ...]}"""
             return {
                 "project_summary": [],
                 "member_summary": [],
-                "issues": ["이 기간에 입력된 worklog가 없습니다."],
+                "issues": ["No worklogs found for this period."],
                 "generated_at": date.today().isoformat(),
             }
 
@@ -215,17 +239,7 @@ JSON 형식으로 응답하세요: {"summary": ["bullet 1", "bullet 2", ...]}"""
 
         # Build prompt and generate summary
         prompt = self._build_team_prompt(summary_data, start_date, end_date)
-        system_prompt = """당신은 팀 업무 분석 전문가입니다. 아래 3가지 관점에서 분석하세요:
-1. 프로젝트별 요약: 주요 프로젝트 진행 상황 (2-3개)
-2. 멤버별 요약: 개인별 집중 업무 (Top 3 기여자)
-3. 주요 이슈/특이사항: 리스크, 병목, 비정상 패턴
-
-JSON 형식으로 응답:
-{
-  "project_summary": ["프로젝트1 요약...", "프로젝트2 요약..."],
-  "member_summary": ["멤버1: 업무 요약", "멤버2: 업무 요약"],
-  "issues": ["이슈1", "이슈2"]
-}"""
+        system_prompt = self.TEAM_SUMMARY_SYSTEM_PROMPT
 
         try:
             result = await self.client.generate_json(prompt, system_prompt)
@@ -248,7 +262,7 @@ JSON 형식으로 응답:
             return {
                 "project_summary": [],
                 "member_summary": [],
-                "issues": [f"요약 생성 중 오류 발생: {str(e)}"],
+                "issues": [f"Summary generation failed: {str(e)}"],
                 "generated_at": date.today().isoformat(),
                 "error": str(e),
             }
@@ -328,22 +342,45 @@ JSON 형식으로 응답:
         base_data["members"] = sorted_members
         return base_data
 
+    def _build_utilization_line(
+        self, total_hours: float, start_date: date, end_date: date
+    ) -> str:
+        """Calculate utilization rate and return a formatted line for prompt data"""
+        working_days = (end_date - start_date).days + 1
+        # Exclude weekends (simple heuristic)
+        biz_days = sum(
+            1
+            for d in range(working_days)
+            if (start_date + timedelta(days=d)).weekday() < 5
+        )
+        standard_hours = biz_days * 8
+        if standard_hours > 0:
+            utilization = total_hours / standard_hours * 100
+            return f"Utilization: {total_hours:.1f}h / {standard_hours:.1f}h ({utilization:.0f}%)"
+        return f"Utilization: {total_hours:.1f}h / 0h (N/A)"
+
     def _build_user_prompt(
         self, data: Dict[str, Any], start_date: date, end_date: date
     ) -> str:
         """Build prompt for user summary"""
+        # Calculate utilization rate
+        utilization_line = self._build_utilization_line(
+            data["total_hours"], start_date, end_date
+        )
+
         lines = [
-            f"기간: {start_date} ~ {end_date}",
-            f"총 업무시간: {data['total_hours']:.1f}h",
+            f"Period: {start_date} ~ {end_date}",
+            f"Total hours: {data['total_hours']:.1f}h",
+            utilization_line,
             "",
-            "[프로젝트별 시간]",
+            "[Hours by Project]",
         ]
         for proj, hours in data["projects"]:
             pct = (hours / data["total_hours"] * 100) if data["total_hours"] > 0 else 0
             lines.append(f"- {proj}: {hours:.1f}h ({pct:.0f}%)")
 
         lines.append("")
-        lines.append("[업무 카테고리 분포]")
+        lines.append("[Category Distribution]")
         for cat, hours in data["categories"].items():
             if hours > 0:
                 pct = (
@@ -354,7 +391,7 @@ JSON 형식으로 응답:
                 lines.append(f"- {cat}: {hours:.1f}h ({pct:.0f}%)")
 
         lines.append("")
-        lines.append("[주요 description 샘플]")
+        lines.append("[Description Samples]")
         lines.append(", ".join(data["descriptions"][:10]))
 
         return "\n".join(lines)
@@ -364,17 +401,17 @@ JSON 형식으로 응답:
     ) -> str:
         """Build prompt for team summary"""
         lines = [
-            f"기간: {start_date} ~ {end_date}",
-            f"총 업무시간: {data['total_hours']:.1f}h",
+            f"Period: {start_date} ~ {end_date}",
+            f"Total hours: {data['total_hours']:.1f}h",
             "",
-            "[프로젝트별 시간]",
+            "[Hours by Project]",
         ]
         for proj, hours in data["projects"]:
             pct = (hours / data["total_hours"] * 100) if data["total_hours"] > 0 else 0
             lines.append(f"- {proj}: {hours:.1f}h ({pct:.0f}%)")
 
         lines.append("")
-        lines.append("[멤버별 기여]")
+        lines.append("[Member Contributions]")
         for member_name, member_data in data.get("members", []):
             top_proj = (
                 max(member_data["projects"].items(), key=lambda x: x[1])[0]
@@ -382,11 +419,11 @@ JSON 형식으로 응답:
                 else "N/A"
             )
             lines.append(
-                f"- {member_name}: {member_data['total']:.1f}h (주력: {top_proj})"
+                f"- {member_name}: {member_data['total']:.1f}h (primary: {top_proj})"
             )
 
         lines.append("")
-        lines.append("[업무 카테고리 분포]")
+        lines.append("[Category Distribution]")
         for cat, hours in data["categories"].items():
             if hours > 0:
                 pct = (
@@ -397,7 +434,7 @@ JSON 형식으로 응답:
                 lines.append(f"- {cat}: {hours:.1f}h ({pct:.0f}%)")
 
         lines.append("")
-        lines.append("[주요 description 샘플]")
+        lines.append("[Description Samples]")
         lines.append(", ".join(data["descriptions"][:15]))
 
         return "\n".join(lines)

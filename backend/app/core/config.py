@@ -40,18 +40,27 @@ class Settings(BaseSettings):
         "http://localhost:3000,http://localhost:3004,http://localhost:5173"
     )
 
-    # AI Provider: "groq" or "gemini"
+    # AI Provider: "groq", "gemini", or "pcas"
     AI_PROVIDER: str = "groq"
 
-    # Groq (AI) - Primary (very fast inference)
+    # Groq (AI) - Fast inference with Llama models
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     GROQ_TIMEOUT: int = 30
 
-    # Gemini (AI) - Alternative
+    # Gemini (AI) - Google Gemini models
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
     GEMINI_TIMEOUT: int = 30
+
+    # PCAS (Atlas Copco AI Brains Bot - internal GPT-5)
+    PCAS_LLM_KEY: str = ""
+    PCAS_LLM_BASE_URL: str = "https://groupapp.atlascopco.com/ai-brains/api"
+    PCAS_LLM_VERIFY_SSL: bool = True
+    PCAS_LLM_MODEL: str = "gpt-5"
+    PCAS_LLM_TIMEOUT: int = 30
+    # Default UPN for health check and when user context is missing (e.g. service account)
+    PCAS_LLM_DEFAULT_UPN: str = ""
 
     # CSV Migration
     CSV_BACKUP_PATH: str = "backups/latest"
