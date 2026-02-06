@@ -5,7 +5,8 @@ Authentication endpoints
 import logging
 import traceback
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,7 @@ from app.core.security import (
 )
 from app.core.config import settings
 from app.services.auth_service import authenticate_user
+from app.services.sso_service import SSOService
 from app.schemas.auth import Token, TokenRefreshRequest, UserResponse, PasswordChangeRequest, PasswordChangeResponse
 from app.models.user import User
 from sqlalchemy.orm import joinedload
@@ -224,3 +226,89 @@ async def change_password(
         message="Password changed successfully",
         success=True,
     )
+
+
+@router.get("/sso/login")
+async def sso_login(request: Request):
+    """
+    Initiate SAML SSO login process.
+    Redirects user to the Identity Provider (Entra ID).
+    """
+    if not settings.SAML_ENABLED:
+        raise HTTPException(status_code=400, detail="SSO is not enabled")
+    
+    request_data = {
+        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'http_host': request.url.netloc,
+        'script_name': request.url.path,
+        'server_port': request.url.port or (443 if request.url.scheme == 'https' else 80),
+        'get_data': dict(request.query_params),
+        'post_data': {},
+        'query_string': request.url.query
+    }
+    
+    auth = SSOService.init_saml_auth(request_data)
+    return RedirectResponse(auth.login())
+
+
+@router.post("/sso/callback")
+async def sso_callback(request: Request, db: Session = Depends(get_db)):
+    """
+    SAML Assertion Consumer Service (ACS) endpoint.
+    Handles the POST response from Entra ID after user authentication.
+    """
+    if not settings.SAML_ENABLED:
+        raise HTTPException(status_code=400, detail="SSO is not enabled")
+        
+    form_data = await request.form()
+    request_data = {
+        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'http_host': request.url.netloc,
+        'script_name': request.url.path,
+        'server_port': request.url.port or (443 if request.url.scheme == 'https' else 80),
+        'get_data': dict(request.query_params),
+        'post_data': dict(form_data),
+        'query_string': request.url.query
+    }
+    
+    auth = SSOService.init_saml_auth(request_data)
+    auth.process_response()
+    
+    errors = auth.get_errors()
+    if errors:
+        logger.error(f"SAML Error: {errors}")
+        logger.error(f"Last Error Reason: {auth.get_last_error_reason()}")
+        raise HTTPException(status_code=401, detail=f"SAML Authentication failed: {errors}")
+    
+    if not auth.is_authenticated():
+        raise HTTPException(status_code=401, detail="SAML User not authenticated")
+    
+    # Extract user info
+    user_info = SSOService.extract_user_attributes(auth)
+    email = user_info.get("email")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="Email not found in SAML assertion")
+    
+    # Match user in DB
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        # Optional: Auto-create user if not exists? 
+        # For now, we only allow existing users
+        logger.warning(f"SSO Login attempt for non-existent user: {email}")
+        raise HTTPException(status_code=403, detail="Your account is not registered in this system.")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="User account is inactive.")
+
+    # Create tokens
+    access_token = create_access_token(
+        data={"sub": user.id, "role": user.role},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    refresh_token = create_refresh_token(data={"sub": user.id, "role": user.role})
+    
+    # Redirect to frontend with tokens in URL (or set cookie)
+    # Adjust the frontend URL as needed
+    frontend_url = f"https://{request.url.netloc}/?token={access_token}&refresh={refresh_token}"
+    return RedirectResponse(url=frontend_url)

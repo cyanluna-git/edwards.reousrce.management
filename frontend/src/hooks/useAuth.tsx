@@ -35,6 +35,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    // Check for tokens in URL (SSO Callback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenParam = urlParams.get('token');
+    const refreshParam = urlParams.get('refresh');
+
+    if (tokenParam && refreshParam) {
+      localStorage.setItem(AUTH_TOKEN_KEY, tokenParam);
+      localStorage.setItem(REFRESH_TOKEN_KEY, refreshParam);
+      
+      // Clean up URL
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, newUrl);
+      
+      fetchCurrentUser().finally(() => setIsLoading(false));
+      return;
+    }
+
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
       fetchCurrentUser().finally(() => setIsLoading(false));

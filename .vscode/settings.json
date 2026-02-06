@@ -4,5 +4,8 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}/backend"
     ],
-    "python.envFile": "${workspaceFolder}/backend/.env"
+    "python.envFile": "${workspaceFolder}/backend/.env",
+    "cursorpyright.analysis.extraPaths": [
+        "${workspaceFolder}/backend"
+    ]
 }

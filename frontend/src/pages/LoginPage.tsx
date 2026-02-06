@@ -139,6 +139,38 @@ export function LoginPage() {
                     'Sign In'
                   )}
                 </Button>
+
+                {/* SSO Separator */}
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-slate-200"></span>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2 text-slate-500 font-medium tracking-wider">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                {/* SSO Login Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-3"
+                  onClick={() => {
+                    const baseUrl = import.meta.env.VITE_API_URL || '';
+                    window.location.href = `${baseUrl}/auth/sso/login`;
+                  }}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
+                    <path fill="#f35325" d="M1 1h10v10H1z"/>
+                    <path fill="#81bc06" d="M12 1h10v10H12z"/>
+                    <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+                    <path fill="#ffba08" d="M12 12h10v10H12z"/>
+                  </svg>
+                  Sign in with Microsoft SSO
+                </Button>
               </form>
 
             </div>
