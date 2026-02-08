@@ -12,7 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ssoRegister, getDepartments, getJobPositionsList } from '@/api/client';
-import type { Department, JobPosition } from '@/api/client';
+import type { Department } from '@/api/client';
+import type { JobPosition } from '@/types';
 import { BarChart3, Loader2, AlertCircle, UserPlus } from 'lucide-react';
 
 interface TokenPayload {

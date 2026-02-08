@@ -251,9 +251,27 @@ def build_docker_images(project_dir):
         return False
     
     original_cwd = os.getcwd()
+    # docker-compose parses the entire yml (including db service env vars)
+    # even when building only backend/frontend. Provide a stub .env so
+    # required variables like POSTGRES_PASSWORD don't cause interpolation errors.
+    stub_env = project_dir / '.env'
+    created_stub = False
     try:
+        if not stub_env.exists():
+            source_env = Path(original_cwd) / '.env'
+            if source_env.exists():
+                shutil.copy2(source_env, stub_env)
+                print_info("Copied .env to build directory for docker-compose")
+            else:
+                stub_env.write_text(
+                    "POSTGRES_PASSWORD=build-placeholder\n"
+                    "SECRET_KEY=build-placeholder\n"
+                )
+                print_info("Created stub .env for docker-compose build")
+            created_stub = True
+
         os.chdir(str(project_dir))
-        
+
         # Build backend image
         print_info("Building backend Docker image...")
         subprocess.run(
@@ -262,7 +280,7 @@ def build_docker_images(project_dir):
             capture_output=False  # Show output directly to see errors
         )
         print_colored("  ✓ Backend image built", Colors.GREEN)
-        
+
         # Build frontend image
         print_info("Building frontend Docker image...")
         subprocess.run(
@@ -271,14 +289,18 @@ def build_docker_images(project_dir):
             capture_output=False  # Show output directly to see errors
         )
         print_colored("  ✓ Frontend image built", Colors.GREEN)
-        
+
         return True
-        
+
     except subprocess.CalledProcessError as e:
         print_error(f"Docker build failed: {e}")
         return False
     finally:
         os.chdir(original_cwd)
+        # Remove stub .env from build dir (secrets should not be in archive)
+        if created_stub and stub_env.exists():
+            stub_env.unlink()
+            print_info("Removed temporary .env from build directory")
 
 
 def export_docker_images(project_dir):
