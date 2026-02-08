@@ -125,7 +125,30 @@ docker-compose up -d
 
 ## 데이터베이스 백업/복원
 
-### 원격 DB 백업
+### 서버 자동 백업 (cron)
+
+서버에서 매일 02:00에 DB를 자동 백업하고 7일 이상 된 백업을 삭제합니다.
+
+```bash
+# 최초 1회: 서버에 크론잡 설치
+ssh atlasAdmin@10.182.252.32
+cd /data/eob/edwards_project
+./server/setup_cron.sh
+
+# 확인
+crontab -l
+
+# 수동 테스트
+./server/backup_db.sh
+
+# 크론잡 제거 시
+./server/setup_cron.sh --remove
+```
+
+백업 파일: `/data/eob/edwards_project/backups/edwards_backup_YYYYMMDD_HHMMSS.sql.gz`
+로그 파일: `/data/eob/edwards_project/backups/backup.log`
+
+### 로컬에서 원격 DB 백업
 
 ```bash
 python backup_remote_db.py
