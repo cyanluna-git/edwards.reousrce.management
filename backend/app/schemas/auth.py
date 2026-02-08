@@ -69,3 +69,13 @@ class TokenRefreshRequest(BaseModel):
     """Token refresh request - uses refresh token"""
 
     refresh_token: str
+
+
+class SSORegistrationRequest(BaseModel):
+    """SSO self-registration request - for unregistered SAML users"""
+
+    registration_token: str
+    name: str
+    korean_name: str
+    department_id: str
+    position_id: str

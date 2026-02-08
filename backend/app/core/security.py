@@ -62,6 +62,31 @@ def create_refresh_token(data: dict) -> str:
     return encoded_jwt
 
 
+def create_registration_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a short-lived JWT registration token for SSO self-registration.
+    Contains SAML-verified email and name. Default 10 minute expiry."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(minutes=10)
+    to_encode.update({"exp": expire, "type": "registration"})
+    encoded_jwt = jwt.encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
+    return encoded_jwt
+
+
+def decode_registration_token(token: str) -> Optional[dict]:
+    """Decode and validate a registration token. Returns payload if valid, None otherwise."""
+    payload = decode_token(token)
+    if payload is None:
+        return None
+    if payload.get("type") != "registration":
+        return None
+    return payload
+
+
 def decode_token(token: str) -> Optional[dict]:
     """Decode and validate a JWT token"""
     try:

@@ -644,17 +644,50 @@ def generate_summary(build_dir, archive_path):
         print_error("Archive was not created successfully")
 
 
+def generate_env_remote():
+    """Generate .env.remote from .env using server profile."""
+    print_step("Generating .env.remote from .env")
+
+    env_path = Path('.env')
+    if not env_path.exists():
+        print_warn(".env not found, skipping .env.remote generation")
+        return False
+
+    try:
+        result = subprocess.run(
+            [sys.executable, 'deploy_env_remote.py', '--profile', 'server'],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            print_error(f".env.remote generation failed: {result.stderr}")
+            return False
+
+        for line in result.stdout.strip().splitlines():
+            print_info(f"  {line}")
+
+        print_colored("  ✓ .env.remote generated", Colors.GREEN)
+        return True
+
+    except Exception as e:
+        print_error(f"Failed to generate .env.remote: {e}")
+        return False
+
+
 def main():
     """Main execution"""
     print_header("Edwards Engineering Management - Build & Compress")
-    
+
     try:
         # Check prerequisites
         check_prerequisites()
-        
+
+        # Generate .env.remote from .env (before copy, so it's included in archive)
+        generate_env_remote()
+
         # Create build directory
         build_dir = create_build_directory()
-        
+
         # Copy project files
         project_dir = copy_project_files(build_dir)
         

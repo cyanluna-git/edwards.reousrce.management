@@ -1,18 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loginUser } from '@/api/client';
-import { Link } from 'react-router-dom';
-import { BarChart3, Mail, Lock, Loader2, Info } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { BarChart3, Mail, Lock, Loader2, Info, ShieldAlert, UserX } from 'lucide-react';
+
+interface SsoError {
+  type: 'unregistered' | 'inactive';
+  email: string;
+}
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [ssoError, setSsoError] = useState<SsoError | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const errorType = searchParams.get('error');
+    const errorEmail = searchParams.get('email');
+
+    if (errorType === 'unregistered' || errorType === 'inactive') {
+      setSsoError({ type: errorType, email: errorEmail || '' });
+      // Clean URL params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -68,6 +86,61 @@ export function LoginPage() {
                 Resource & Project Management System
               </p>
             </div>
+
+            {/* SSO Error Banner */}
+            {ssoError && (
+              <div className="mx-8 mb-2">
+                <div className={`p-4 rounded-lg border ${
+                  ssoError.type === 'unregistered'
+                    ? 'bg-amber-50 border-amber-200'
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    {ssoError.type === 'unregistered' ? (
+                      <UserX className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <ShieldAlert className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="text-sm">
+                      {ssoError.type === 'unregistered' ? (
+                        <>
+                          <p className="font-semibold text-amber-800 mb-1">Account Not Registered</p>
+                          <p className="text-amber-700">
+                            <span className="font-medium">{ssoError.email}</span> is not registered in this system.
+                          </p>
+                          <p className="text-amber-700 mt-2">
+                            Please contact <span className="font-medium">Gerald Park</span> to request access.
+                          </p>
+                          <a
+                            href="mailto:gerald.park@edwardsvacuum.com?subject=EOB Access Request&body=Please register my account for Edwards Operation Board.%0A%0AEmail: "
+                            className="inline-block mt-2 text-amber-800 underline hover:text-amber-900 font-medium"
+                          >
+                            Send access request email
+                          </a>
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-semibold text-red-800 mb-1">Account Inactive</p>
+                          <p className="text-red-700">
+                            The account <span className="font-medium">{ssoError.email}</span> is currently inactive.
+                          </p>
+                          <p className="text-red-700 mt-2">
+                            Please contact <span className="font-medium">Gerald Park</span> to reactivate your account.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSsoError(null)}
+                    className="mt-3 text-xs text-slate-500 hover:text-slate-700 underline"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Form Section */}
             <div className="px-8 pb-8">

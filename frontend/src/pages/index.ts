@@ -1,6 +1,7 @@
 export { DashboardPage } from './DashboardPage';
 export { LandingPage } from './LandingPage';
 export { LoginPage } from './LoginPage';
+export { RegisterPage } from './RegisterPage';
 export { default as ProjectsPage } from './ProjectsPage';
 export { ProjectDetailPage } from './ProjectDetailPage';
 export { WorkLogsPage } from './WorkLogsPage';

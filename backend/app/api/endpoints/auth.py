@@ -14,6 +14,8 @@ from app.core.database import get_db
 from app.core.security import (
     create_access_token,
     create_refresh_token,
+    create_registration_token,
+    decode_registration_token,
     decode_token,
     get_current_user,
     verify_password,
@@ -23,7 +25,7 @@ from app.core.security import (
 from app.core.config import settings
 from app.services.auth_service import authenticate_user
 from app.services.sso_service import SSOService
-from app.schemas.auth import Token, TokenRefreshRequest, UserResponse, PasswordChangeRequest, PasswordChangeResponse
+from app.schemas.auth import Token, TokenRefreshRequest, UserResponse, PasswordChangeRequest, PasswordChangeResponse, SSORegistrationRequest
 from app.models.user import User
 from sqlalchemy.orm import joinedload
 
@@ -299,15 +301,33 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     
     # Match user in DB (Case-insensitive)
     from sqlalchemy import func
+    from urllib.parse import quote
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
+
+    # Build frontend base URL for error redirects
+    if settings.DEBUG:
+        frontend_base = "http://localhost:3004"
+    else:
+        scheme = "https" if request.url.scheme == "https" or not settings.DEBUG else "http"
+        frontend_base = f"{scheme}://{request.url.netloc}"
+
     if not user:
-        # Optional: Auto-create user if not exists? 
-        # For now, we only allow existing users
-        logger.warning(f"SSO Login attempt for non-existent user: {email}")
-        raise HTTPException(status_code=403, detail="Your account is not registered in this system.")
-    
+        logger.info(f"SSO: Unregistered user {email}, redirecting to registration")
+        reg_token = create_registration_token({
+            "email": email,
+            "name": user_info.get("name", ""),
+        })
+        return RedirectResponse(
+            url=f"{frontend_base}/register?token={reg_token}",
+            status_code=status.HTTP_302_FOUND,
+        )
+
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="User account is inactive.")
+        logger.warning(f"SSO Login attempt for inactive user: {email}")
+        return RedirectResponse(
+            url=f"{frontend_base}/login?error=inactive&email={quote(email)}",
+            status_code=status.HTTP_302_FOUND,
+        )
 
     # Create tokens
     access_token = create_access_token(
@@ -329,3 +349,77 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     
     logger.info(f"SSO Login successful for {email}, redirecting to frontend")
     return RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.post("/sso/register", response_model=Token)
+async def sso_register(body: SSORegistrationRequest, db: Session = Depends(get_db)):
+    """
+    SSO self-registration endpoint.
+    Creates a new user from a valid registration token (issued during SSO callback for unregistered users).
+    """
+    import secrets
+    from sqlalchemy import func
+    from app.services.user_service import UserService
+    from app.schemas.user import UserCreate
+    from app.models.organization import Department, JobPosition
+
+    # 1. Decode and validate registration token
+    payload = decode_registration_token(body.registration_token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired registration token. Please sign in with SSO again.",
+        )
+
+    email = payload.get("email")
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid registration token: missing email",
+        )
+
+    # 2. Check for duplicate user
+    existing_user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists.",
+        )
+
+    # 3. Validate department_id and position_id
+    department = db.query(Department).filter(Department.id == body.department_id).first()
+    if not department:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid department selected.",
+        )
+
+    position = db.query(JobPosition).filter(JobPosition.id == body.position_id).first()
+    if not position:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid position selected.",
+        )
+
+    # 4. Create user via UserService (handles UserHistory automatically)
+    user_service = UserService(db)
+    user_create = UserCreate(
+        email=email,
+        name=body.name,
+        korean_name=body.korean_name,
+        department_id=body.department_id,
+        position_id=body.position_id,
+        password=secrets.token_urlsafe(32),
+        role="USER",
+    )
+    new_user = user_service.create_user(user_create)
+
+    # 5. Issue tokens
+    access_token = create_access_token(
+        data={"sub": new_user.id, "role": new_user.role},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    refresh_token = create_refresh_token(data={"sub": new_user.id, "role": new_user.role})
+
+    logger.info(f"SSO self-registration successful for {email}")
+    return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")

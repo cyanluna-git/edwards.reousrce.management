@@ -132,6 +132,21 @@ export const loginUser = async (email: string, password: string): Promise<Token>
   return response.data;
 };
 
+// ============ SSO Registration API ============
+
+export interface SSORegistrationData {
+  registration_token: string;
+  name: string;
+  korean_name: string;
+  department_id: string;
+  position_id: string;
+}
+
+export const ssoRegister = async (data: SSORegistrationData): Promise<Token> => {
+  const response = await apiClient.post<Token>('/auth/sso/register', data);
+  return response.data;
+};
+
 // ============ Milestones API ============
 
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate, Program, ProjectType } from '@/types';
