@@ -40,22 +40,43 @@ class Settings(BaseSettings):
         "http://localhost:3000,http://localhost:3004,http://localhost:5173"
     )
 
-    # AI Provider: "groq" or "gemini"
+    # AI Provider: "groq", "gemini", or "pcas"
     AI_PROVIDER: str = "groq"
 
-    # Groq (AI) - Primary (very fast inference)
+    # Groq (AI) - Fast inference with Llama models
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     GROQ_TIMEOUT: int = 30
 
-    # Gemini (AI) - Alternative
+    # Gemini (AI) - Google Gemini models
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.0-flash"
     GEMINI_TIMEOUT: int = 30
 
+    # PCAS (Atlas Copco AI Brains Bot - internal GPT-5)
+    PCAS_LLM_KEY: str = ""
+    PCAS_LLM_BASE_URL: str = "https://groupapp.atlascopco.com/ai-brains/api"
+    PCAS_LLM_VERIFY_SSL: bool = True
+    PCAS_LLM_MODEL: str = "gpt-5"
+    PCAS_LLM_TIMEOUT: int = 30
+    # Default UPN for health check and when user context is missing (e.g. service account)
+    PCAS_LLM_DEFAULT_UPN: str = ""
+
     # CSV Migration
     CSV_BACKUP_PATH: str = "backups/latest"
     MIGRATION_REPORT_PATH: str = "reports"
+
+    # SSO / SAML 2.0
+    SAML_ENABLED: bool = False
+    SAML_ENTITY_ID: str = "https://eob.10.182.252.32.sslip.io"
+    SAML_ACS_URL: str = "https://eob.10.182.252.32.sslip.io/api/v1/auth/sso/callback"
+    SAML_SLO_URL: str = "https://eob.10.182.252.32.sslip.io/api/v1/auth/logout"
+    # Identity Provider (IdP) Settings - To be provided by Admin
+    SAML_IDP_ENTITY_ID: str = ""
+    SAML_IDP_SSO_URL: str = ""
+    SAML_IDP_X509_CERT: str = ""  # Base64 encoded cert
+    SAML_STRICT: bool = True
+    SAML_DEBUG: bool = True
 
     @property
     def cors_origins_list(self) -> list[str]:

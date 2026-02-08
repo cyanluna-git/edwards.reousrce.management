@@ -4,7 +4,7 @@ Pytest configuration and fixtures for Edwards backend tests.
 
 import pytest
 from typing import Generator
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event, JSON
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
@@ -25,6 +25,18 @@ def engine():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    # Map PostgreSQL-specific JSONB to SQLite-compatible JSON
+    from sqlalchemy.dialects.postgresql import JSONB
+
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_conn, connection_record):
+        pass  # placeholder for future SQLite pragmas
+
+    # Register JSONB → JSON adaptation for SQLite
+    from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler
+    if not hasattr(SQLiteTypeCompiler, 'visit_JSONB'):
+        SQLiteTypeCompiler.visit_JSONB = SQLiteTypeCompiler.visit_JSON
     # Create all tables
     Base.metadata.create_all(bind=engine)
     yield engine

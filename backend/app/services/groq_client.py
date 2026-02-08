@@ -62,6 +62,7 @@ class GroqClient:
         self,
         prompt: str,
         system_prompt: Optional[str] = None,
+        user_email: Optional[str] = None,
     ) -> dict:
         """
         Generate JSON response from Groq.
@@ -69,6 +70,7 @@ class GroqClient:
         Args:
             prompt: User prompt
             system_prompt: Optional system instruction (must mention JSON)
+            user_email: Ignored (PCAS-only parameter)
 
         Returns:
             Parsed JSON from the response

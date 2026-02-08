@@ -77,18 +77,18 @@ class TestAIWorklogService:
         return session
 
     @pytest.fixture
-    def mock_groq_client(self):
-        """Create a mock Groq client"""
+    def mock_llm_client(self):
+        """Create a mock LLM client (provider-agnostic)"""
         client = MagicMock()
-        client.model = "llama-3.3-70b-versatile"
+        client.model = "test-model"
         client.generate_json = AsyncMock()
         client.health_check = AsyncMock()
         return client
 
     @pytest.mark.asyncio
-    async def test_parse_worklog_success(self, mock_db_session, mock_groq_client):
+    async def test_parse_worklog_success(self, mock_db_session, mock_llm_client):
         """Test successful worklog parsing"""
-        mock_groq_client.generate_json.return_value = {
+        mock_llm_client.generate_json.return_value = {
             "entries": [
                 {
                     "project_id": None,
@@ -103,7 +103,7 @@ class TestAIWorklogService:
             "warnings": [],
         }
 
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
         request = AIWorklogParseRequest(
             text="오전에 OQC 인프라 DB 설계했음",
             user_id="user-1",
@@ -118,11 +118,11 @@ class TestAIWorklogService:
         assert result.total_hours == 4.0
 
     @pytest.mark.asyncio
-    async def test_parse_worklog_ai_failure(self, mock_db_session, mock_groq_client):
+    async def test_parse_worklog_ai_failure(self, mock_db_session, mock_llm_client):
         """Test handling of AI parsing failure"""
-        mock_groq_client.generate_json.side_effect = Exception("AI Error")
+        mock_llm_client.generate_json.side_effect = Exception("AI Error")
 
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
         request = AIWorklogParseRequest(
             text="test input",
             user_id="user-1",
@@ -137,29 +137,29 @@ class TestAIWorklogService:
         assert "AI 파싱 실패" in result.warnings[0]
 
     @pytest.mark.asyncio
-    async def test_check_health_healthy(self, mock_db_session, mock_groq_client):
+    async def test_check_health_healthy(self, mock_db_session, mock_llm_client):
         """Test health check when AI is healthy"""
-        mock_groq_client.health_check.return_value = {"available": True, "model": "llama-3.3-70b-versatile"}
+        mock_llm_client.health_check.return_value = {"available": True, "model": "test-model"}
 
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
         result = await service.check_health()
 
         assert result["status"] == "healthy"
-        assert result["model"] == "llama-3.3-70b-versatile"
+        assert result["model"] == "test-model"
 
     @pytest.mark.asyncio
-    async def test_check_health_unhealthy(self, mock_db_session, mock_groq_client):
+    async def test_check_health_unhealthy(self, mock_db_session, mock_llm_client):
         """Test health check when AI is unhealthy"""
-        mock_groq_client.health_check.return_value = {"available": False, "error": "Connection failed"}
+        mock_llm_client.health_check.return_value = {"available": False, "error": "Connection failed"}
 
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
         result = await service.check_health()
 
         assert result["status"] == "unhealthy"
 
-    def test_validate_hours_bounds(self, mock_db_session, mock_groq_client):
+    def test_validate_hours_bounds(self, mock_db_session, mock_llm_client):
         """Test that hours are bounded correctly"""
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
 
         # Test entry with excessive hours
         entry = {
@@ -172,9 +172,9 @@ class TestAIWorklogService:
 
         assert result.hours == 24.0  # Should be capped at 24
 
-    def test_validate_confidence_bounds(self, mock_db_session, mock_groq_client):
+    def test_validate_confidence_bounds(self, mock_db_session, mock_llm_client):
         """Test that confidence is bounded correctly"""
-        service = AIWorklogService(mock_db_session, mock_groq_client)
+        service = AIWorklogService(mock_db_session, mock_llm_client)
 
         # Test entry with excessive confidence
         entry = {

@@ -30,9 +30,21 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  ✓ SSH Connection confirmed." -ForegroundColor Green
 
-# Step 0: Build (if not skipped)
+# Step 0: Generate .env.remote from .env
+Write-Host "[0/8] Generating .env.remote from .env..." -ForegroundColor Green
+Push-Location $LocalProjectRoot
+python deploy_env_remote.py --profile server --domain $Domain
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[ERROR] Failed to generate .env.remote." -ForegroundColor Red
+    Pop-Location
+    exit 1
+}
+Pop-Location
+Write-Host "  ✓ .env.remote generated." -ForegroundColor Green
+
+# Step 1: Build (if not skipped)
 if (-not $SkipBuild) {
-    Write-Host "[0/7] Building project..." -ForegroundColor Green
+    Write-Host "`n[1/8] Building project..." -ForegroundColor Green
     Push-Location $LocalProjectRoot
     python build_and_compress.py
     if ($LASTEXITCODE -ne 0) {
@@ -43,11 +55,11 @@ if (-not $SkipBuild) {
     Pop-Location
     Write-Host "  ✓ Build complete." -ForegroundColor Green
 } else {
-    Write-Host "[0/7] Skipping build (using existing archive)..." -ForegroundColor Yellow
+    Write-Host "[1/8] Skipping build (using existing archive)..." -ForegroundColor Yellow
 }
 
-# Step 1: Find the latest build archive
-Write-Host "`n[1/7] Searching for latest build archive..." -ForegroundColor Green
+# Step 2: Find the latest build archive
+Write-Host "`n[2/8] Searching for latest build archive..." -ForegroundColor Green
 $LatestArchive = Get-ChildItem -Path $BuildOutputDir -Filter "edwards_project_*.tar.gz" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 
 if (-not $LatestArchive) {
@@ -60,8 +72,8 @@ $ArchivePath = $LatestArchive.FullName
 $ArchiveSizeMB = [Math]::Round($LatestArchive.Length/1MB, 1)
 Write-Host "  ✓ Found: $ArchiveName ($ArchiveSizeMB MB)" -ForegroundColor Green
 
-# Step 2: Ensure remote directory exists and backup database
-Write-Host "`n[2/7] Preparing remote directory..." -ForegroundColor Green
+# Step 3: Ensure remote directory exists and backup database
+Write-Host "`n[3/8] Preparing remote directory..." -ForegroundColor Green
 ssh -t "$Username@$ServerIP" "sudo mkdir -p $RemotePath && sudo chown ${Username}:${Username} $RemotePath && mkdir -p $RemotePath/backups"
 
 if (-not $SkipBackup) {
@@ -70,8 +82,8 @@ if (-not $SkipBackup) {
     ssh "$Username@$ServerIP" "cd $RemotePath && docker exec edwards-postgres pg_dump -U postgres -d edwards > backups/edwards_backup_$BackupTimestamp.sql 2>/dev/null || echo 'No existing database to backup'"
 }
 
-# Step 3: Upload archive to VM
-Write-Host "`n[3/7] Uploading archive to VM..." -ForegroundColor Green
+# Step 4: Upload archive to VM
+Write-Host "`n[4/8] Uploading archive to VM..." -ForegroundColor Green
 scp "$ArchivePath" "$Username@$ServerIP`:/tmp/$ArchiveName"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[ERROR] Upload failed." -ForegroundColor Red
@@ -79,8 +91,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  ✓ Upload complete." -ForegroundColor Green
 
-# Step 4: Stop containers and extract archive
-Write-Host "`n[4/7] Extracting archive..." -ForegroundColor Green
+# Step 5: Stop containers and extract archive
+Write-Host "`n[5/8] Extracting archive..." -ForegroundColor Green
 ssh "$Username@$ServerIP" "docker stop edwards-api edwards-web 2>/dev/null || true"
 ssh "$Username@$ServerIP" "docker rm edwards-api edwards-web 2>/dev/null || true"
 
@@ -93,15 +105,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  ✓ Archive extracted." -ForegroundColor Green
 
-# Step 5: Load Docker images
-Write-Host "`n[5/7] Loading Docker images..." -ForegroundColor Green
+# Step 6: Load Docker images
+Write-Host "`n[6/8] Loading Docker images..." -ForegroundColor Green
 ssh -t "$Username@$ServerIP" "cd $RemotePath/docker_images && chmod +x load_images.sh && ./load_images.sh"
 
-# Step 6: Start containers
-Write-Host "`n[6/7] Starting containers..." -ForegroundColor Green
+# Step 7: Start containers
+Write-Host "`n[7/8] Starting containers..." -ForegroundColor Green
 ssh -t "$Username@$ServerIP" "cd $RemotePath && docker-compose up -d"
 
-Write-Host "`n[7/7] Verifying services..." -ForegroundColor Green
+Write-Host "`n[8/8] Verifying services..." -ForegroundColor Green
 Start-Sleep -Seconds 5
 ssh "$Username@$ServerIP" "cd $RemotePath && docker-compose ps"
 

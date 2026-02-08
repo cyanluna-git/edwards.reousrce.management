@@ -38,6 +38,9 @@ disable-model-invocation: false
 - `2026-01-31_17_00_project-inline-editing-table.md` - 프로젝트 인라인 편집 테이블
 - `2026-02-01_recharge-io-feature.md` - Recharge IO 기능
 
+### AI/LLM 관련
+- `2026-02-06-llm-abstraction-and-prompt-optimization.md` - LLM abstraction layer (PCAS), prompt English conversion, team task null project rule
+
 ## 사용 방법
 
 1. **관련 workthrough 검색**: 작업과 관련된 workthrough 문서 찾기

@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Edwards Project Operation Board - Engineering resource management system for EUV Program IS. Replaces SharePoint/Excel workflows with a unified web application for worklog tracking, resource forecasting, and milestone management.
 
+### Port Convention
+
+This project uses port suffix **4** (xxx4) to avoid conflicts when running multiple projects in parallel. All services share the same suffix: DB 5434, Backend 8004, Frontend 3004.
+
 ## Development Commands
 
 ### Quick Start
@@ -103,6 +107,8 @@ frontend/src/
 | Backend API | http://localhost:8004       |
 | API Docs    | http://localhost:8004/docs  |
 | Database    | localhost:5434 (PostgreSQL) |
+
+All ports use suffix **4** (project-specific convention).
 
 Default login: `admin@edwards.com` / `password`
 

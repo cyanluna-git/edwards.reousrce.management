@@ -5,7 +5,7 @@ Business logic for AI-assisted worklog parsing
 
 import logging
 from datetime import date, timedelta
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case, desc
 
@@ -18,8 +18,7 @@ from sqlalchemy.orm import joinedload
 from app.utils import get_io_number
 from app.models.resource import WorkLog
 from app.models.user import User
-from app.services.gemini_client import GeminiClient, gemini_client
-from app.services.groq_client import GroqClient, groq_client
+from app.services.llm import LLMClient, get_llm_client
 from app.services.matching_service import FuzzyMatcher
 from app.services.text_preprocessor import KoreanTextPreprocessor
 from app.services.keyword_mappings import (
@@ -41,16 +40,11 @@ class AIWorklogService:
     def __init__(
         self,
         db: Session,
-        client: Optional[Union[GeminiClient, GroqClient]] = None,
+        client: Optional[LLMClient] = None,
     ):
         self.db = db
-        # Select AI provider based on config
-        if client:
-            self.client = client
-        elif settings.AI_PROVIDER == "gemini":
-            self.client = gemini_client
-        else:
-            self.client = groq_client
+        # Select AI provider via factory (supports groq, gemini, pcas)
+        self.client = client or get_llm_client()
 
         # Initialize matching services
         self.matcher = FuzzyMatcher()
@@ -66,10 +60,9 @@ class AIWorklogService:
         """
         Load active projects from database.
 
-        Excludes Completed/Closed projects.
-        Sorts by: InProgress first, then by created_at (newest first).
-        This ensures that when multiple projects match the same keyword (e.g., GEN3),
-        the most recent active project is prioritized.
+        Includes Planned and InProgress projects only.
+        Completed/Cancelled/OnHold are excluded.
+        Sorts by: InProgress first, then Planned, then by created_at (newest first).
         """
         if self._projects_cache is not None:
             return self._projects_cache
@@ -176,12 +169,15 @@ class AIWorklogService:
             # 최근 기록이 없으면 전체 활성 프로젝트 반환
             return self._load_projects()
 
-        # 프로젝트 정보 조회 (빈도순 유지)
+        # Fetch project info (frequency order preserved), only active statuses
         project_ids = [ps.project_id for ps in project_stats]
         projects = (
             self.db.query(Project)
             .options(joinedload(Project.internal_io))
-            .filter(Project.id.in_(project_ids))
+            .filter(
+                Project.id.in_(project_ids),
+                Project.status.in_(["Planned", "InProgress"]),
+            )
             .all()
         )
 
@@ -455,11 +451,19 @@ class AIWorklogService:
             request.target_date,
         )
 
-        # Step 3: Call AI (Groq or Gemini)
+        # Step 2.5: Resolve user UPN for PCAS (API requires "user" or "userToken")
+        user_email: Optional[str] = None
+        if request.user_id:
+            user = self.db.query(User).filter(User.id == request.user_id).first()
+            if user and user.email:
+                user_email = user.email
+
+        # Step 3: Call AI (Groq / Gemini / PCAS)
         try:
             result = await self.client.generate_json(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
+                user_email=user_email,
             )
         except Exception as e:
             logger.error(f"AI parsing failed: {str(e)}")
@@ -538,27 +542,18 @@ class AIWorklogService:
         Returns:
             Dict with status, model, and message
         """
-        if isinstance(self.client, GroqClient):
-            result = await self.client.health_check()
-            return {
-                "status": "healthy" if result["available"] else "unhealthy",
-                "model": result.get("model", settings.GROQ_MODEL),
-                "provider": "groq",
-                "message": (
-                    "Groq API 연결됨"
-                    if result["available"]
-                    else f"Groq API 연결 실패: {result.get('error', 'Unknown')}"
-                ),
-            }
-        else:
-            result = await self.client.health_check()
-            return {
-                "status": "healthy" if result["available"] else "unhealthy",
-                "model": result.get("model", settings.GEMINI_MODEL),
-                "provider": "gemini",
-                "message": (
-                    "Gemini API 연결됨"
-                    if result["available"]
-                    else f"Gemini API 연결 실패: {result.get('error', 'Unknown')}"
-                ),
-            }
+        provider = settings.AI_PROVIDER
+        result = await self.client.health_check()
+        is_available = result.get("available", False)
+        model = result.get("model", "unknown")
+
+        return {
+            "status": "healthy" if is_available else "unhealthy",
+            "model": model,
+            "provider": provider,
+            "message": (
+                f"{provider.upper()} API 연결됨"
+                if is_available
+                else f"{provider.upper()} API 연결 실패: {result.get('error', 'Unknown')}"
+            ),
+        }
