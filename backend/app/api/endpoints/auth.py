@@ -237,11 +237,15 @@ async def sso_login(request: Request):
     if not settings.SAML_ENABLED:
         raise HTTPException(status_code=400, detail="SSO is not enabled")
     
+    # Determine if we are using HTTPS
+    # In production (not DEBUG), we should generally assume HTTPS if being accessed via the proxy
+    is_https = request.url.scheme == 'https' or (not settings.DEBUG and not "localhost" in request.url.netloc)
+    
     request_data = {
-        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'https': 'on' if is_https else 'off',
         'http_host': request.url.netloc,
         'script_name': request.url.path,
-        'server_port': request.url.port or (443 if request.url.scheme == 'https' else 80),
+        'server_port': request.url.port or (443 if is_https else 80),
         'get_data': dict(request.query_params),
         'post_data': {},
         'query_string': request.url.query
@@ -261,11 +265,14 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="SSO is not enabled")
         
     form_data = await request.form()
+    # Consistent HTTPS detection
+    is_https = request.url.scheme == 'https' or (not settings.DEBUG and not "localhost" in request.url.netloc)
+    
     request_data = {
-        'https': 'on' if request.url.scheme == 'https' else 'off',
+        'https': 'on' if is_https else 'off',
         'http_host': request.url.netloc,
         'script_name': request.url.path,
-        'server_port': request.url.port or (443 if request.url.scheme == 'https' else 80),
+        'server_port': request.url.port or (443 if is_https else 80),
         'get_data': dict(request.query_params),
         'post_data': dict(form_data),
         'query_string': request.url.query
@@ -290,8 +297,9 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     if not email:
         raise HTTPException(status_code=400, detail="Email not found in SAML assertion")
     
-    # Match user in DB
-    user = db.query(User).filter(User.email == email).first()
+    # Match user in DB (Case-insensitive)
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     if not user:
         # Optional: Auto-create user if not exists? 
         # For now, we only allow existing users
@@ -308,7 +316,16 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     )
     refresh_token = create_refresh_token(data={"sub": user.id, "role": user.role})
     
-    # Redirect to frontend with tokens in URL (or set cookie)
-    # Adjust the frontend URL as needed
-    frontend_url = f"https://{request.url.netloc}/?token={access_token}&refresh={refresh_token}"
-    return RedirectResponse(url=frontend_url)
+    # Redirect to frontend with tokens in URL
+    # In production, the frontend is served on the same domain as the API
+    # In local development, the frontend usually runs on port 3004
+    if settings.DEBUG:
+        # Use localhost:3004 for local frontend development
+        frontend_url = f"http://localhost:3004/?token={access_token}&refresh={refresh_token}"
+    else:
+        # In production, use the current host and protocol
+        scheme = "https" if request.url.scheme == "https" or not settings.DEBUG else "http"
+        frontend_url = f"{scheme}://{request.url.netloc}/?token={access_token}&refresh={refresh_token}"
+    
+    logger.info(f"SSO Login successful for {email}, redirecting to frontend")
+    return RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)

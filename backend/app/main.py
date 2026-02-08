@@ -115,6 +115,7 @@ async def startup_event():
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication Alias"]) # Azure AD Alias
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(departments.router, prefix="/api/departments", tags=["Departments"])
 app.include_router(projects.router, prefix="/api/projects", tags=["Projects"])

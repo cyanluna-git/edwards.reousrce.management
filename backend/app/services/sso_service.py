@@ -16,11 +16,16 @@ class SSOService:
         """
         Prepare the SAML request dictionary from the FastAPI request.
         """
+        # Ensure we have a valid port
+        port = request_data.get('server_port')
+        if not port:
+            port = 443 if request_data.get('https') == 'on' else 80
+            
         return {
-            'https': 'on' if request_data.get('https') else 'off',
+            'https': request_data.get('https', 'off'),
             'http_host': request_data.get('http_host'),
             'script_name': request_data.get('script_name'),
-            'server_port': request_data.get('server_port'),
+            'server_port': str(port),
             'get_data': request_data.get('get_data', {}),
             'post_data': request_data.get('post_data', {}),
             'query_string': request_data.get('query_string', '')
@@ -75,11 +80,15 @@ class SSOService:
         
         # Entra ID standard attribute mapping
         # These keys might vary based on Entra ID configuration
-        email = attributes.get('email', [None])[0] or 
-                attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress', [None])[0]
+        email = (
+            attributes.get('email', [None])[0] or 
+            attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress', [None])[0]
+        )
         
-        name = attributes.get('name', [None])[0] or 
-               attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/displayname', [None])[0]
+        name = (
+            attributes.get('name', [None])[0] or 
+            attributes.get('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/displayname', [None])[0]
+        )
         
         return {
             "email": email,

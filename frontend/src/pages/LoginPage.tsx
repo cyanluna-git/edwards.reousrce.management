@@ -158,8 +158,27 @@ export function LoginPage() {
                   variant="outline"
                   className="w-full h-12 border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-3"
                   onClick={() => {
-                    const baseUrl = import.meta.env.VITE_API_URL || '';
-                    window.location.href = `${baseUrl}/auth/sso/login`;
+                    // Use absolute URL for SSO login to avoid issues with proxies during redirection
+                    const apiBase = import.meta.env.VITE_API_URL || '';
+                    
+                    // Force /api prefix if not present to ensure it hits the Nginx API proxy
+                    let ssoLoginUrl = '';
+                    if (apiBase && apiBase !== '/') {
+                      ssoLoginUrl = `${apiBase}/auth/sso/login`;
+                    } else {
+                      ssoLoginUrl = `/api/auth/sso/login`;
+                    }
+                    
+                    // Clean up double slashes
+                    ssoLoginUrl = ssoLoginUrl.replace(/\/+/g, '/');
+                    
+                    if (window.location.hostname === 'localhost' && !apiBase.startsWith('http')) {
+                      // In local dev, redirect to the known backend port
+                      window.location.href = `http://localhost:8004/api/auth/sso/login`;
+                    } else {
+                      // In production, use the constructed relative URL
+                      window.location.href = ssoLoginUrl;
+                    }
                   }}
                 >
                   <svg className="w-5 h-5" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
