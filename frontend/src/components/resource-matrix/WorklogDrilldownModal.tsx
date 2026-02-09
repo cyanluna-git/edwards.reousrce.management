@@ -30,7 +30,7 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
     ioId,
     ioName,
 }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('resource-plans');
     // Determine IO Label from IO Name/ID (optional formatting)
     const displayIo = ioName || ioId;
 
@@ -52,7 +52,7 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
                 <DialogHeader>
-                    <DialogTitle>Allocation Details</DialogTitle>
+                    <DialogTitle>{t('drilldown.title')}</DialogTitle>
                     <DialogDescription>
                         {userName} • {month} • {displayIo}
                     </DialogDescription>
@@ -62,7 +62,7 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center h-48 text-slate-500">
                             <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                            {t('common:status.loading')}
+                            {t('common:status.loading', { defaultValue: 'Loading...' })}
                         </div>
                     ) : error ? (
                         <div className="text-red-500 p-4 text-center">
@@ -76,11 +76,11 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-100 text-slate-600 sticky top-0 shadow-sm">
                                 <tr>
-                                    <th className="p-3 font-semibold w-24">Date</th>
-                                    <th className="p-3 font-semibold">Project</th>
-                                    <th className="p-3 font-semibold">Description</th>
-                                    <th className="p-3 font-semibold text-right w-20">Hours</th>
-                                    <th className="p-3 font-semibold text-right w-20">FTE</th>
+                                    <th className="p-3 font-semibold w-24">{t('drilldown.date')}</th>
+                                    <th className="p-3 font-semibold">{t('drilldown.project')}</th>
+                                    <th className="p-3 font-semibold">{t('drilldown.description')}</th>
+                                    <th className="p-3 font-semibold text-right w-20">{t('drilldown.hours')}</th>
+                                    <th className="p-3 font-semibold text-right w-20">{t('drilldown.fte')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -109,7 +109,7 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
                             </tbody>
                             <tfoot className="bg-slate-50 font-semibold text-slate-800 sticky bottom-0 border-t">
                                 <tr>
-                                    <td colSpan={3} className="p-3 text-right">Total</td>
+                                    <td colSpan={3} className="p-3 text-right">{t('drilldown.total')}</td>
                                     <td className="p-3 text-right">{totalHours.toFixed(1)} h</td>
                                     <td className="p-3 text-right text-blue-700">{totalFte.toFixed(2)}</td>
                                 </tr>

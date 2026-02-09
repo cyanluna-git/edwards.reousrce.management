@@ -100,5 +100,41 @@
     "loading": "Loading data...",
     "loadError": "Failed to load data: {{message}}",
     "noMembers": "No members registered."
+  },
+  "matrix": {
+    "loading": "Loading resource matrix...",
+    "errorLoading": "Error loading data: {{message}}",
+    "unknownError": "Unknown error",
+    "noData": "No resource allocations found for the selected period.",
+    "programProject": "Program / Project",
+    "total": "Total",
+    "grandTotal": "GRAND TOTAL",
+    "nPerson": "{{count}} person",
+    "nPeople": "{{count}} people",
+    "detailName": "Name",
+    "detailRole": "Role",
+    "detailPosition": "Position",
+    "detailFte": "FTE",
+    "totalFte": "Total FTE"
+  },
+  "pivot": {
+    "loading": "Loading pivot matrix...",
+    "errorLoading": "Error loading data: {{message}}",
+    "unknownError": "Unknown error",
+    "noData": "No resource allocations found for the selected period.",
+    "resource": "Resource",
+    "namePosition": "Name / Position",
+    "total": "Total",
+    "unassigned": "Unassigned",
+    "directReports": "General / Direct Reports"
+  },
+  "drilldown": {
+    "title": "Allocation Details",
+    "date": "Date",
+    "project": "Project",
+    "description": "Description",
+    "hours": "Hours",
+    "fte": "FTE",
+    "total": "Total"
   }
 }

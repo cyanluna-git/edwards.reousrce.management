@@ -82,7 +82,7 @@ export function MilestoneTimeline({
                                                     <span className="font-medium">{ms.name}</span>
                                                     {ms.is_key_gate && (
                                                         <span className="ml-2 text-xs bg-primary/10 text-primary px-1 rounded">
-                                                            Key Gate
+                                                            {t('milestones.keyGate')}
                                                         </span>
                                                     )}
                                                 </div>

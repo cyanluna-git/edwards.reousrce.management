@@ -4,6 +4,7 @@
  */
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     getResourceAllocationMatrix,
     type ResourceAllocationDetail,
@@ -29,6 +30,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
     departmentId,
     programId,
 }) => {
+    const { t } = useTranslation('resource-plans');
     const { data, isLoading, error } = useQuery<ResourceAllocationMatrix>({
         queryKey: ['resource-matrix', startMonth, endMonth, departmentId, programId],
         queryFn: () => getResourceAllocationMatrix(startMonth, endMonth, departmentId, programId),
@@ -44,7 +46,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-lg text-muted-foreground">Loading resource matrix...</div>
+                <div className="text-lg text-muted-foreground">{t('matrix.loading')}</div>
             </div>
         );
     }
@@ -53,7 +55,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-lg text-red-600">
-                    Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
+                    {t('matrix.errorLoading', { message: error instanceof Error ? error.message : t('matrix.unknownError') })}
                 </div>
             </div>
         );
@@ -63,7 +65,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-lg text-muted-foreground">
-                    No resource allocations found for the selected period.
+                    {t('matrix.noData')}
                 </div>
             </div>
         );
@@ -77,7 +79,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                     <thead className="sticky top-0 bg-slate-100 z-20 shadow-sm">
                         <tr>
                             <th className="sticky left-0 bg-slate-200 border border-slate-300 p-3 min-w-[280px] text-left font-semibold z-30">
-                                Program / Project
+                                {t('matrix.programProject')}
                             </th>
                             {data.months.map((month) => (
                                 <th
@@ -88,7 +90,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                                 </th>
                             ))}
                             <th className="border border-slate-300 p-2 bg-blue-50 font-semibold min-w-[90px]">
-                                Total
+                                {t('matrix.total')}
                             </th>
                         </tr>
                     </thead>
@@ -165,10 +167,9 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                                                                 {allocation.total_fte.toFixed(1)}
                                                             </div>
                                                             <div className="text-xs text-slate-500">
-                                                                ({allocation.details.length}{' '}
-                                                                {allocation.details.length === 1
-                                                                    ? 'person'
-                                                                    : 'people'}
+                                                                ({allocation.details.length === 1
+                                                                    ? t('matrix.nPerson', { count: allocation.details.length })
+                                                                    : t('matrix.nPeople', { count: allocation.details.length })}
                                                                 )
                                                             </div>
                                                         </div>
@@ -191,7 +192,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                         {/* Grand Total Row */}
                         <tr className="bg-blue-100 font-bold sticky bottom-0 z-10 shadow-sm">
                             <td className="sticky left-0 bg-blue-200 border border-slate-300 p-3 z-20 text-blue-900">
-                                GRAND TOTAL
+                                {t('matrix.grandTotal')}
                             </td>
                             {data.months.map((month) => (
                                 <td
@@ -237,6 +238,8 @@ const CellDetailModal: React.FC<CellDetailModalProps> = ({
     details,
     onClose,
 }) => {
+    const { t } = useTranslation('resource-plans');
+
     return (
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="max-w-2xl">
@@ -249,10 +252,10 @@ const CellDetailModal: React.FC<CellDetailModalProps> = ({
                     <table className="w-full text-sm border-collapse">
                         <thead>
                             <tr className="border-b bg-slate-50">
-                                <th className="text-left p-3 font-semibold">Name</th>
-                                <th className="text-left p-3 font-semibold">Role</th>
-                                <th className="text-left p-3 font-semibold">Position</th>
-                                <th className="text-right p-3 font-semibold">FTE</th>
+                                <th className="text-left p-3 font-semibold">{t('matrix.detailName')}</th>
+                                <th className="text-left p-3 font-semibold">{t('matrix.detailRole')}</th>
+                                <th className="text-left p-3 font-semibold">{t('matrix.detailPosition')}</th>
+                                <th className="text-right p-3 font-semibold">{t('matrix.detailFte')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -278,7 +281,7 @@ const CellDetailModal: React.FC<CellDetailModalProps> = ({
                         <tfoot>
                             <tr className="font-bold bg-blue-50 border-t-2 border-blue-200">
                                 <td colSpan={3} className="p-3 text-blue-900">
-                                    Total FTE
+                                    {t('matrix.totalFte')}
                                 </td>
                                 <td className="p-3 text-right font-mono text-lg text-blue-900">
                                     {details.reduce((sum, d) => sum + d.fte, 0).toFixed(2)}

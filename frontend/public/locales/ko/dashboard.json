@@ -163,5 +163,13 @@
     "byProject": "프로젝트별",
     "byMember": "멤버별",
     "keyIssues": "주요 이슈"
+  },
+  "heatmap": {
+    "dayMon": "월",
+    "dayWed": "수",
+    "dayFri": "금",
+    "tooltip": "{{date}}: {{hours}}시간 ({{count}}건)",
+    "less": "적음",
+    "more": "많음"
   }
 }

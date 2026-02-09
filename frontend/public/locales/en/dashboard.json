@@ -163,5 +163,13 @@
     "byProject": "By Project",
     "byMember": "By Member",
     "keyIssues": "Key Issues"
+  },
+  "heatmap": {
+    "dayMon": "Mon",
+    "dayWed": "Wed",
+    "dayFri": "Fri",
+    "tooltip": "{{date}}: {{hours}} hours ({{count}} entries)",
+    "less": "Less",
+    "more": "More"
   }
 }

@@ -2,6 +2,7 @@
  * IOManagementTab - Manage Internal IO and Recharge IO
  */
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApiError } from '@/hooks/useApiError';
 import {
@@ -53,6 +54,7 @@ const emptyFormData: IOFormData = {
 export const IOManagementTab: React.FC = () => {
     const queryClient = useQueryClient();
     const getErrorMessage = useApiError();
+    const { t } = useTranslation('projects');
     const [activeIOTab, setActiveIOTab] = useState('internal');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -238,11 +240,11 @@ export const IOManagementTab: React.FC = () => {
         <table className="w-full text-sm">
             <thead>
                 <tr className="border-b bg-slate-50">
-                    <th className="text-left p-3 font-medium w-32">IO Number</th>
-                    <th className="text-left p-3 font-medium">Name</th>
-                    <th className="text-left p-3 font-medium">Description</th>
-                    <th className="text-left p-3 font-medium w-20">Status</th>
-                    <th className="text-center p-3 font-medium w-24">Actions</th>
+                    <th className="text-left p-3 font-medium w-32">{t('io.ioNumber')}</th>
+                    <th className="text-left p-3 font-medium">{t('common:form.name')}</th>
+                    <th className="text-left p-3 font-medium">{t('common:form.description')}</th>
+                    <th className="text-left p-3 font-medium w-20">{t('common:form.status')}</th>
+                    <th className="text-center p-3 font-medium w-24">{t('io.actions')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -255,7 +257,7 @@ export const IOManagementTab: React.FC = () => {
                             <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                                 io.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                             }`}>
-                                {io.is_active ? 'Active' : 'Inactive'}
+                                {io.is_active ? t('common:status.active') : t('common:status.inactive')}
                             </span>
                         </td>
                         <td className="p-3 text-center">
@@ -265,7 +267,7 @@ export const IOManagementTab: React.FC = () => {
                                     size="sm"
                                     className="h-7 w-7 text-blue-600"
                                     onClick={() => onEdit(io)}
-                                    title="Edit"
+                                    title={t('common:buttons.edit')}
                                 >
                                     ✏️
                                 </Button>
@@ -274,7 +276,7 @@ export const IOManagementTab: React.FC = () => {
                                     size="sm"
                                     className="h-7 w-7 text-red-600"
                                     onClick={() => onDelete(io)}
-                                    title="Delete"
+                                    title={t('common:buttons.delete')}
                                 >
                                     🗑️
                                 </Button>
@@ -285,7 +287,7 @@ export const IOManagementTab: React.FC = () => {
                 {ios.length === 0 && (
                     <tr>
                         <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                            No {type === 'internal' ? 'Internal' : 'Recharge'} IOs found
+                            {t('io.noIOs', { type: type === 'internal' ? 'Internal' : 'Recharge' })}
                         </td>
                     </tr>
                 )}
@@ -298,23 +300,23 @@ export const IOManagementTab: React.FC = () => {
             {/* Search Bar */}
             <div className="flex items-center gap-4">
                 <Input
-                    placeholder="Search by IO number or name..."
+                    placeholder={t('io.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="max-w-sm"
                 />
                 <span className="text-sm text-muted-foreground">
-                    Internal: {filteredInternalIOs.length} / Recharge: {filteredRechargeIOs.length}
+                    {t('io.internalCount', { count: filteredInternalIOs.length })} / {t('io.rechargeCount', { count: filteredRechargeIOs.length })}
                 </span>
             </div>
 
             <Tabs value={activeIOTab} onValueChange={setActiveIOTab}>
                 <TabsList>
                     <TabsTrigger value="internal">
-                        Internal IO ({internalIOs.length})
+                        {t('io.internalTab', { count: internalIOs.length })}
                     </TabsTrigger>
                     <TabsTrigger value="recharge">
-                        Recharge IO ({rechargeIOs.length})
+                        {t('io.rechargeTab', { count: rechargeIOs.length })}
                     </TabsTrigger>
                 </TabsList>
 
@@ -322,14 +324,14 @@ export const IOManagementTab: React.FC = () => {
                 <TabsContent value="internal" className="mt-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-lg">Internal IO Management</CardTitle>
+                            <CardTitle className="text-lg">{t('io.internalTitle')}</CardTitle>
                             <Button size="sm" onClick={handleAddInternal}>
-                                + New Internal IO
+                                {t('io.newInternal')}
                             </Button>
                         </CardHeader>
                         <CardContent>
                             {loadingInternal ? (
-                                <div className="p-8 text-center text-muted-foreground">Loading...</div>
+                                <div className="p-8 text-center text-muted-foreground">{t('common:status.loading')}</div>
                             ) : (
                                 renderIOTable(
                                     filteredInternalIOs,
@@ -346,14 +348,14 @@ export const IOManagementTab: React.FC = () => {
                 <TabsContent value="recharge" className="mt-4">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-lg">Recharge IO Management</CardTitle>
+                            <CardTitle className="text-lg">{t('io.rechargeTitle')}</CardTitle>
                             <Button size="sm" onClick={handleAddRecharge}>
-                                + New Recharge IO
+                                {t('io.newRecharge')}
                             </Button>
                         </CardHeader>
                         <CardContent>
                             {loadingRecharge ? (
-                                <div className="p-8 text-center text-muted-foreground">Loading...</div>
+                                <div className="p-8 text-center text-muted-foreground">{t('common:status.loading')}</div>
                             ) : (
                                 renderIOTable(
                                     filteredRechargeIOs,
@@ -372,48 +374,48 @@ export const IOManagementTab: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {internalFormData.id ? 'Edit Internal IO' : 'Add Internal IO'}
+                            {internalFormData.id ? t('io.editInternal') : t('io.addInternal')}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="internal-io-number" className="text-right">IO Number *</Label>
+                            <Label htmlFor="internal-io-number" className="text-right">{t('io.ioNumberRequired')}</Label>
                             <Input
                                 id="internal-io-number"
                                 value={internalFormData.io_number}
                                 onChange={(e) => setInternalFormData({ ...internalFormData, io_number: e.target.value })}
                                 className="col-span-3"
-                                placeholder="e.g., 406123"
+                                placeholder={t('io.ioPlaceholderInternal')}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="internal-name" className="text-right">Name</Label>
+                            <Label htmlFor="internal-name" className="text-right">{t('common:form.name')}</Label>
                             <Input
                                 id="internal-name"
                                 value={internalFormData.name}
                                 onChange={(e) => setInternalFormData({ ...internalFormData, name: e.target.value })}
                                 className="col-span-3"
-                                placeholder="Optional display name"
+                                placeholder={t('io.optionalName')}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="internal-desc" className="text-right">Description</Label>
+                            <Label htmlFor="internal-desc" className="text-right">{t('common:form.description')}</Label>
                             <Input
                                 id="internal-desc"
                                 value={internalFormData.description}
                                 onChange={(e) => setInternalFormData({ ...internalFormData, description: e.target.value })}
                                 className="col-span-3"
-                                placeholder="Optional description"
+                                placeholder={t('io.optionalDescription')}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setInternalModalOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setInternalModalOpen(false)}>{t('common:buttons.cancel')}</Button>
                         <Button
                             onClick={handleSaveInternal}
                             disabled={!internalFormData.io_number || createInternalMutation.isPending || updateInternalMutation.isPending}
                         >
-                            {createInternalMutation.isPending || updateInternalMutation.isPending ? 'Saving...' : 'Save'}
+                            {createInternalMutation.isPending || updateInternalMutation.isPending ? t('io.saving') : t('common:buttons.save')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -424,48 +426,48 @@ export const IOManagementTab: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {rechargeFormData.id ? 'Edit Recharge IO' : 'Add Recharge IO'}
+                            {rechargeFormData.id ? t('io.editRecharge') : t('io.addRecharge')}
                         </DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="recharge-io-number" className="text-right">IO Number *</Label>
+                            <Label htmlFor="recharge-io-number" className="text-right">{t('io.ioNumberRequired')}</Label>
                             <Input
                                 id="recharge-io-number"
                                 value={rechargeFormData.io_number}
                                 onChange={(e) => setRechargeFormData({ ...rechargeFormData, io_number: e.target.value })}
                                 className="col-span-3"
-                                placeholder="e.g., RCH001"
+                                placeholder={t('io.ioPlaceholderRecharge')}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="recharge-name" className="text-right">Name</Label>
+                            <Label htmlFor="recharge-name" className="text-right">{t('common:form.name')}</Label>
                             <Input
                                 id="recharge-name"
                                 value={rechargeFormData.name}
                                 onChange={(e) => setRechargeFormData({ ...rechargeFormData, name: e.target.value })}
                                 className="col-span-3"
-                                placeholder="Optional display name"
+                                placeholder={t('io.optionalName')}
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="recharge-desc" className="text-right">Description</Label>
+                            <Label htmlFor="recharge-desc" className="text-right">{t('common:form.description')}</Label>
                             <Input
                                 id="recharge-desc"
                                 value={rechargeFormData.description}
                                 onChange={(e) => setRechargeFormData({ ...rechargeFormData, description: e.target.value })}
                                 className="col-span-3"
-                                placeholder="Optional description"
+                                placeholder={t('io.optionalDescription')}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setRechargeModalOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setRechargeModalOpen(false)}>{t('common:buttons.cancel')}</Button>
                         <Button
                             onClick={handleSaveRecharge}
                             disabled={!rechargeFormData.io_number || createRechargeMutation.isPending || updateRechargeMutation.isPending}
                         >
-                            {createRechargeMutation.isPending || updateRechargeMutation.isPending ? 'Saving...' : 'Save'}
+                            {createRechargeMutation.isPending || updateRechargeMutation.isPending ? t('io.saving') : t('common:buttons.save')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -475,12 +477,12 @@ export const IOManagementTab: React.FC = () => {
             <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) { setDeleteConfirm(null); setDeleteError(null); } }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogTitle>{t('io.confirmDelete')}</DialogTitle>
                     </DialogHeader>
                     <div className="py-4">
-                        <p>Are you sure you want to delete {deleteConfirm?.type === 'internal' ? 'Internal' : 'Recharge'} IO "{deleteConfirm?.io_number}"?</p>
+                        <p>{t('io.confirmDeleteMessage', { type: deleteConfirm?.type === 'internal' ? 'Internal' : 'Recharge', io_number: deleteConfirm?.io_number })}</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                            This action cannot be undone. If projects are using this IO, the deletion will fail.
+                            {t('io.confirmDeleteWarning')}
                         </p>
                     </div>
                     {deleteError && (
@@ -489,13 +491,13 @@ export const IOManagementTab: React.FC = () => {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>Cancel</Button>
+                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>{t('common:buttons.cancel')}</Button>
                         <Button
                             variant="destructive"
                             onClick={handleDelete}
                             disabled={deleteInternalMutation.isPending || deleteRechargeMutation.isPending}
                         >
-                            {deleteInternalMutation.isPending || deleteRechargeMutation.isPending ? 'Deleting...' : 'Delete'}
+                            {deleteInternalMutation.isPending || deleteRechargeMutation.isPending ? t('io.deleting') : t('common:buttons.delete')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

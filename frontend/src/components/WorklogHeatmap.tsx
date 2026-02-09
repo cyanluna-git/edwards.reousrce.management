@@ -1,5 +1,6 @@
 import React from 'react';
 import { format, subDays, eachDayOfInterval, startOfWeek, getDay } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { WorklogStats } from '@/types';
 
 interface WorklogHeatmapProps {
@@ -8,6 +9,7 @@ interface WorklogHeatmapProps {
 }
 
 export const WorklogHeatmap: React.FC<WorklogHeatmapProps> = ({ data, days = 365 }) => {
+    const { t } = useTranslation('dashboard');
     const today = new Date();
     const startDate = subDays(today, days);
 
@@ -89,11 +91,11 @@ export const WorklogHeatmap: React.FC<WorklogHeatmapProps> = ({ data, days = 365
                     {/* Day labels (Mon, Wed, Fri) */}
                     <div className="flex flex-col gap-1 text-[10px] text-muted-foreground pt-0 mr-1 mt-[2px]">
                         <div className="h-2.5"></div>
-                        <div className="h-2.5 flex items-center">Mon</div>
+                        <div className="h-2.5 flex items-center">{t('heatmap.dayMon')}</div>
                         <div className="h-2.5"></div>
-                        <div className="h-2.5 flex items-center">Wed</div>
+                        <div className="h-2.5 flex items-center">{t('heatmap.dayWed')}</div>
                         <div className="h-2.5"></div>
-                        <div className="h-2.5 flex items-center">Fri</div>
+                        <div className="h-2.5 flex items-center">{t('heatmap.dayFri')}</div>
                         <div className="h-2.5"></div>
                     </div>
 
@@ -111,7 +113,7 @@ export const WorklogHeatmap: React.FC<WorklogHeatmapProps> = ({ data, days = 365
                                         <div
                                             key={dateStr}
                                             className={`w-2.5 h-2.5 rounded-sm ${getIntensityClass(hours)} transition-colors cursor-help`}
-                                            title={`${dateStr}: ${hours} hours (${count} entries)`}
+                                            title={t('heatmap.tooltip', { date: dateStr, hours, count })}
                                         />
                                     );
                                 })}
@@ -122,7 +124,7 @@ export const WorklogHeatmap: React.FC<WorklogHeatmapProps> = ({ data, days = 365
 
                 {/* Legend */}
                 <div className="flex items-center justify-end gap-2 mt-4 text-xs text-muted-foreground">
-                    <span>Less</span>
+                    <span>{t('heatmap.less')}</span>
                     <div className="flex gap-1">
                         <div className="w-2.5 h-2.5 rounded-sm bg-slate-100 dark:bg-slate-800"></div>
                         <div className="w-2.5 h-2.5 rounded-sm bg-green-200 dark:bg-green-900/40"></div>
@@ -130,7 +132,7 @@ export const WorklogHeatmap: React.FC<WorklogHeatmapProps> = ({ data, days = 365
                         <div className="w-2.5 h-2.5 rounded-sm bg-green-400 dark:bg-green-700/80"></div>
                         <div className="w-2.5 h-2.5 rounded-sm bg-green-500 dark:bg-green-600"></div>
                     </div>
-                    <span>More</span>
+                    <span>{t('heatmap.more')}</span>
                 </div>
             </div>
         </div>
