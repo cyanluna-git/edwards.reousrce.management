@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -107,11 +108,12 @@ async def get_current_user(
     """
     from app.models.user import User  # Import here to avoid circular import
 
-    credentials_exception = HTTPException(
+    credentials_exception = app_error(
         status_code=status.HTTP_401_UNAUTHORIZED,
+        code=ErrorCode.AUTH_INVALID_TOKEN,
         detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
     )
+    credentials_exception.headers = {"WWW-Authenticate": "Bearer"}
 
     payload = decode_token(token)
     if payload is None:
@@ -130,8 +132,9 @@ async def get_current_user(
         raise credentials_exception
 
     if not user.is_active:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_403_FORBIDDEN,
+            code=ErrorCode.AUTH_INACTIVE_USER,
             detail="Inactive user",
         )
 
@@ -151,8 +154,9 @@ def require_role(*allowed_roles: str):
 
     async def role_checker(current_user=Depends(get_current_user)):
         if current_user.role not in allowed_roles:
-            raise HTTPException(
+            raise app_error(
                 status_code=status.HTTP_403_FORBIDDEN,
+                code=ErrorCode.AUTH_INSUFFICIENT_PERMISSIONS,
                 detail="Insufficient permissions",
             )
         return current_user
@@ -169,8 +173,9 @@ def require_write_permission():
 
     async def write_checker(current_user=Depends(get_current_user)):
         if current_user.role in READ_ONLY_ROLES:
-            raise HTTPException(
+            raise app_error(
                 status_code=status.HTTP_403_FORBIDDEN,
+                code=ErrorCode.AUTH_READ_ONLY,
                 detail="Read-only access. This account does not have permission to modify data.",
             )
         return current_user

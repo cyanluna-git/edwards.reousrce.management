@@ -20,6 +20,7 @@ from app.schemas.worklog import (
     FrequentSelections,
 )
 from app.services.worklog_service import WorkLogService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -183,7 +184,7 @@ async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db
             "project": new_worklog.project,
         }
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.get("/frequent", response_model=FrequentSelections)
@@ -225,8 +226,8 @@ async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
     service = WorkLogService(db)
     worklog = service.get_by_id(worklog_id)
     if not worklog:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="WorkLog not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_WORKLOG, detail="WorkLog not found"
         )
     return {
         "id": worklog.id,
@@ -258,8 +259,8 @@ async def update_worklog(
     try:
         updated_worklog = service.update(worklog_id, worklog_in)
         if not updated_worklog:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="WorkLog not found"
+            raise app_error(
+                status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_WORKLOG, detail="WorkLog not found"
             )
         return {
             "id": updated_worklog.id,
@@ -287,7 +288,7 @@ async def update_worklog(
             "project": updated_worklog.project,
         }
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.delete("/{worklog_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -298,8 +299,8 @@ async def delete_worklog(worklog_id: int, db: Session = Depends(get_db)):
     service = WorkLogService(db)
     deleted = service.delete(worklog_id)
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="WorkLog not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_WORKLOG, detail="WorkLog not found"
         )
     return None
 

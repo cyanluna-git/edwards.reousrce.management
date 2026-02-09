@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.models.internal_io import InternalIO
 from app.schemas.project import InternalIO as InternalIOSchema
 from app.schemas.project import InternalIOCreate, InternalIOUpdate
@@ -44,7 +45,7 @@ def get_internal_io(io_id: str, db: Session = Depends(get_db)):
     """Get a specific Internal IO by ID"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Internal IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_INTERNAL_IO, detail="Internal IO not found")
     return io
 
 
@@ -53,7 +54,7 @@ def get_internal_io_by_number(io_number: str, db: Session = Depends(get_db)):
     """Get a specific Internal IO by IO number"""
     io = db.query(InternalIO).filter(InternalIO.io_number == io_number).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Internal IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_INTERNAL_IO, detail="Internal IO not found")
     return io
 
 
@@ -63,7 +64,7 @@ def create_internal_io(io_data: InternalIOCreate, db: Session = Depends(get_db))
     # Check if io_number already exists
     existing = db.query(InternalIO).filter(InternalIO.io_number == io_data.io_number).first()
     if existing:
-        raise HTTPException(status_code=400, detail="IO number already exists")
+        raise app_error(status_code=400, code=ErrorCode.DUPLICATE_IO, detail="IO number already exists")
 
     io = InternalIO(**io_data.model_dump())
     db.add(io)
@@ -81,13 +82,13 @@ def update_internal_io(
     """Update an Internal IO"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Internal IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_INTERNAL_IO, detail="Internal IO not found")
 
     # Check uniqueness if changing io_number
     if io_data.io_number and io_data.io_number != io.io_number:
         existing = db.query(InternalIO).filter(InternalIO.io_number == io_data.io_number).first()
         if existing:
-            raise HTTPException(status_code=400, detail="IO number already exists")
+            raise app_error(status_code=400, code=ErrorCode.DUPLICATE_IO, detail="IO number already exists")
 
     update_data = io_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
@@ -103,15 +104,16 @@ def delete_internal_io(io_id: str, db: Session = Depends(get_db)):
     """Delete an Internal IO (soft delete by setting is_active=False)"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Internal IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_INTERNAL_IO, detail="Internal IO not found")
 
     # Check if any projects are using this IO
     from app.models.project import Project
     project_count = db.query(Project).filter(Project.internal_io_id == io_id).count()
     if project_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
-            detail=f"Cannot delete IO: {project_count} project(s) are using this IO"
+            code=ErrorCode.DEPENDENCY_HAS_PROJECTS,
+            detail=f"Cannot delete IO: {project_count} project(s) are using this IO",
         )
 
     db.delete(io)

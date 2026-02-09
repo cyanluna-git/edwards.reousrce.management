@@ -23,6 +23,7 @@ from app.schemas.project import (
 )
 
 from app.services.project_service import ProjectService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -98,7 +99,7 @@ async def create_product_line(
         new_pl = service.create_product_line(product_line_in)
         return new_pl
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.put("/product-lines/{product_line_id}", response_model=ProductLine)
@@ -113,8 +114,8 @@ async def update_product_line(
     service = ProjectService(db)
     updated_pl = service.update_product_line(product_line_id, product_line_in)
     if not updated_pl:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product line not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PRODUCT_LINE, detail="Product line not found"
         )
     return updated_pl
 
@@ -129,8 +130,8 @@ async def delete_product_line(product_line_id: str, db: Session = Depends(get_db
     service = ProjectService(db)
     success = service.delete_product_line(product_line_id)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product line not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PRODUCT_LINE, detail="Product line not found"
         )
     return None
 
@@ -173,7 +174,7 @@ async def create_project(project_create: ProjectCreate, db: Session = Depends(ge
         new_project = service.create_project(project_in=project_create)
         return new_project
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.get("/{project_id}", response_model=Project)
@@ -184,8 +185,8 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
     service = ProjectService(db)
     project = service.get_by_id(project_id=project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
         )
     return project
 
@@ -203,12 +204,12 @@ async def update_project(
             project_id=project_id, project_in=project_update
         )
         if not updated_project:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            raise app_error(
+                status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
             )
         return updated_project
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -219,8 +220,8 @@ async def delete_project(project_id: str, db: Session = Depends(get_db)):
     service = ProjectService(db)
     deleted_project = service.delete_project(project_id=project_id)
     if not deleted_project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
         )
     return None
 
@@ -235,8 +236,8 @@ async def get_project_worklog_stats(project_id: str, db: Session = Depends(get_d
     # Check if project exists
     project = service.get_by_id(project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
         )
 
     return service.get_worklog_stats(project_id)
@@ -252,8 +253,8 @@ async def get_project_dashboard(project_id: str, db: Session = Depends(get_db)):
 
     dashboard_data = service.get_project_dashboard(project_id)
     if not dashboard_data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
         )
 
     return dashboard_data
@@ -272,8 +273,8 @@ async def get_project_milestones(project_id: str, db: Session = Depends(get_db))
     # Check if project exists
     project = service.get_by_id(project_id)
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_PROJECT, detail="Project not found"
         )
 
     return service.get_milestones(project_id)
@@ -295,7 +296,7 @@ async def create_project_milestone(
         new_milestone = service.create_milestone(project_id, milestone_in)
         return new_milestone
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.put("/{project_id}/milestones/{milestone_id}", response_model=Milestone)
@@ -313,12 +314,13 @@ async def update_project_milestone(
     # Check if milestone exists and belongs to project
     existing = service.get_milestone_by_id(milestone_id)
     if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_MILESTONE, detail="Milestone not found"
         )
     if existing.project_id != project_id:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.VALIDATION_MILESTONE_MISMATCH,
             detail="Milestone does not belong to this project",
         )
 
@@ -340,12 +342,13 @@ async def delete_project_milestone(
     # Check if milestone exists and belongs to project
     existing = service.get_milestone_by_id(milestone_id)
     if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_MILESTONE, detail="Milestone not found"
         )
     if existing.project_id != project_id:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.VALIDATION_MILESTONE_MISMATCH,
             detail="Milestone does not belong to this project",
         )
 

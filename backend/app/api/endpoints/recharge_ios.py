@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.models.recharge_io import RechargeIO
 from app.models.organization import BusinessUnit
 from app.schemas.project import RechargeIO as RechargeIOSchema
@@ -45,7 +46,7 @@ def get_recharge_io(io_id: str, db: Session = Depends(get_db)):
     """Get a specific Recharge IO by ID"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Recharge IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_RECHARGE_IO, detail="Recharge IO not found")
     return io
 
 
@@ -54,7 +55,7 @@ def get_recharge_io_by_number(io_number: str, db: Session = Depends(get_db)):
     """Get a specific Recharge IO by IO number"""
     io = db.query(RechargeIO).filter(RechargeIO.io_number == io_number).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Recharge IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_RECHARGE_IO, detail="Recharge IO not found")
     return io
 
 
@@ -64,7 +65,7 @@ def create_recharge_io(io_data: RechargeIOCreate, db: Session = Depends(get_db))
     # Check if io_number already exists
     existing = db.query(RechargeIO).filter(RechargeIO.io_number == io_data.io_number).first()
     if existing:
-        raise HTTPException(status_code=400, detail="IO number already exists")
+        raise app_error(status_code=400, code=ErrorCode.DUPLICATE_IO, detail="IO number already exists")
 
     # Extract business_unit_ids before creating IO
     data = io_data.model_dump(exclude={"business_unit_ids"})
@@ -92,13 +93,13 @@ def update_recharge_io(
     """Update a Recharge IO"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Recharge IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_RECHARGE_IO, detail="Recharge IO not found")
 
     # Check uniqueness if changing io_number
     if io_data.io_number and io_data.io_number != io.io_number:
         existing = db.query(RechargeIO).filter(RechargeIO.io_number == io_data.io_number).first()
         if existing:
-            raise HTTPException(status_code=400, detail="IO number already exists")
+            raise app_error(status_code=400, code=ErrorCode.DUPLICATE_IO, detail="IO number already exists")
 
     update_data = io_data.model_dump(exclude_unset=True)
 
@@ -125,15 +126,16 @@ def delete_recharge_io(io_id: str, db: Session = Depends(get_db)):
     """Delete a Recharge IO (soft delete by setting is_active=False)"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
     if not io:
-        raise HTTPException(status_code=404, detail="Recharge IO not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_RECHARGE_IO, detail="Recharge IO not found")
 
     # Check if any projects are using this IO
     from app.models.project import Project
     project_count = db.query(Project).filter(Project.recharge_io_id == io_id).count()
     if project_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
-            detail=f"Cannot delete IO: {project_count} project(s) are using this IO"
+            code=ErrorCode.DEPENDENCY_HAS_PROJECTS,
+            detail=f"Cannot delete IO: {project_count} project(s) are using this IO",
         )
 
     db.delete(io)
@@ -173,6 +175,6 @@ def get_recharge_ios_by_business_unit(
     """Get all Recharge IOs associated with a specific Business Unit"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()
     if not bu:
-        raise HTTPException(status_code=404, detail="Business Unit not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_BUSINESS_UNIT, detail="Business Unit not found")
 
     return bu.recharge_ios

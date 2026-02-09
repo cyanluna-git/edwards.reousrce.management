@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.schemas.resource_matrix import (
     ResourceAllocationMatrix,
     PivotMatrixResponse,
@@ -57,9 +58,9 @@ def get_allocation_matrix(
             program_id=program_id,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise app_error(status_code=400, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise app_error(status_code=500, code=ErrorCode.SERVER_INTERNAL_ERROR, detail=f"Internal server error: {str(e)}")
 
 
 @router.get("/pivot", response_model=PivotMatrixResponse)
@@ -85,9 +86,9 @@ def get_pivot_matrix(
             program_id=program_id,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise app_error(status_code=400, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise app_error(status_code=500, code=ErrorCode.SERVER_INTERNAL_ERROR, detail=f"Internal server error: {str(e)}")
 
 
 @router.get("/details", response_model=List[WorklogDetailResponse])
@@ -110,4 +111,4 @@ def get_matrix_details(
             io_id=io_id,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        raise app_error(status_code=500, code=ErrorCode.SERVER_INTERNAL_ERROR, detail=f"Internal server error: {str(e)}")

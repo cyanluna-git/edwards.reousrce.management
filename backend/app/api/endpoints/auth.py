@@ -11,6 +11,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -49,10 +50,10 @@ async def login(
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
         if not user:
-            raise HTTPException(
+            raise app_error(
                 status_code=status.HTTP_401_UNAUTHORIZED,
+                code=ErrorCode.AUTH_INVALID_CREDENTIALS,
                 detail="Incorrect email or password",
-                headers={"WWW-Authenticate": "Bearer"},
             )
 
         access_token = create_access_token(
@@ -68,7 +69,11 @@ async def login(
         detail = "Internal server error during login."
         if settings.DEBUG:
             detail += f" Debug: {type(e).__name__}: {e}"
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+        raise app_error(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.SERVER_INTERNAL_ERROR,
+            detail=detail,
+        )
 
 
 @router.post("/refresh", response_model=Token)
@@ -81,28 +86,32 @@ async def refresh_token(body: TokenRefreshRequest, db: Session = Depends(get_db)
     """
     payload = decode_token(body.refresh_token)
     if payload is None:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.AUTH_INVALID_REFRESH_TOKEN,
             detail="Invalid or expired refresh token",
         )
 
     if payload.get("type") != "refresh":
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.AUTH_INVALID_REFRESH_TOKEN,
             detail="Invalid token type",
         )
 
     user_id = payload.get("sub")
     if user_id is None:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.AUTH_INVALID_REFRESH_TOKEN,
             detail="Invalid refresh token",
         )
 
     user = db.query(User).filter(User.id == user_id).first()
     if user is None or not user.is_active:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.AUTH_INACTIVE_USER,
             detail="User not found or inactive",
         )
 
@@ -198,15 +207,17 @@ async def change_password(
     """
     # Verify current password
     if not verify_password(password_data.current_password, current_user.hashed_password):
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.AUTH_WRONG_PASSWORD,
             detail="Current password is incorrect",
         )
 
     # Validate new password
     if len(password_data.new_password) < 6:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.AUTH_PASSWORD_TOO_SHORT,
             detail="New password must be at least 6 characters long",
         )
 
@@ -219,8 +230,9 @@ async def change_password(
     # Verify the change persisted
     db.refresh(current_user)
     if not verify_password(password_data.new_password, current_user.hashed_password):
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.AUTH_PASSWORD_PERSIST_FAILED,
             detail="Password change failed to persist. Please try again.",
         )
 
@@ -237,8 +249,8 @@ async def sso_login(request: Request):
     Redirects user to the Identity Provider (Entra ID).
     """
     if not settings.SAML_ENABLED:
-        raise HTTPException(status_code=400, detail="SSO is not enabled")
-    
+        raise app_error(status_code=400, code=ErrorCode.AUTH_SSO_DISABLED, detail="SSO is not enabled")
+
     # Determine if we are using HTTPS
     # In production (not DEBUG), we should generally assume HTTPS if being accessed via the proxy
     is_https = request.url.scheme == 'https' or (not settings.DEBUG and not "localhost" in request.url.netloc)
@@ -264,8 +276,8 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     Handles the POST response from Entra ID after user authentication.
     """
     if not settings.SAML_ENABLED:
-        raise HTTPException(status_code=400, detail="SSO is not enabled")
-        
+        raise app_error(status_code=400, code=ErrorCode.AUTH_SSO_DISABLED, detail="SSO is not enabled")
+
     form_data = await request.form()
     # Consistent HTTPS detection
     is_https = request.url.scheme == 'https' or (not settings.DEBUG and not "localhost" in request.url.netloc)
@@ -287,17 +299,17 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     if errors:
         logger.error(f"SAML Error: {errors}")
         logger.error(f"Last Error Reason: {auth.get_last_error_reason()}")
-        raise HTTPException(status_code=401, detail=f"SAML Authentication failed: {errors}")
-    
+        raise app_error(status_code=401, code=ErrorCode.AUTH_SAML_FAILED, detail=f"SAML Authentication failed: {errors}")
+
     if not auth.is_authenticated():
-        raise HTTPException(status_code=401, detail="SAML User not authenticated")
+        raise app_error(status_code=401, code=ErrorCode.AUTH_SAML_FAILED, detail="SAML User not authenticated")
     
     # Extract user info
     user_info = SSOService.extract_user_attributes(auth)
     email = user_info.get("email")
     
     if not email:
-        raise HTTPException(status_code=400, detail="Email not found in SAML assertion")
+        raise app_error(status_code=400, code=ErrorCode.AUTH_SAML_FAILED, detail="Email not found in SAML assertion")
     
     # Match user in DB (Case-insensitive)
     from sqlalchemy import func
@@ -366,38 +378,43 @@ async def sso_register(body: SSORegistrationRequest, db: Session = Depends(get_d
     # 1. Decode and validate registration token
     payload = decode_registration_token(body.registration_token)
     if payload is None:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.AUTH_REGISTRATION_TOKEN_INVALID,
             detail="Invalid or expired registration token. Please sign in with SSO again.",
         )
 
     email = payload.get("email")
     if not email:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.AUTH_REGISTRATION_TOKEN_INVALID,
             detail="Invalid registration token: missing email",
         )
 
     # 2. Check for duplicate user
     existing_user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     if existing_user:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_409_CONFLICT,
+            code=ErrorCode.AUTH_DUPLICATE_EMAIL,
             detail="An account with this email already exists.",
         )
 
     # 3. Validate department_id and position_id
     department = db.query(Department).filter(Department.id == body.department_id).first()
     if not department:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.VALIDATION_INVALID_DEPARTMENT,
             detail="Invalid department selected.",
         )
 
     position = db.query(JobPosition).filter(JobPosition.id == body.position_id).first()
     if not position:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.VALIDATION_INVALID_POSITION,
             detail="Invalid position selected.",
         )
 

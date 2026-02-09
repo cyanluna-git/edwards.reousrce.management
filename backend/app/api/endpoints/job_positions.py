@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.organization import JobPosition
@@ -62,7 +63,7 @@ async def get_job_position(
     """Get a single job position by ID"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
     if not position:
-        raise HTTPException(status_code=404, detail="Job position not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_JOB_POSITION, detail="Job position not found")
     return position
 
 
@@ -80,8 +81,8 @@ async def create_job_position(
     # Check for duplicate name
     existing = db.query(JobPosition).filter(JobPosition.name == data.name).first()
     if existing:
-        raise HTTPException(
-            status_code=400, detail="Job position with this name already exists"
+        raise app_error(
+            status_code=400, code=ErrorCode.DUPLICATE_NAME, detail="Job position with this name already exists"
         )
 
     position = JobPosition(
@@ -105,14 +106,14 @@ async def update_job_position(
     """Update a job position"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
     if not position:
-        raise HTTPException(status_code=404, detail="Job position not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_JOB_POSITION, detail="Job position not found")
 
     # Check for duplicate name if name is being changed
     if data.name and data.name != position.name:
         existing = db.query(JobPosition).filter(JobPosition.name == data.name).first()
         if existing:
-            raise HTTPException(
-                status_code=400, detail="Job position with this name already exists"
+            raise app_error(
+                status_code=400, code=ErrorCode.DUPLICATE_NAME, detail="Job position with this name already exists"
             )
 
     if data.name is not None:
@@ -134,7 +135,7 @@ async def delete_job_position(
     """Delete (soft-delete by setting inactive) a job position"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
     if not position:
-        raise HTTPException(status_code=404, detail="Job position not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_JOB_POSITION, detail="Job position not found")
 
     # Soft delete by setting inactive
     position.is_active = False

@@ -10,6 +10,7 @@ from app.core.database import get_db
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.schemas.user_history import UserHistory
 from app.services.user_service import UserService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -56,8 +57,9 @@ async def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
     service = UserService(db)
     existing_user = service.get_by_email(email=user_in.email)
     if existing_user:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DUPLICATE_EMAIL,
             detail="A user with this email already exists.",
         )
     user = service.create_user(user_in=user_in)
@@ -72,8 +74,8 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     service = UserService(db)
     user = service.get_by_id(user_id=user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_USER, detail="User not found"
         )
     return user
 
@@ -90,8 +92,8 @@ async def update_user(
     service = UserService(db)
     user = service.get_by_id(user_id=user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_USER, detail="User not found"
         )
     updated_user = service.update(user=user, user_in=user_in)
     return updated_user
@@ -105,8 +107,8 @@ async def delete_user(user_id: str, db: Session = Depends(get_db)):
     service = UserService(db)
     user = service.delete(user_id=user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_USER, detail="User not found"
         )
     return user
 
@@ -120,8 +122,8 @@ async def get_user_history(user_id: str, db: Session = Depends(get_db)):
     # Check if user exists first
     user = service.get_by_id(user_id=user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_USER, detail="User not found"
         )
 
     history = service.get_history_by_user_id(user_id=user_id)
@@ -182,7 +184,7 @@ async def create_user_history(
     service = UserService(db)
     user = service.get_by_id(user_id=user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_USER, detail="User not found")
 
     history = UserHistoryModel(
         user_id=user_id,
@@ -220,7 +222,7 @@ async def update_user_history(
     )
 
     if not history:
-        raise HTTPException(status_code=404, detail="History entry not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HISTORY, detail="History entry not found")
 
     if history_in.department_id is not None:
         history.department_id = history_in.department_id
@@ -261,7 +263,7 @@ async def delete_user_history(
     )
 
     if not history:
-        raise HTTPException(status_code=404, detail="History entry not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HISTORY, detail="History entry not found")
 
     db.delete(history)
     db.commit()

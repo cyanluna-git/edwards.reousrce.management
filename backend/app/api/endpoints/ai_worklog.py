@@ -14,6 +14,7 @@ from app.schemas.ai_worklog import (
     AIHealthResponse,
 )
 from app.services.ai_worklog_service import AIWorklogService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -36,8 +37,9 @@ async def parse_worklog_with_ai(
         result = await service.parse_worklog(request)
         return result
     except Exception as e:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.SERVER_AI_PARSE_ERROR,
             detail=f"AI 파싱 중 오류 발생: {str(e)}",
         )
 

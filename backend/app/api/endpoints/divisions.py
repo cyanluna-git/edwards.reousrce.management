@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.models.organization import Division, Department
 
 router = APIRouter()
@@ -70,8 +71,8 @@ async def create_division(
     # Check for duplicate code
     existing = db.query(Division).filter(Division.code == div_in.code).first()
     if existing:
-        raise HTTPException(
-            status_code=400, detail=f"Division with code '{div_in.code}' already exists"
+        raise app_error(
+            status_code=400, code=ErrorCode.DUPLICATE_CODE, detail=f"Division with code '{div_in.code}' already exists"
         )
 
     division = Division(
@@ -95,7 +96,7 @@ async def update_division(
     """Update a division"""
     division = db.query(Division).filter(Division.id == division_id).first()
     if not division:
-        raise HTTPException(status_code=404, detail="Division not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DIVISION, detail="Division not found")
 
     if div_in.name is not None:
         division.name = div_in.name
@@ -104,8 +105,9 @@ async def update_division(
         if div_in.code != division.code:
             existing = db.query(Division).filter(Division.code == div_in.code).first()
             if existing:
-                raise HTTPException(
+                raise app_error(
                     status_code=400,
+                    code=ErrorCode.DUPLICATE_CODE,
                     detail=f"Division with code '{div_in.code}' already exists",
                 )
         division.code = div_in.code
@@ -125,7 +127,7 @@ async def delete_division(
     """Delete a division (soft delete)"""
     division = db.query(Division).filter(Division.id == division_id).first()
     if not division:
-        raise HTTPException(status_code=404, detail="Division not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DIVISION, detail="Division not found")
 
     # Check for dependent departments
     dept_count = (
@@ -134,8 +136,9 @@ async def delete_division(
         .count()
     )
     if dept_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DEPENDENCY_HAS_DEPARTMENTS,
             detail=f"Cannot delete: {dept_count} active departments belong to this division",
         )
 

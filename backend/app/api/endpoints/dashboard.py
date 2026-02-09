@@ -102,10 +102,11 @@ async def get_team_dashboard(
         import traceback
         print(f"[ERROR] get_team_dashboard failed: {str(e)}")
         print(traceback.format_exc())
-        from fastapi import HTTPException, status
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get team dashboard: {str(e)}"
+        from app.core.errors import ErrorCode, app_error
+        raise app_error(
+            status_code=500,
+            code=ErrorCode.SERVER_INTERNAL_ERROR,
+            detail=f"Failed to get team dashboard: {str(e)}",
         )
 
 

@@ -10,6 +10,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.models.hiring_plan import HiringPlan
 from app.models.organization import Department, SubTeam
 from app.models.user import User
@@ -98,7 +99,7 @@ async def create_hiring_plan(
     # Verify department exists
     dept = db.query(Department).filter(Department.id == plan_in.department_id).first()
     if not dept:
-        raise HTTPException(status_code=400, detail="Department not found")
+        raise app_error(status_code=400, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
 
     plan = HiringPlan(
         id=str(uuid.uuid4()),
@@ -123,7 +124,7 @@ async def get_hiring_plan(
     """Get a specific hiring plan"""
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Hiring plan not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HIRING_PLAN, detail="Hiring plan not found")
     return plan
 
 
@@ -136,7 +137,7 @@ async def update_hiring_plan(
     """Update a hiring plan"""
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Hiring plan not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HIRING_PLAN, detail="Hiring plan not found")
 
     if plan_in.department_id is not None:
         plan.department_id = plan_in.department_id
@@ -166,7 +167,7 @@ async def delete_hiring_plan(
     """Delete a hiring plan"""
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Hiring plan not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HIRING_PLAN, detail="Hiring plan not found")
 
     db.delete(plan)
     db.commit()
@@ -226,11 +227,11 @@ async def fill_hiring_plan(
     """
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()
     if not plan:
-        raise HTTPException(status_code=404, detail="Hiring plan not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_HIRING_PLAN, detail="Hiring plan not found")
 
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=400, detail="User not found")
+        raise app_error(status_code=400, code=ErrorCode.NOT_FOUND_USER, detail="User not found")
 
     plan.status = "FILLED"
     plan.hired_user_id = user_id

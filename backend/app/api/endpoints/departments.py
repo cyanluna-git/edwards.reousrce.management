@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.models.organization import BusinessUnit, Department, SubTeam
 from app.models.user import User
 
@@ -127,8 +128,9 @@ async def create_business_unit(
     # Check for duplicate code
     existing = db.query(BusinessUnit).filter(BusinessUnit.code == bu_in.code).first()
     if existing:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DUPLICATE_CODE,
             detail=f"Business Unit with code '{bu_in.code}' already exists",
         )
 
@@ -153,7 +155,7 @@ async def update_business_unit(
     """Update a business unit"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()
     if not bu:
-        raise HTTPException(status_code=404, detail="Business unit not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_BUSINESS_UNIT, detail="Business unit not found")
 
     if bu_in.name is not None:
         bu.name = bu_in.name
@@ -175,7 +177,7 @@ async def delete_business_unit(
     """Delete a business unit (soft delete by setting inactive)"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()
     if not bu:
-        raise HTTPException(status_code=404, detail="Business unit not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_BUSINESS_UNIT, detail="Business unit not found")
 
     # Check for dependent departments (only active ones)
     dept_count = (
@@ -184,8 +186,9 @@ async def delete_business_unit(
         .count()
     )
     if dept_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DEPENDENCY_HAS_DEPARTMENTS,
             detail=f"Cannot delete: {dept_count} active departments belong to this business unit",
         )
 
@@ -230,7 +233,7 @@ async def create_department(
             .first()
         )
         if not bu:
-            raise HTTPException(status_code=400, detail="Business unit not found")
+            raise app_error(status_code=400, code=ErrorCode.NOT_FOUND_BUSINESS_UNIT, detail="Business unit not found")
 
     # Verify division exists (only if provided)
     if dept_in.division_id:
@@ -238,7 +241,7 @@ async def create_department(
 
         div = db.query(Division).filter(Division.id == dept_in.division_id).first()
         if not div:
-            raise HTTPException(status_code=400, detail="Division not found")
+            raise app_error(status_code=400, code=ErrorCode.NOT_FOUND_DIVISION, detail="Division not found")
 
     dept = Department(
         id=f"DEPT_{dept_in.code.upper()}",
@@ -262,7 +265,7 @@ async def get_department(
     """Get a specific department by ID"""
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
     return dept
 
 
@@ -275,7 +278,7 @@ async def update_department(
     """Update a department"""
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
 
     update_data = dept_in.model_dump(exclude_unset=True)
 
@@ -303,7 +306,7 @@ async def delete_department(
     """Delete a department (soft delete)"""
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
 
     # Check for dependent sub-teams
     subteam_count = (
@@ -312,8 +315,9 @@ async def delete_department(
         .count()
     )
     if subteam_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DEPENDENCY_HAS_SUB_TEAMS,
             detail=f"Cannot delete: {subteam_count} active sub-teams belong to this department",
         )
 
@@ -325,8 +329,9 @@ async def delete_department(
         .count()
     )
     if user_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DEPENDENCY_HAS_USERS,
             detail=f"Cannot delete: {user_count} active users belong to this department",
         )
 
@@ -344,7 +349,7 @@ async def get_department_members(
     """Get all members of a department"""
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
 
     query = (
         db.query(User)
@@ -403,7 +408,7 @@ async def create_sub_team(
     """Create a new sub-team under a department"""
     dept = db.query(Department).filter(Department.id == department_id).first()
     if not dept:
-        raise HTTPException(status_code=404, detail="Department not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_DEPARTMENT, detail="Department not found")
 
     st = SubTeam(
         id=f"ST_{st_in.code.upper()}",
@@ -427,7 +432,7 @@ async def update_sub_team(
     """Update a sub-team"""
     st = db.query(SubTeam).filter(SubTeam.id == sub_team_id).first()
     if not st:
-        raise HTTPException(status_code=404, detail="Sub-team not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_SUB_TEAM, detail="Sub-team not found")
 
     if st_in.name is not None:
         st.name = st_in.name
@@ -451,13 +456,14 @@ async def delete_sub_team(
     """Delete a sub-team (soft delete)"""
     st = db.query(SubTeam).filter(SubTeam.id == sub_team_id).first()
     if not st:
-        raise HTTPException(status_code=404, detail="Sub-team not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_SUB_TEAM, detail="Sub-team not found")
 
     # Check for dependent users
     user_count = db.query(User).filter(User.sub_team_id == sub_team_id).count()
     if user_count > 0:
-        raise HTTPException(
+        raise app_error(
             status_code=400,
+            code=ErrorCode.DEPENDENCY_HAS_USERS,
             detail=f"Cannot delete: {user_count} users belong to this sub-team",
         )
 

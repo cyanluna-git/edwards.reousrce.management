@@ -16,6 +16,7 @@ from app.schemas.resource_plan import (
     ResourcePlanAssign,
 )
 from app.services.resource_plan_service import ResourcePlanService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -112,7 +113,7 @@ async def create_resource_plan(
     try:
         return service.create(plan_in, created_by=current_user.id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 @router.get("/{plan_id}", response_model=ResourcePlan)
@@ -126,8 +127,8 @@ async def get_resource_plan(
     service = ResourcePlanService(db)
     plan = service.get_by_id(plan_id)
     if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_RESOURCE_PLAN, detail="Resource plan not found"
         )
     return plan
 
@@ -144,8 +145,8 @@ async def update_resource_plan(
     service = ResourcePlanService(db)
     plan = service.update(plan_id, plan_in)
     if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_RESOURCE_PLAN, detail="Resource plan not found"
         )
     return plan
 
@@ -161,8 +162,8 @@ async def delete_resource_plan(
     service = ResourcePlanService(db)
     success = service.delete(plan_id)
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_RESOURCE_PLAN, detail="Resource plan not found"
         )
     return None
 
@@ -181,12 +182,12 @@ async def assign_user_to_plan(
     try:
         plan = service.assign_user(plan_id, assign_in.user_id)
         if not plan:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
+            raise app_error(
+                status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_RESOURCE_PLAN, detail="Resource plan not found"
             )
         return plan
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise app_error(status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.VALIDATION_FAILED, detail=str(e))
 
 
 # ============ Job Positions Endpoint ============

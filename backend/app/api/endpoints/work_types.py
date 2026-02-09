@@ -15,6 +15,7 @@ from app.schemas.work_type import (
     WorkTypeCategoryFlat,
 )
 from app.services.work_type_service import WorkTypeCategoryService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -78,8 +79,8 @@ async def get_work_type_category(
     service = WorkTypeCategoryService(db)
     category = service.get_by_id(category_id)
     if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_WORK_TYPE, detail="Category not found"
         )
     return category
 
@@ -97,8 +98,9 @@ async def create_work_type_category(
     # Check if code already exists
     existing = service.get_by_code(category_in.code)
     if existing:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.DUPLICATE_CODE,
             detail=f"Category with code '{category_in.code}' already exists",
         )
 
@@ -117,8 +119,8 @@ async def update_work_type_category(
     service = WorkTypeCategoryService(db)
     category = service.update(category_id, category_in)
     if not category:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Category not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_WORK_TYPE, detail="Category not found"
         )
     return category
 

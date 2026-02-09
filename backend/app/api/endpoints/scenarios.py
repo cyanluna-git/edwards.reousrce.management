@@ -18,6 +18,7 @@ from app.schemas.scenario import (
     CopyScenarioRequest,
 )
 from app.services.scenario_service import ScenarioService
+from app.core.errors import ErrorCode, app_error
 
 router = APIRouter()
 
@@ -64,8 +65,8 @@ async def get_scenario(scenario_id: int, db: Session = Depends(get_db)):
     service = ScenarioService(db)
     scenario = service.get_scenario_by_id(scenario_id)
     if not scenario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Scenario not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_SCENARIO, detail="Scenario not found"
         )
     return scenario
 
@@ -78,8 +79,8 @@ async def update_scenario(
     service = ScenarioService(db)
     scenario = service.update_scenario(scenario_id, scenario_in)
     if not scenario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Scenario not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_SCENARIO, detail="Scenario not found"
         )
     return scenario
 
@@ -89,8 +90,8 @@ async def delete_scenario(scenario_id: int, db: Session = Depends(get_db)):
     """Delete a scenario."""
     service = ScenarioService(db)
     if not service.delete_scenario(scenario_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Scenario not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_SCENARIO, detail="Scenario not found"
         )
     return None
 
@@ -103,8 +104,8 @@ async def copy_scenario(
     service = ScenarioService(db)
     new_scenario = service.copy_scenario(scenario_id, copy_request)
     if not new_scenario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Source scenario not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_SCENARIO, detail="Source scenario not found"
         )
     return new_scenario
 
@@ -119,8 +120,9 @@ async def compare_scenarios(
     service = ScenarioService(db)
     result = service.compare_scenarios(scenario_1_id, scenario_2_id)
     if not result:
-        raise HTTPException(
+        raise app_error(
             status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.NOT_FOUND_SCENARIO,
             detail="One or both scenarios not found",
         )
     return result
@@ -154,8 +156,8 @@ async def update_milestone(
     service = ScenarioService(db)
     milestone = service.update_milestone(milestone_id, milestone_in)
     if not milestone:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_MILESTONE, detail="Milestone not found"
         )
     return milestone
 
@@ -165,7 +167,7 @@ async def delete_milestone(milestone_id: int, db: Session = Depends(get_db)):
     """Delete a scenario milestone."""
     service = ScenarioService(db)
     if not service.delete_milestone(milestone_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Milestone not found"
+        raise app_error(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.NOT_FOUND_MILESTONE, detail="Milestone not found"
         )
     return None

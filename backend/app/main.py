@@ -69,12 +69,22 @@ app.add_middleware(
 async def global_exception_handler(request: Request, exc: Exception):
     """Log all unhandled exceptions and return 500. HTTPException is passed through as-is."""
     if isinstance(exc, HTTPException):
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+        # If detail is already a dict (new format with error code), use as-is
+        if isinstance(exc.detail, dict):
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
+        # Legacy string format - wrap with generic code
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"code": "UNKNOWN", "message": exc.detail},
+        )
     logger.exception("Unhandled exception: %s", exc)
-    detail = "Internal server error."
+    message = "Internal server error."
     if settings.DEBUG:
-        detail += f" {type(exc).__name__}: {exc}"
-    return JSONResponse(status_code=500, content={"detail": detail})
+        message += f" {type(exc).__name__}: {exc}"
+    return JSONResponse(
+        status_code=500,
+        content={"code": "SERVER_INTERNAL_ERROR", "message": message},
+    )
 
 
 # Startup event to create tables and seed initial data

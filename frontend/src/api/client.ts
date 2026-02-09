@@ -2,6 +2,29 @@ import axios from 'axios';
 import type { AxiosRequestConfig } from 'axios';
 import type { Token } from '@/types';
 
+// Standardized API error response type
+export interface ApiError {
+  code: string;
+  message: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Extract standardized error from axios error response.
+ * Backend returns: { code: "ERROR_CODE", message: "Human-readable message" }
+ */
+export function getApiError(error: unknown): ApiError {
+  if (axios.isAxiosError(error) && error.response?.data) {
+    const data = error.response.data;
+    if (data.code) return data as ApiError;
+    if (data.detail) {
+      if (typeof data.detail === 'object' && data.detail.code) return data.detail as ApiError;
+      return { code: 'UNKNOWN', message: typeof data.detail === 'string' ? data.detail : 'An unknown error occurred' };
+    }
+  }
+  return { code: 'UNKNOWN', message: 'An unknown error occurred' };
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const AUTH_TOKEN_KEY = 'authToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';

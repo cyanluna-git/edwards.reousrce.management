@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.errors import ErrorCode, app_error
 from app.core.security import get_current_user
 from app.models.user import User
 from app.models.organization import ProjectRole
@@ -101,7 +102,7 @@ async def get_project_role(
     """Get a single project role by ID"""
     role = db.query(ProjectRole).filter(ProjectRole.id == role_id).first()
     if not role:
-        raise HTTPException(status_code=404, detail="Project role not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_PROJECT_ROLE, detail="Project role not found")
     return role
 
 
@@ -119,8 +120,8 @@ async def create_project_role(
     # Check for duplicate name
     existing = db.query(ProjectRole).filter(ProjectRole.name == data.name).first()
     if existing:
-        raise HTTPException(
-            status_code=400, detail="Project role with this name already exists"
+        raise app_error(
+            status_code=400, code=ErrorCode.DUPLICATE_NAME, detail="Project role with this name already exists"
         )
 
     role_id = data.id if data.id else f"PR_{data.name.upper().replace(' ', '_')[:20]}"
@@ -150,7 +151,7 @@ async def update_project_role(
 
     role = db.query(ProjectRole).filter(ProjectRole.id == role_id).first()
     if not role:
-        raise HTTPException(status_code=404, detail="Project role not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_PROJECT_ROLE, detail="Project role not found")
 
     if data.name is not None:
         # Check for duplicate name if name is being changed (only among active roles)
@@ -161,8 +162,8 @@ async def update_project_role(
                 .first()
             )
             if existing:
-                raise HTTPException(
-                    status_code=400, detail="Project role with this name already exists"
+                raise app_error(
+                    status_code=400, code=ErrorCode.DUPLICATE_NAME, detail="Project role with this name already exists"
                 )
         role.name = data.name
     if data.category is not None:
@@ -202,7 +203,7 @@ async def delete_project_role(
     """Delete (soft-delete by setting inactive) a project role"""
     role = db.query(ProjectRole).filter(ProjectRole.id == role_id).first()
     if not role:
-        raise HTTPException(status_code=404, detail="Project role not found")
+        raise app_error(status_code=404, code=ErrorCode.NOT_FOUND_PROJECT_ROLE, detail="Project role not found")
 
     # Soft delete by setting inactive
     role.is_active = False
