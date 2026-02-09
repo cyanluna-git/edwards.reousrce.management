@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -29,6 +30,7 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
     ioId,
     ioName,
 }) => {
+    const { t } = useTranslation();
     // Determine IO Label from IO Name/ID (optional formatting)
     const displayIo = ioName || ioId;
 
@@ -60,15 +62,15 @@ export const WorklogDrilldownModal: React.FC<WorklogDrilldownModalProps> = ({
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center h-48 text-slate-500">
                             <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                            Loading worklogs...
+                            {t('common:status.loading')}
                         </div>
                     ) : error ? (
                         <div className="text-red-500 p-4 text-center">
-                            Failed to load details. Please try again.
+                            {t('errors:code.SERVER_INTERNAL_ERROR', { defaultValue: 'Failed to load details.' })}
                         </div>
                     ) : worklogs.length === 0 ? (
                         <div className="text-slate-500 p-8 text-center bg-slate-50 rounded-lg">
-                            No worklogs found for this selection.
+                            {t('worklogs:noData', { defaultValue: 'No worklogs found for this selection.' })}
                         </div>
                     ) : (
                         <table className="w-full text-sm text-left">

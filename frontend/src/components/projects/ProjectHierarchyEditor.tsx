@@ -42,6 +42,7 @@ import {
     getDepartments,
 } from '@/api/client';
 import type { ProductLine, Project } from '@/types';
+import { useApiError } from '@/hooks/useApiError';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
 import { useUsers } from '@/hooks/useUsers';
 import ProjectForm from '@/components/forms/ProjectForm';
@@ -89,6 +90,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { canManageProjects } = usePermissions();
+    const getErrorMessage = useApiError();
     const { data: hierarchy, isLoading } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
@@ -236,8 +238,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || 'Failed to delete Business Unit');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         }
     });
 

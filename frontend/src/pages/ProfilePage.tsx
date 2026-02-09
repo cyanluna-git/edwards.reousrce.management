@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/api/client';
+import { useApiError } from '@/hooks/useApiError';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import type { User as UserType } from '@/types';
 export function ProfilePage() {
   const { user: authUser } = useAuth();
   const { t } = useTranslation('auth');
+  const getErrorMessage = useApiError();
   const [user, setUser] = useState<UserType | null>(authUser);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -73,10 +75,10 @@ export function ProfilePage() {
           setMessage(null);
         }, 2000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({
         type: 'error',
-        text: error.response?.data?.detail || t('errors.passwordChangeFailed'),
+        text: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);

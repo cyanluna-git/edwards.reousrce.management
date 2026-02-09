@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useApiError } from '@/hooks/useApiError';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
@@ -29,6 +30,7 @@ import type { WorkLog, WorkLogCreate, WorkLogUpdate } from '@/types';
 export function WorkLogsPage() {
     const { user } = useAuth();
     const { t } = useTranslation('worklogs');
+    const getErrorMessage = useApiError();
     const [activeTab, setActiveTab] = useState('entry');
     const [weekStart, setWeekStart] = useState(() =>
         startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday
@@ -108,8 +110,8 @@ export function WorkLogsPage() {
             setIsModalOpen(false);
             setEditingWorklog(null);
             setSelectedDate(null);
-        } catch (error: any) {
-            alert(error?.response?.data?.detail || t('errors.generic'));
+        } catch (error: unknown) {
+            alert(getErrorMessage(error));
         }
     };
 
@@ -123,8 +125,8 @@ export function WorkLogsPage() {
                     target_week_start: format(weekStart, 'yyyy-MM-dd'),
                 });
                 refetch();
-            } catch (error: any) {
-                alert(error?.response?.data?.detail || t('errors.copyFailed'));
+            } catch (error: unknown) {
+                alert(getErrorMessage(error));
             }
         }
     };
@@ -137,8 +139,8 @@ export function WorkLogsPage() {
             }
             setIsLeaveModalOpen(false);
             refetch();
-        } catch (error: any) {
-            alert(error?.response?.data?.detail || t('errors.leaveFailed'));
+        } catch (error: unknown) {
+            alert(getErrorMessage(error));
         }
     };
 

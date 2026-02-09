@@ -3,6 +3,7 @@
  */
 import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApiError } from '@/hooks/useApiError';
 import {
     Card,
     CardContent,
@@ -51,6 +52,7 @@ const emptyFormData: IOFormData = {
 
 export const IOManagementTab: React.FC = () => {
     const queryClient = useQueryClient();
+    const getErrorMessage = useApiError();
     const [activeIOTab, setActiveIOTab] = useState('internal');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -113,8 +115,8 @@ export const IOManagementTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || 'Failed to delete Internal IO');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -144,8 +146,8 @@ export const IOManagementTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || 'Failed to delete Recharge IO');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 

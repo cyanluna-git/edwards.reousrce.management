@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useApiError } from '@/hooks/useApiError';
 import { useJobPositionsList } from '@/hooks/useJobPositionsCrud';
 import { UserEditModal } from '@/components/organization/ResourcesTab';
 import {
@@ -58,6 +59,7 @@ export const TeamsTab: React.FC = () => {
     const queryClient = useQueryClient();
     const { canManageOrganization } = usePermissions();
     const { t } = useTranslation('organization');
+    const getErrorMessage = useApiError();
     const [expandedL0, setExpandedL0] = useState<Set<string>>(new Set());
     const [expandedL1, setExpandedL1] = useState<Set<string>>(new Set());
 
@@ -102,8 +104,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create Division');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -113,8 +115,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update Division');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -125,8 +127,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || t('teams.deleteFailed'));
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -144,8 +146,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create Department');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -156,8 +158,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update Department');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -168,8 +170,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || t('teams.deleteFailed'));
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -181,8 +183,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create SubTeam');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -192,8 +194,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update SubTeam');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -204,8 +206,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || t('teams.deleteFailed'));
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 

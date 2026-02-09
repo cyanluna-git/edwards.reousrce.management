@@ -4,6 +4,7 @@
  */
 import { useState, useCallback } from 'react';
 import { useUpdateProject } from './useProjects';
+import { useApiError } from '@/hooks/useApiError';
 import type { Project, ProjectUpdate } from '@/types';
 
 interface EditState {
@@ -21,6 +22,7 @@ const initialEditState: EditState = {
 export function useInlineProjectEdit() {
   const [editState, setEditState] = useState<EditState>(initialEditState);
   const updateProjectMutation = useUpdateProject();
+  const getErrorMessage = useApiError();
 
   // Start editing a project
   const startEdit = useCallback((project: Project) => {
@@ -116,12 +118,12 @@ export function useInlineProjectEdit() {
         ...prev,
         errors: {
           ...prev.errors,
-          _general: 'Failed to save changes. Please try again.',
+          _general: getErrorMessage(error),
         },
       }));
       return false;
     }
-  }, [editState, validate, updateProjectMutation]);
+  }, [editState, validate, updateProjectMutation, getErrorMessage]);
 
   // Cancel editing
   const cancelEdit = useCallback(() => {

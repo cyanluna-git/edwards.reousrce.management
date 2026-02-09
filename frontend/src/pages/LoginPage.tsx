@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useApiError } from '@/hooks/useApiError';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import axios from 'axios';
 import { loginUser } from '@/api/client';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BarChart3, Mail, Lock, Loader2, Info, ShieldAlert, UserX } from 'lucide-react';
@@ -22,6 +24,7 @@ export function LoginPage() {
   const { login } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation('auth');
+  const getErrorMessage = useApiError();
 
   useEffect(() => {
     const errorType = searchParams.get('error');
@@ -42,19 +45,10 @@ export function LoginPage() {
       const response = await loginUser(email, password);
       login(response.access_token, response.refresh_token);
       // The redirection will be handled by the App component
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      if (err.response) {
-        const detail = err.response?.data?.detail;
-        if (err.response.status === 401) {
-          setError(t('errors.invalidCredentials'));
-        } else if (err.response.status === 422) {
-          setError(t('errors.invalidDataFormat'));
-        } else if (typeof detail === 'string') {
-          setError(detail);
-        } else {
-          setError(t('errors.serverError', { status: err.response.status }));
-        }
+      if (axios.isAxiosError(err) && err.response) {
+        setError(getErrorMessage(err));
       } else {
         setError(t('errors.loginFailed'));
       }
