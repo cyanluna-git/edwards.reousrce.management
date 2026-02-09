@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { WorkTypeCategorySelect } from '@/components/WorkTypeCategorySelect';
 import { ProjectHierarchySelect } from '@/components/ProjectHierarchySelect';
 import { useCreateWorklog } from '@/hooks/useWorklogs';
+import { useApiError } from '@/hooks/useApiError';
 import type { AIWorklogEntry, WorkTypeCategory } from '@/types';
 import { useTranslation } from 'react-i18next';
 
@@ -44,6 +45,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [errors, setErrors] = useState<string[]>([]);
     const { t } = useTranslation('worklogs');
+    const getErrorMessage = useApiError();
 
     const createMutation = useCreateWorklog();
 
@@ -113,9 +115,9 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                     is_sudden_work: false,
                     is_business_trip: false,
                 });
-            } catch (error: any) {
+            } catch (error: unknown) {
                 newErrors.push(
-                    t('ai.itemSaveFailed', { number: i + 1, error: error?.response?.data?.detail || t('ai.saveFailed') })
+                    t('ai.itemSaveFailed', { number: i + 1, error: getErrorMessage(error) })
                 );
             }
         }

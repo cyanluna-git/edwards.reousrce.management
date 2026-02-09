@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useApiError } from '@/hooks/useApiError';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,6 +39,7 @@ export function RegisterPage() {
   const token = searchParams.get('token');
   const { login } = useAuth();
   const { t } = useTranslation('auth');
+  const getErrorMessage = useApiError();
 
   const [tokenPayload, setTokenPayload] = useState<TokenPayload | null>(null);
   const [name, setName] = useState('');
@@ -97,19 +99,8 @@ export function RegisterPage() {
         position_id: positionId,
       });
       login(response.access_token, response.refresh_token);
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail;
-
-      if (status === 401) {
-        setError(t('ssoErrors.tokenExpired'));
-      } else if (status === 409) {
-        setError(t('ssoErrors.emailAlreadyExists'));
-      } else if (status === 400 && typeof detail === 'string') {
-        setError(detail);
-      } else {
-        setError(t('ssoErrors.registrationFailed'));
-      }
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }

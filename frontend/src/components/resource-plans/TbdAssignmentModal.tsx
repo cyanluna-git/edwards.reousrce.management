@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useApiError } from '@/hooks/useApiError';
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
   defaultProjectId,
 }) => {
   const { t } = useTranslation('resource-plans');
+  const getErrorMessage = useApiError();
 
   const today = new Date();
   const [filterYear, setFilterYear] = useState(defaultYear || today.getFullYear());
@@ -122,9 +124,8 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error: any) {
-      const message = error?.response?.data?.detail || error?.message || t('tbd.assignFailed');
-      setErrorMessage(message);
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error));
     } finally {
       setAssigningPlanId(null);
     }
