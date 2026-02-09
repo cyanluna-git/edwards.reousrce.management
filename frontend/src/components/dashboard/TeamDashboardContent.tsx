@@ -1,18 +1,11 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTeamDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui';
 import { Users, Building, Building2, Maximize2 } from 'lucide-react';
 import { WeeklySummaryCard } from './WeeklySummaryCard';
-
-// Team Dashboard Scope Labels
-const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
-    sub_team: { label: 'Sub-Team', icon: <Users className="w-4 h-4" /> },
-    department: { label: '부서', icon: <Building className="w-4 h-4" /> },
-    business_unit: { label: '사업부', icon: <Building2 className="w-4 h-4" /> },
-    all: { label: '전체', icon: <Building2 className="w-4 h-4" /> },
-};
 
 interface TeamDashboardContentProps {
     teamScope: TeamDashboardScope;
@@ -35,7 +28,16 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     dateRange,
 }) => {
     void _setTeamViewMode; // Reserved for future use
+    const { t } = useTranslation('dashboard');
     const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange);
+
+    // Team Dashboard Scope Labels (inside component to access t())
+    const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
+        sub_team: { label: t('team.scopeSubTeam'), icon: <Users className="w-4 h-4" /> },
+        department: { label: t('team.scopeDepartment'), icon: <Building className="w-4 h-4" /> },
+        business_unit: { label: t('team.scopeBusinessUnit'), icon: <Building2 className="w-4 h-4" /> },
+        all: { label: t('team.scopeAll'), icon: <Building2 className="w-4 h-4" /> },
+    };
 
     // IMPORTANT: useMemo must be called BEFORE any early returns to satisfy Rules of Hooks
     // React requires hooks to be called in the same order on every render
@@ -48,11 +50,11 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
 
     // Early returns AFTER all hooks
     if (teamLoading) {
-        return <div className="text-center py-12">팀 데이터 로딩 중...</div>;
+        return <div className="text-center py-12">{t('team.loading')}</div>;
     }
 
     if (teamError || !teamData) {
-        return <div className="text-center py-12 text-red-500">팀 대시보드를 불러오는데 실패했습니다.</div>;
+        return <div className="text-center py-12 text-red-500">{t('team.loadFailed')}</div>;
     }
 
     const { team_info, date_range, team_worklogs, member_contributions, sub_org_contributions, resource_allocation, org_context } = teamData;
@@ -67,14 +69,14 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     const categoryTotal = byCategory.Product + byCategory.Functional + byCategory.Support + byCategory.TeamInternal;
 
     const categoryData = [
-        { key: 'Product', label: 'Product', hours: byCategory.Product, color: 'bg-blue-500', textColor: 'text-blue-500' },
-        { key: 'Functional', label: 'Functional', hours: byCategory.Functional, color: 'bg-amber-500', textColor: 'text-amber-500' },
-        { key: 'Support', label: 'Support', hours: byCategory.Support, color: 'bg-green-500', textColor: 'text-green-500' },
-        { key: 'TeamInternal', label: 'Team', hours: byCategory.TeamInternal, color: 'bg-slate-400', textColor: 'text-slate-500' },
+        { key: 'Product', label: t('category.product'), hours: byCategory.Product, color: 'bg-blue-500', textColor: 'text-blue-500' },
+        { key: 'Functional', label: t('category.functional'), hours: byCategory.Functional, color: 'bg-amber-500', textColor: 'text-amber-500' },
+        { key: 'Support', label: t('category.support'), hours: byCategory.Support, color: 'bg-green-500', textColor: 'text-green-500' },
+        { key: 'TeamInternal', label: t('category.team'), hours: byCategory.TeamInternal, color: 'bg-slate-400', textColor: 'text-slate-500' },
     ].map(cat => ({
         ...cat,
         percent: categoryTotal > 0 ? Math.round((cat.hours / categoryTotal) * 100) : 0,
-    })).filter(cat => cat.hours > 0); // 0시간 카테고리는 숨김
+    })).filter(cat => cat.hours > 0);
 
     const top5Projects = productFunctionalProjects.slice(0, 5);
     const hasMoreProjects = productFunctionalProjects.length > 5;
@@ -106,12 +108,12 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                         <div>
                             <p className="text-teal-100 text-sm">{team_info.org_path.join(' > ')}</p>
                             <h2 className="text-2xl font-bold mt-1">{team_info.name}</h2>
-                            <p className="text-teal-100 mt-1">👥 {team_info.member_count}명</p>
+                            <p className="text-teal-100 mt-1">{t('team.memberCount', { count: team_info.member_count })}</p>
                         </div>
                         <div className="text-right">
                             <p className="text-teal-100 text-sm">{date_range.start} ~ {date_range.end}</p>
                             <p className="text-3xl font-bold mt-1">{team_worklogs.total_hours.toFixed(0)}h</p>
-                            <p className="text-teal-100 text-sm">Engineering 대비 {org_context.team_percentage}%</p>
+                            <p className="text-teal-100 text-sm">{t('team.engineeringRatio', { percent: org_context.team_percentage })}</p>
                         </div>
                     </div>
                 </CardContent>
@@ -121,7 +123,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">팀 WorkLog</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('team.teamWorklog')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">{team_worklogs.total_hours.toFixed(0)}h</div>
@@ -131,21 +133,21 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
 
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">활성 프로젝트</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('team.activeProjects')}</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{resource_allocation.active_projects}개</div>
+                        <div className="text-3xl font-bold">{t('team.projectCountValue', { count: resource_allocation.active_projects })}</div>
                         <p className="text-xs text-muted-foreground mt-1">{resource_allocation.current_month}</p>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">팀 배정량</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('team.teamAllocation')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">{resource_allocation.total_planned_fte.toFixed(1)} FTE</div>
-                        <p className="text-xs text-muted-foreground mt-1">{resource_allocation.current_month} 리소스 플랜</p>
+                        <p className="text-xs text-muted-foreground mt-1">{resource_allocation.current_month} {t('team.resourcePlan')}</p>
                     </CardContent>
                 </Card>
             </div>
@@ -160,7 +162,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
             {/* Category Distribution Bar */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm font-medium">업무 유형별 시간</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('team.workTypeHours')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {/* Stacked Bar */}
@@ -196,18 +198,18 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
             {/* Top Projects (Product + Functional only) */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">프로젝트별 비중</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('team.projectRatio')}</CardTitle>
                     {hasMoreProjects && (
                         <Dialog>
                             <DialogTrigger asChild>
                                 <Button variant="ghost" size="sm" className="gap-1">
                                     <Maximize2 className="w-3 h-3" />
-                                    전체 보기
+                                    {t('team.viewAll')}
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
-                                    <DialogTitle>프로젝트별 비중 (전체 {productFunctionalProjects.length}개)</DialogTitle>
+                                    <DialogTitle>{t('team.projectRatioFull', { count: productFunctionalProjects.length })}</DialogTitle>
                                 </DialogHeader>
                                 <div className="space-y-2 mt-4">
                                     {productFunctionalProjects.map(p => {
@@ -237,7 +239,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                 </CardHeader>
                 <CardContent>
                     {top5Projects.length === 0 ? (
-                        <div className="text-center py-4 text-muted-foreground">프로젝트 데이터가 없습니다.</div>
+                        <div className="text-center py-4 text-muted-foreground">{t('team.noProjectData')}</div>
                     ) : (
                         <div className="space-y-2">
                             {top5Projects.map(p => {
@@ -270,7 +272,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-sm font-medium">
-                            {teamScope === 'department' ? 'Sub-Team별 기여도' : teamScope === 'business_unit' ? '부서별 기여도' : '하위 조직 기여도'}
+                            {teamScope === 'department' ? t('team.subTeamContribution') : teamScope === 'business_unit' ? t('team.departmentContribution') : t('team.subOrgGeneric')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -279,7 +281,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                                 <div key={org.org_id} className="flex items-center gap-3">
                                     <div className="w-32 truncate">
                                         <span className="text-sm font-medium">{org.org_name}</span>
-                                        <span className="text-xs text-muted-foreground ml-1">({org.member_count}명)</span>
+                                        <span className="text-xs text-muted-foreground ml-1">{t('team.memberCountBadge', { count: org.member_count })}</span>
                                     </div>
                                     <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
                                         <div
@@ -307,19 +309,19 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
             {/* Member Contributions */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-sm font-medium">팀원 기여도</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t('team.memberContribution')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {member_contributions.length === 0 ? (
-                        <div className="text-center py-4 text-muted-foreground">팀원 데이터가 없습니다.</div>
+                        <div className="text-center py-4 text-muted-foreground">{t('team.noMemberData')}</div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead>
                                     <tr className="border-b">
-                                        <th className="text-left py-2 px-2">이름</th>
-                                        <th className="text-right py-2 px-2">시간</th>
-                                        <th className="text-right py-2 px-2">비율</th>
+                                        <th className="text-left py-2 px-2">{t('team.name')}</th>
+                                        <th className="text-right py-2 px-2">{t('team.hours')}</th>
+                                        <th className="text-right py-2 px-2">{t('team.ratio')}</th>
                                         <th className="py-2 px-2 w-1/3"></th>
                                     </tr>
                                 </thead>
@@ -352,7 +354,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                             </table>
                             {member_contributions.length > 10 && (
                                 <div className="text-center text-sm text-muted-foreground mt-2">
-                                    + {member_contributions.length - 10}명 더
+                                    {t('team.nMore', { count: member_contributions.length - 10 })}
                                 </div>
                             )}
                         </div>

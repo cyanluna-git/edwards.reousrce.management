@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
@@ -27,6 +28,7 @@ import type { WorkLog, WorkLogCreate, WorkLogUpdate } from '@/types';
 
 export function WorkLogsPage() {
     const { user } = useAuth();
+    const { t } = useTranslation('worklogs');
     const [activeTab, setActiveTab] = useState('entry');
     const [weekStart, setWeekStart] = useState(() =>
         startOfWeek(new Date(), { weekStartsOn: 1 }) // Monday
@@ -83,7 +85,7 @@ export function WorkLogsPage() {
     };
 
     const handleWorklogDelete = async (worklogId: number) => {
-        if (confirm('Are you sure you want to delete this worklog?')) {
+        if (confirm(t('confirm.deleteWorklog'))) {
             await deleteMutation.mutateAsync(worklogId);
         }
     };
@@ -107,14 +109,14 @@ export function WorkLogsPage() {
             setEditingWorklog(null);
             setSelectedDate(null);
         } catch (error: any) {
-            alert(error?.response?.data?.detail || 'An error occurred');
+            alert(error?.response?.data?.detail || t('errors.generic'));
         }
     };
 
     const handleCopyWeek = async () => {
         if (!user?.id) return;
 
-        if (confirm('Copy all worklogs from last week to this week?')) {
+        if (confirm(t('confirm.copyWeek'))) {
             try {
                 await copyWeekMutation.mutateAsync({
                     user_id: user.id,
@@ -122,7 +124,7 @@ export function WorkLogsPage() {
                 });
                 refetch();
             } catch (error: any) {
-                alert(error?.response?.data?.detail || 'Failed to copy week');
+                alert(error?.response?.data?.detail || t('errors.copyFailed'));
             }
         }
     };
@@ -136,7 +138,7 @@ export function WorkLogsPage() {
             setIsLeaveModalOpen(false);
             refetch();
         } catch (error: any) {
-            alert(error?.response?.data?.detail || 'Failed to register leave');
+            alert(error?.response?.data?.detail || t('errors.leaveFailed'));
         }
     };
 
@@ -147,14 +149,14 @@ export function WorkLogsPage() {
         <div className="container mx-auto p-4 space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">WorkLogs</h1>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => setIsLeaveModalOpen(true)}>
-                        🏖️ 휴가 등록
+                        🏖️ {t('buttons.registerLeave')}
                     </Button>
                     {activeTab === 'entry' && (
                         <Button variant="outline" size="sm" onClick={handleCopyWeek}>
-                            📋 Copy Last Week
+                            📋 {t('buttons.copyLastWeek')}
                         </Button>
                     )}
                 </div>
@@ -163,8 +165,8 @@ export function WorkLogsPage() {
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="entry">📅 Entry</TabsTrigger>
-                    <TabsTrigger value="table">📊 Table</TabsTrigger>
+                    <TabsTrigger value="entry">📅 {t('tabs.entry')}</TabsTrigger>
+                    <TabsTrigger value="table">📊 {t('tabs.table')}</TabsTrigger>
                 </TabsList>
 
                 {/* Entry Tab - Calendar View */}
@@ -181,7 +183,7 @@ export function WorkLogsPage() {
                                         ◀
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={goToToday}>
-                                        Today
+                                        {t('buttons.today')}
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={goToNextWeek}>
                                         ▶
@@ -196,11 +198,11 @@ export function WorkLogsPage() {
                                 </CardTitle>
 
                                 <div className="text-right">
-                                    <span className="text-sm text-muted-foreground">Week Total: </span>
+                                    <span className="text-sm text-muted-foreground">{t('weekNavigation.weekTotal')} </span>
                                     <span className={`font-bold ${weekTotal > 40 ? 'text-yellow-600' : 'text-green-600'}`}>
                                         {weekTotal}h
                                     </span>
-                                    <span className="text-sm text-muted-foreground"> / 40h</span>
+                                    <span className="text-sm text-muted-foreground"> {t('weekNavigation.targetHours')}</span>
                                 </div>
                             </div>
                         </CardHeader>
@@ -208,7 +210,7 @@ export function WorkLogsPage() {
 
                     {/* Calendar Grid */}
                     {isLoading ? (
-                        <div className="text-center py-8">Loading worklogs...</div>
+                        <div className="text-center py-8">{t('status.loading')}</div>
                     ) : (
                         <WeeklyCalendarGrid
                             weekStart={weekStart}

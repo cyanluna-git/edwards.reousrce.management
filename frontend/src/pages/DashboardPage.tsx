@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, addWeeks, subWeeks, addMonths, addQuarters, subQuarters, addYears, subYears } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { useDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
@@ -12,6 +13,8 @@ import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 import { MyFTECard } from '@/components/dashboard/MyFTECard';
+
+const OTHERS_KEY = '_others';
 
 type ViewMode = 'weekly' | 'monthly' | 'quarterly' | 'halfYear' | 'yearly';
 
@@ -75,6 +78,7 @@ const getDynamicDateRanges = (referenceDate: Date, mode: ViewMode) => {
 export const DashboardPage: React.FC = () => {
     const { data, isLoading, error } = useDashboard();
     const { user } = useAuth();
+    const { t } = useTranslation('dashboard');
     const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
     const [currentDate, setCurrentDate] = useState<Date>(new Date()); // New: Track current reference date
@@ -148,7 +152,7 @@ export const DashboardPage: React.FC = () => {
         const list = otherProjects.length === 1
             ? allProjects // Show all 6 projects
             : otherHours > 0
-                ? [...topProjects, { project_id: 'others', project_code: '기타', project_name: `${otherProjects.length}개 프로젝트`, hours: otherHours }]
+                ? [...topProjects, { project_id: 'others', project_code: t('labels.others'), project_name: t('labels.nProjects', { count: otherProjects.length }), hours: otherHours }]
                 : topProjects;
 
         return { totalHours: total, projectList: list };
@@ -394,7 +398,7 @@ export const DashboardPage: React.FC = () => {
 
         last12MonthsWorklogs.forEach(wl => {
             const monthKey = format(new Date(wl.date), 'yyyy-MM');
-            const projectKey = wl.project_name || wl.project_code || '기타';
+            const projectKey = wl.project_name || wl.project_code || OTHERS_KEY;
 
             if (!monthlyData[monthKey]) {
                 monthlyData[monthKey] = {};
@@ -411,7 +415,7 @@ export const DashboardPage: React.FC = () => {
         });
 
         const topProjects = Object.entries(projectTotals)
-            .filter(([project]) => project !== '기타') // Exclude '기타' from top 5 projects
+            .filter(([project]) => project !== OTHERS_KEY) // Exclude others from top 5 projects
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([project]) => project);
@@ -427,7 +431,7 @@ export const DashboardPage: React.FC = () => {
                 // Calculate "Others"
                 const topTotal = topProjects.reduce((sum, p) => sum + (projects[p] || 0), 0);
                 const allTotal = Object.values(projects).reduce((sum, h) => sum + h, 0);
-                dataPoint['기타'] = allTotal - topTotal;
+                dataPoint[OTHERS_KEY] = allTotal - topTotal;
                 return dataPoint;
             });
 
@@ -541,7 +545,7 @@ export const DashboardPage: React.FC = () => {
         return getDynamicDateRanges(teamCurrentDate, teamViewModeMap[teamViewMode]);
     }, [teamCurrentDate, teamViewMode]);
 
-    // Get relative period label (e.g., "이번 주", "지난주", "2주 전")
+    // Get relative period label (e.g., "This Week WorkLog", "Last Week WorkLog", "2 Weeks Ago WorkLog")
     const getRelativePeriodLabel = (mode: ViewMode): string => {
         const now = new Date();
         const current = currentDate;
@@ -552,11 +556,11 @@ export const DashboardPage: React.FC = () => {
                 const currentWeekStart = startOfWeek(current, { weekStartsOn: 1 });
                 const weeksDiff = Math.round((nowWeekStart.getTime() - currentWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000));
 
-                if (weeksDiff === 0) return '이번 주 WorkLog';
-                if (weeksDiff === 1) return '지난주 WorkLog';
-                if (weeksDiff === -1) return '다음 주 WorkLog';
-                if (weeksDiff > 1) return `${weeksDiff}주 전 WorkLog`;
-                return `${Math.abs(weeksDiff)}주 후 WorkLog`;
+                if (weeksDiff === 0) return t('period.thisWeekWorklog');
+                if (weeksDiff === 1) return t('period.lastWeekWorklog');
+                if (weeksDiff === -1) return t('period.nextWeekWorklog');
+                if (weeksDiff > 1) return t('period.weeksAgoWorklog', { count: weeksDiff });
+                return t('period.weeksLaterWorklog', { count: Math.abs(weeksDiff) });
             }
             case 'monthly': {
                 const nowMonthStart = startOfMonth(now);
@@ -564,45 +568,45 @@ export const DashboardPage: React.FC = () => {
                 const monthsDiff = (nowMonthStart.getFullYear() - currentMonthStart.getFullYear()) * 12 +
                     (nowMonthStart.getMonth() - currentMonthStart.getMonth());
 
-                if (monthsDiff === 0) return '이번 달 WorkLog';
-                if (monthsDiff === 1) return '지난달 WorkLog';
-                if (monthsDiff === -1) return '다음 달 WorkLog';
-                if (monthsDiff > 1) return `${monthsDiff}달 전 WorkLog`;
-                return `${Math.abs(monthsDiff)}달 후 WorkLog`;
+                if (monthsDiff === 0) return t('period.thisMonthWorklog');
+                if (monthsDiff === 1) return t('period.lastMonthWorklog');
+                if (monthsDiff === -1) return t('period.nextMonthWorklog');
+                if (monthsDiff > 1) return t('period.monthsAgoWorklog', { count: monthsDiff });
+                return t('period.monthsLaterWorklog', { count: Math.abs(monthsDiff) });
             }
             case 'quarterly': {
                 const nowQuarterStart = startOfQuarter(now);
                 const currentQuarterStart = startOfQuarter(current);
                 const quartersDiff = Math.round((nowQuarterStart.getTime() - currentQuarterStart.getTime()) / (90 * 24 * 60 * 60 * 1000));
 
-                if (quartersDiff === 0) return '이번 분기 WorkLog';
-                if (quartersDiff === 1) return '지난 분기 WorkLog';
-                if (quartersDiff === -1) return '다음 분기 WorkLog';
-                if (quartersDiff > 1) return `${quartersDiff}분기 전 WorkLog`;
-                return `${Math.abs(quartersDiff)}분기 후 WorkLog`;
+                if (quartersDiff === 0) return t('period.thisQuarterWorklog');
+                if (quartersDiff === 1) return t('period.lastQuarterWorklog');
+                if (quartersDiff === -1) return t('period.nextQuarterWorklog');
+                if (quartersDiff > 1) return t('period.quartersAgoWorklog', { count: quartersDiff });
+                return t('period.quartersLaterWorklog', { count: Math.abs(quartersDiff) });
             }
             case 'yearly': {
                 const yearsDiff = now.getFullYear() - current.getFullYear();
 
-                if (yearsDiff === 0) return '올해 WorkLog';
-                if (yearsDiff === 1) return '작년 WorkLog';
-                if (yearsDiff === -1) return '내년 WorkLog';
-                if (yearsDiff > 1) return `${yearsDiff}년 전 WorkLog`;
-                return `${Math.abs(yearsDiff)}년 후 WorkLog`;
+                if (yearsDiff === 0) return t('period.thisYearWorklog');
+                if (yearsDiff === 1) return t('period.lastYearWorklog');
+                if (yearsDiff === -1) return t('period.nextYearWorklog');
+                if (yearsDiff > 1) return t('period.yearsAgoWorklog', { count: yearsDiff });
+                return t('period.yearsLaterWorklog', { count: Math.abs(yearsDiff) });
             }
             case 'halfYear':
-                return '최근 6개월 WorkLog';
+                return t('period.last6MonthsWorklog');
             default:
                 return 'WorkLog';
         }
     };
 
     if (isLoading) {
-        return <div className="container mx-auto p-4"><div className="text-center py-12">로딩 중...</div></div>;
+        return <div className="container mx-auto p-4"><div className="text-center py-12">{t('status.loading')}</div></div>;
     }
 
     if (error || !data) {
-        return <div className="container mx-auto p-4"><div className="text-center py-12 text-red-500">대시보드를 불러오는데 실패했습니다.</div></div>;
+        return <div className="container mx-auto p-4"><div className="text-center py-12 text-red-500">{t('status.loadFailed')}</div></div>;
     }
 
     return (
@@ -610,9 +614,9 @@ export const DashboardPage: React.FC = () => {
             {/* View Mode Tabs */}
             <Tabs defaultValue="user" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="user">User Dashboard</TabsTrigger>
-                    <TabsTrigger value="team">Team Dashboard</TabsTrigger>
-                    <TabsTrigger value="project">Project Dashboard</TabsTrigger>
+                    <TabsTrigger value="user">{t('tabs.user')}</TabsTrigger>
+                    <TabsTrigger value="team">{t('tabs.team')}</TabsTrigger>
+                    <TabsTrigger value="project">{t('tabs.project')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="user" className="space-y-6">
@@ -622,7 +626,7 @@ export const DashboardPage: React.FC = () => {
                             ←
                         </Button>
                         <Button variant="outline" onClick={handleToday} size="sm">
-                            오늘
+                            {t('common:buttons.today')}
                         </Button>
                         <Button variant="outline" onClick={handleNextPeriod} size="sm" className="px-3">
                             →
@@ -632,19 +636,19 @@ export const DashboardPage: React.FC = () => {
 
                         {/* Period Selection */}
                         <Button variant={viewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setViewMode('weekly')} size="sm">
-                            Weekly
+                            {t('viewMode.weekly')}
                         </Button>
                         <Button variant={viewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setViewMode('monthly')} size="sm">
-                            Monthly
+                            {t('viewMode.monthly')}
                         </Button>
                         <Button variant={viewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setViewMode('quarterly')} size="sm">
-                            Quarterly
+                            {t('viewMode.quarterly')}
                         </Button>
                         <Button variant={viewMode === 'halfYear' ? 'default' : 'outline'} onClick={() => setViewMode('halfYear')} size="sm">
-                            Half Year
+                            {t('viewMode.halfYear')}
                         </Button>
                         <Button variant={viewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setViewMode('yearly')} size="sm">
-                            Yearly
+                            {t('viewMode.yearly')}
                         </Button>
                     </div>
 
@@ -666,21 +670,21 @@ export const DashboardPage: React.FC = () => {
 
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">프로젝트 수</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">{t('cards.projectCount')}</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold">{projectList.length}개</div>
-                                <p className="text-xs text-muted-foreground mt-1">{viewMode === 'weekly' ? '이번 주' : '이번 달'}</p>
+                                <div className="text-3xl font-bold">{t('labels.itemCount', { count: projectList.length })}</div>
+                                <p className="text-xs text-muted-foreground mt-1">{viewMode === 'weekly' ? t('common:time.thisWeek') : t('common:time.thisMonth')}</p>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">이번 달 배정량</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">{t('cards.monthlyAllocation')}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-3xl font-bold">{data.resource_allocation.total_fte} FTE</div>
-                                <p className="text-xs text-muted-foreground mt-1">계획된 리소스</p>
+                                <p className="text-xs text-muted-foreground mt-1">{t('labels.plannedResources')}</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -697,11 +701,11 @@ export const DashboardPage: React.FC = () => {
                             {/* Work Type Category Distribution (Horizontal Bar) */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 업무 유형별 비중</CardTitle>
+                                    <CardTitle>{viewMode === 'weekly' ? t('cards.weeklyWorkType') : t('cards.monthlyWorkType')}</CardTitle>
                                 </CardHeader>
                                 <CardContent className="flex flex-col justify-center h-[180px]">
                                     {workTypeCategoryData.length === 0 ? (
-                                        <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                        <div className="text-center py-4 text-muted-foreground">{t('status.noData')}</div>
                                     ) : (
                                         <div className="space-y-4">
                                             {/* Horizontal Bar */}
@@ -738,11 +742,11 @@ export const DashboardPage: React.FC = () => {
                             {/* WorkLog by Project */}
                             <Card className="flex-1">
                                 <CardHeader>
-                                    <CardTitle>{viewMode === 'weekly' ? '주간' : '월간'} 프로젝트별 WorkLog</CardTitle>
+                                    <CardTitle>{viewMode === 'weekly' ? t('cards.weeklyProjectWorklog') : t('cards.monthlyProjectWorklog')}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {projectList.length === 0 ? (
-                                        <div className="text-center py-4 text-muted-foreground">데이터가 없습니다.</div>
+                                        <div className="text-center py-4 text-muted-foreground">{t('status.noData')}</div>
                                     ) : (
                                         <div className="space-y-3">
                                             {projectList.slice(0, 5).map(proj => (
@@ -760,7 +764,7 @@ export const DashboardPage: React.FC = () => {
                                             ))}
                                             {projectList.length > 5 && (
                                                 <div className="text-xs text-center text-muted-foreground pt-1">
-                                                    + {projectList.length - 5} more
+                                                    {t('common:messages.nMore', { count: projectList.length - 5 })}
                                                 </div>
                                             )}
                                         </div>
@@ -778,29 +782,29 @@ export const DashboardPage: React.FC = () => {
                                             <button
                                                 onClick={handleDrillUp}
                                                 className="p-1 hover:bg-slate-100 rounded-full transition-colors"
-                                                title="뒤로가기"
+                                                title={t('labels.back')}
                                             >
                                                 ←
                                             </button>
                                             <span style={{ color: L1_CATEGORY_COLORS[drillDownPath[0]]?.color }}>
                                                 {activeLabel}
                                             </span>
-                                            <span className="text-muted-foreground text-sm font-normal">상세</span>
+                                            <span className="text-muted-foreground text-sm font-normal">{t('labels.detail')}</span>
                                         </>
                                     ) : (
-                                        <>업무 유형별 비율</>
+                                        <>{t('cards.workTypeRatio')}</>
                                     )}
                                 </CardTitle>
                                 {drillDownPath.length < 2 && (
-                                    <span className="text-xs text-muted-foreground">클릭하여 상세 보기</span>
+                                    <span className="text-xs text-muted-foreground">{t('status.clickForDetails')}</span>
                                 )}
                             </CardHeader>
                             <CardContent>
                                 {currentLoading ? (
-                                    <div className="text-center py-4 text-muted-foreground">로딩 중...</div>
+                                    <div className="text-center py-4 text-muted-foreground">{t('status.loading')}</div>
                                 ) : activeChartData.length === 0 ? (
                                     <div className="text-center py-4 text-muted-foreground">
-                                        데이터가 없습니다.
+                                        {t('status.noData')}
                                         <div className="text-xs mt-2">
                                             ({periodStart} ~ {periodEnd})
                                         </div>
@@ -836,7 +840,7 @@ export const DashboardPage: React.FC = () => {
                                                 <Tooltip
                                                     formatter={(value: number | undefined) => [
                                                         `${(value ?? 0).toFixed(0)}h`,
-                                                        '시간'
+                                                        t('labels.hours')
                                                     ]}
                                                 />
                                             </PieChart>
@@ -875,8 +879,8 @@ export const DashboardPage: React.FC = () => {
                     {monthlyProjectTrendData.chartData && monthlyProjectTrendData.chartData.length > 0 && (
                         <Card>
                             <CardHeader>
-                                <CardTitle>월별 Top-5 프로젝트 투입 시간 추이</CardTitle>
-                                <p className="text-xs text-muted-foreground mt-1">최근 12개월</p>
+                                <CardTitle>{t('cards.monthlyTop5Trend')}</CardTitle>
+                                <p className="text-xs text-muted-foreground mt-1">{t('cards.last12Months')}</p>
                             </CardHeader>
                             <CardContent className="h-[400px] min-h-[400px]">
                                 <ResponsiveContainer width="100%" height="100%">
@@ -903,19 +907,19 @@ export const DashboardPage: React.FC = () => {
                                             tick={{ fontSize: 12 }}
                                             tickFormatter={(value) => {
                                                 const [, month] = value.split('-');
-                                                return `${month}월`;
+                                                return t('labels.monthFormat', { month });
                                             }}
                                         />
                                         <YAxis
-                                            label={{ value: '투입 시간 (h)', angle: -90, position: 'insideLeft' }}
+                                            label={{ value: t('labels.inputHours'), angle: -90, position: 'insideLeft' }}
                                             tick={{ fontSize: 12 }}
                                         />
                                         <Tooltip
                                             contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px' }}
-                                            formatter={(value, name) => [`${(value as number)?.toFixed(0) ?? 0}h`, name]}
+                                            formatter={(value, name) => [`${(value as number)?.toFixed(0) ?? 0}h`, name === OTHERS_KEY ? t('labels.others') : name]}
                                             labelFormatter={(label) => {
                                                 const [year, month] = label.split('-');
-                                                return `${year}년 ${month}월`;
+                                                return t('labels.yearMonthFormat', { year, month });
                                             }}
                                         />
                                         <Legend
@@ -939,7 +943,8 @@ export const DashboardPage: React.FC = () => {
                                         })}
                                         <Area
                                             type="monotone"
-                                            dataKey="기타"
+                                            dataKey={OTHERS_KEY}
+                                            name={t('labels.others')}
                                             stackId="1"
                                             stroke="#94a3b8"
                                             fill="url(#colorOthers)"
@@ -967,7 +972,7 @@ export const DashboardPage: React.FC = () => {
                             ←
                         </Button>
                         <Button variant="outline" onClick={handleTeamToday} size="sm">
-                            오늘
+                            {t('common:buttons.today')}
                         </Button>
                         <Button variant="outline" onClick={handleTeamNextPeriod} size="sm" className="px-3">
                             →
@@ -977,16 +982,16 @@ export const DashboardPage: React.FC = () => {
 
                         {/* Period Selection */}
                         <Button variant={teamViewMode === 'weekly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('weekly')} size="sm">
-                            Weekly
+                            {t('viewMode.weekly')}
                         </Button>
                         <Button variant={teamViewMode === 'monthly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('monthly')} size="sm">
-                            Monthly
+                            {t('viewMode.monthly')}
                         </Button>
                         <Button variant={teamViewMode === 'quarterly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('quarterly')} size="sm">
-                            Quarterly
+                            {t('viewMode.quarterly')}
                         </Button>
                         <Button variant={teamViewMode === 'yearly' ? 'default' : 'outline'} onClick={() => setTeamViewMode('yearly')} size="sm">
-                            Yearly
+                            {t('viewMode.yearly')}
                         </Button>
                     </div>
                     <TeamDashboardContent
@@ -1006,12 +1011,12 @@ export const DashboardPage: React.FC = () => {
                                     <Construction className="w-12 h-12 text-slate-500" />
                                 </div>
                             </div>
-                            <CardTitle className="text-2xl font-bold">Coming Soon</CardTitle>
+                            <CardTitle className="text-2xl font-bold">{t('projectDashboard.comingSoon')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <p className="text-slate-500">
-                                Project 대시보드는 준비 중입니다.<br />
-                                곧 업데이트될 예정입니다.
+                                {t('projectDashboard.comingSoonMessage')}<br />
+                                {t('projectDashboard.comingSoonSub')}
                             </p>
                         </CardContent>
                     </Card>

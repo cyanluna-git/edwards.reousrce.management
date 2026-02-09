@@ -3,6 +3,7 @@
  * Displays organization tree: Division > Department > SubTeam
  */
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getDivisions, getDepartments, getSubTeams, type SubTeam, type Division } from '@/api/client';
@@ -34,9 +35,10 @@ export function OrganizationSelect({
     departmentId,
     subTeamId,
     onChange,
-    placeholder = '조직 선택...',
+    placeholder,
     className = '',
 }: OrganizationSelectProps) {
+    const { t } = useTranslation('common');
     const [isOpen, setIsOpen] = useState(false);
     const [expandedL0, setExpandedL0] = useState<string | null>(null);
     const [expandedL1, setExpandedL1] = useState<string | null>(null);
@@ -158,7 +160,7 @@ export function OrganizationSelect({
                 className="w-full flex items-center justify-between p-2 border rounded-md bg-background hover:bg-slate-50 text-left"
             >
                 <span className={selectedDisplay ? 'text-foreground' : 'text-muted-foreground'}>
-                    {selectedDisplay || placeholder}
+                    {selectedDisplay || placeholder || t('select.selectOrg')}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -181,7 +183,7 @@ export function OrganizationSelect({
                         <div className="p-2 border-b bg-white">
                             <input
                                 type="text"
-                                placeholder="조직 검색..."
+                                placeholder={t('select.searchOrg')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full p-2 text-sm border rounded bg-white"
@@ -193,7 +195,7 @@ export function OrganizationSelect({
                         <div className="max-h-[260px] overflow-y-auto">
                             {filteredTree.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
-                                    검색 결과가 없습니다.
+                                    {t('select.searchNoResults')}
                                 </div>
                             ) : (
                                 filteredTree.map((l0) => (

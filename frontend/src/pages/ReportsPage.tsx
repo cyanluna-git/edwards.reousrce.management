@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     BarChart,
     Bar,
@@ -20,6 +21,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 const MONTHS = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export const ReportsPage: React.FC = () => {
+    const { t } = useTranslation('reports');
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [activeTab, setActiveTab] = useState<'capacity' | 'worklog'>('capacity');
@@ -37,9 +39,9 @@ export const ReportsPage: React.FC = () => {
 
     const monthlyCapacity = capacityData?.monthly.map(m => ({
         name: MONTHS[m.month],
-        월: m.month,
+        month: m.month,
         FTE: m.total_fte,
-        건수: m.plan_count,
+        count: m.plan_count,
     })) || [];
 
     const monthlyWorklog = worklogData?.monthly.map(m => ({
@@ -52,14 +54,14 @@ export const ReportsPage: React.FC = () => {
         <div className="container mx-auto p-4 space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">리포트</h1>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
                 <select
                     className="border rounded px-3 py-2"
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(Number(e.target.value))}
                 >
                     {[currentYear - 1, currentYear, currentYear + 1].map(y => (
-                        <option key={y} value={y}>{y}년</option>
+                        <option key={y} value={y}>{t('yearSelector', { year: y })}</option>
                     ))}
                 </select>
             </div>
@@ -73,7 +75,7 @@ export const ReportsPage: React.FC = () => {
                         }`}
                     onClick={() => setActiveTab('capacity')}
                 >
-                    Capacity (리소스 배정)
+                    {t('tabs.capacity')}
                 </button>
                 <button
                     className={`px-4 py-2 -mb-px ${activeTab === 'worklog'
@@ -82,7 +84,7 @@ export const ReportsPage: React.FC = () => {
                         }`}
                     onClick={() => setActiveTab('worklog')}
                 >
-                    WorkLog (실적)
+                    {t('tabs.worklog')}
                 </button>
             </div>
 
@@ -90,18 +92,18 @@ export const ReportsPage: React.FC = () => {
             {activeTab === 'capacity' && (
                 <div className="space-y-6">
                     {capacityLoading ? (
-                        <div className="text-center py-12">로딩 중...</div>
+                        <div className="text-center py-12">{t('status.loading')}</div>
                     ) : (
                         <>
                             {/* Monthly Bar Chart */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>월별 리소스 배정 (FTE)</CardTitle>
+                                    <CardTitle>{t('capacity.monthlyFte')}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {monthlyCapacity.length === 0 ? (
                                         <div className="text-center py-8 text-muted-foreground">
-                                            {selectedYear}년 데이터가 없습니다.
+                                            {t('capacity.noDataYear', { year: selectedYear })}
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={300}>
@@ -121,12 +123,12 @@ export const ReportsPage: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>포지션별 배정</CardTitle>
+                                        <CardTitle>{t('capacity.byPosition')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         {(capacityData?.by_position.length || 0) === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
-                                                데이터가 없습니다.
+                                                {t('capacity.noData')}
                                             </div>
                                         ) : (
                                             <ResponsiveContainer width="100%" height={250}>
@@ -153,19 +155,19 @@ export const ReportsPage: React.FC = () => {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>프로젝트별 배정 Top 10</CardTitle>
+                                        <CardTitle>{t('capacity.byProjectTop10')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         {(capacityData?.by_project.length || 0) === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
-                                                데이터가 없습니다.
+                                                {t('capacity.noData')}
                                             </div>
                                         ) : (
                                             <table className="w-full text-sm">
                                                 <thead>
                                                     <tr className="border-b">
-                                                        <th className="text-left py-2">프로젝트</th>
-                                                        <th className="text-right py-2">FTE</th>
+                                                        <th className="text-left py-2">{t('capacity.project')}</th>
+                                                        <th className="text-right py-2">{t('capacity.fte')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -190,18 +192,18 @@ export const ReportsPage: React.FC = () => {
             {activeTab === 'worklog' && (
                 <div className="space-y-6">
                     {worklogLoading ? (
-                        <div className="text-center py-12">로딩 중...</div>
+                        <div className="text-center py-12">{t('status.loading')}</div>
                     ) : (
                         <>
                             {/* Monthly Bar Chart */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>월별 WorkLog (시간)</CardTitle>
+                                    <CardTitle>{t('worklog.monthlyHours')}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     {monthlyWorklog.length === 0 ? (
                                         <div className="text-center py-8 text-muted-foreground">
-                                            {selectedYear}년 데이터가 없습니다.
+                                            {t('worklog.noDataYear', { year: selectedYear })}
                                         </div>
                                     ) : (
                                         <ResponsiveContainer width="100%" height={300}>
@@ -210,7 +212,7 @@ export const ReportsPage: React.FC = () => {
                                                 <XAxis dataKey="name" />
                                                 <YAxis />
                                                 <Tooltip />
-                                                <Bar dataKey="hours" fill="#10b981" name="시간" />
+                                                <Bar dataKey="hours" fill="#10b981" name={t('chart.hours')} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     )}
@@ -221,12 +223,12 @@ export const ReportsPage: React.FC = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>업무 유형별</CardTitle>
+                                        <CardTitle>{t('worklog.byType')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         {(worklogData?.by_type.length || 0) === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
-                                                데이터가 없습니다.
+                                                {t('worklog.noData')}
                                             </div>
                                         ) : (
                                             <ResponsiveContainer width="100%" height={250}>
@@ -253,19 +255,19 @@ export const ReportsPage: React.FC = () => {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>프로젝트별 Top 10</CardTitle>
+                                        <CardTitle>{t('worklog.byProjectTop10')}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         {(worklogData?.by_project.length || 0) === 0 ? (
                                             <div className="text-center py-8 text-muted-foreground">
-                                                데이터가 없습니다.
+                                                {t('worklog.noData')}
                                             </div>
                                         ) : (
                                             <table className="w-full text-sm">
                                                 <thead>
                                                     <tr className="border-b">
-                                                        <th className="text-left py-2">프로젝트</th>
-                                                        <th className="text-right py-2">시간</th>
+                                                        <th className="text-left py-2">{t('worklog.project')}</th>
+                                                        <th className="text-right py-2">{t('worklog.hours')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>

@@ -13,6 +13,7 @@ import { WorkTypeCategorySelect } from '@/components/WorkTypeCategorySelect';
 import { ProjectHierarchySelect } from '@/components/ProjectHierarchySelect';
 import { useCreateWorklog } from '@/hooks/useWorklogs';
 import type { AIWorklogEntry, WorkTypeCategory } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface EditableEntry extends AIWorklogEntry {
     id: string; // Temporary ID for tracking
@@ -42,6 +43,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
     );
     const [savingIndex, setSavingIndex] = useState<number | null>(null);
     const [errors, setErrors] = useState<string[]>([]);
+    const { t } = useTranslation('worklogs');
 
     const createMutation = useCreateWorklog();
 
@@ -76,9 +78,9 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
     };
 
     const getConfidenceText = (confidence: number): string => {
-        if (confidence >= 0.8) return '높음';
-        if (confidence >= 0.5) return '중간';
-        return '낮음';
+        if (confidence >= 0.8) return t('ai.confidenceHigh');
+        if (confidence >= 0.5) return t('ai.confidenceMedium');
+        return t('ai.confidenceLow');
     };
 
     const handleSaveAll = async () => {
@@ -91,12 +93,12 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
 
             // Validate entry
             if (!entry.work_type_category_id) {
-                newErrors.push(`항목 ${i + 1}: 업무 유형을 선택해주세요`);
+                newErrors.push(t('ai.validationWorkType', { number: i + 1 }));
                 continue;
             }
 
             if (!entry.hours || entry.hours <= 0) {
-                newErrors.push(`항목 ${i + 1}: 유효한 시간을 입력해주세요`);
+                newErrors.push(t('ai.validationHours', { number: i + 1 }));
                 continue;
             }
 
@@ -113,7 +115,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                 });
             } catch (error: any) {
                 newErrors.push(
-                    `항목 ${i + 1}: ${error?.response?.data?.detail || '저장 실패'}`
+                    t('ai.itemSaveFailed', { number: i + 1, error: error?.response?.data?.detail || t('ai.saveFailed') })
                 );
             }
         }
@@ -136,21 +138,21 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                 <CardHeader className="py-3">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">
-                            AI 분석 결과 ({activeEntries.length}개 항목)
+                            {t('ai.previewTitle', { count: activeEntries.length })}
                         </CardTitle>
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-muted-foreground">
-                                총 시간: <strong className={totalHours > 24 ? 'text-red-500' : ''}>{totalHours}h</strong>
+                                {t('ai.totalHours')} <strong className={totalHours > 24 ? 'text-red-500' : ''}>{totalHours}h</strong>
                             </span>
                             <div className="flex gap-2">
                                 <Button variant="outline" onClick={onCancel}>
-                                    취소
+                                    {t('common:buttons.cancel')}
                                 </Button>
                                 <Button
                                     onClick={handleSaveAll}
                                     disabled={activeEntries.length === 0 || createMutation.isPending}
                                 >
-                                    {createMutation.isPending ? '저장 중...' : '모두 저장'}
+                                    {createMutation.isPending ? t('common:status.processing') : t('ai.saveAll')}
                                 </Button>
                             </div>
                         </div>
@@ -184,17 +186,17 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm font-medium">
-                                            항목 {index + 1}
+                                            {t('ai.itemNumber', { number: index + 1 })}
                                         </span>
                                         <Badge
                                             variant="secondary"
                                             className={`${getConfidenceColor(entry.confidence)} text-white`}
                                         >
-                                            신뢰도: {getConfidenceText(entry.confidence)} ({Math.round(entry.confidence * 100)}%)
+                                            {t('ai.confidence', { level: getConfidenceText(entry.confidence), percent: Math.round(entry.confidence * 100) })}
                                         </Badge>
                                         {savingIndex === index && (
                                             <span className="text-sm text-blue-500 animate-pulse">
-                                                저장 중...
+                                                {t('common:status.processing')}
                                             </span>
                                         )}
                                     </div>
@@ -204,7 +206,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                             size="sm"
                                             onClick={() => restoreEntry(entry.id)}
                                         >
-                                            복원
+                                            {t('ai.restore')}
                                         </Button>
                                     ) : (
                                         <Button
@@ -213,7 +215,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                             className="text-red-500 hover:text-red-700"
                                             onClick={() => deleteEntry(entry.id)}
                                         >
-                                            삭제
+                                            {t('common:buttons.delete')}
                                         </Button>
                                     )}
                                 </div>
@@ -222,7 +224,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {/* Project Selection */}
                                         <div className="space-y-2">
-                                            <Label>프로젝트</Label>
+                                            <Label>{t('entry.project')}</Label>
                                             <ProjectHierarchySelect
                                                 projectId={entry.project_id}
                                                 productLineId={null}
@@ -231,35 +233,35 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
                                                 }
                                                 onProductLineChange={() => {}}
                                                 projectRequired={false}
-                                                placeholder={entry.project_name || '프로젝트 선택...'}
+                                                placeholder={entry.project_name || t('ai.selectProject')}
                                             />
                                             {entry.project_name && !entry.project_id && (
                                                 <p className="text-xs text-yellow-600">
-                                                    AI 추천: {entry.project_name} (매칭 필요)
+                                                    {t('ai.aiRecommend', { name: entry.project_name })}
                                                 </p>
                                             )}
                                         </div>
 
                                         {/* Work Type Selection */}
                                         <div className="space-y-2">
-                                            <Label>업무 유형 *</Label>
+                                            <Label>{t('ai.workTypeRequired')}</Label>
                                             <WorkTypeCategorySelect
                                                 value={entry.work_type_category_id || undefined}
                                                 onChange={(categoryId, _category: WorkTypeCategory) =>
                                                     updateEntry(entry.id, { work_type_category_id: categoryId })
                                                 }
-                                                placeholder={entry.work_type_name || '업무 유형 선택...'}
+                                                placeholder={entry.work_type_name || t('ai.selectWorkType')}
                                             />
                                             {entry.work_type_name && !entry.work_type_category_id && (
                                                 <p className="text-xs text-yellow-600">
-                                                    AI 추천: {entry.work_type_name} (매칭 필요)
+                                                    {t('ai.aiRecommend', { name: entry.work_type_name })}
                                                 </p>
                                             )}
                                         </div>
 
                                         {/* Hours */}
                                         <div className="space-y-2">
-                                            <Label>시간 (h) *</Label>
+                                            <Label>{t('ai.hoursRequired')}</Label>
                                             <Input
                                                 type="number"
                                                 step="0.5"
@@ -276,13 +278,13 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
 
                                         {/* Description */}
                                         <div className="space-y-2">
-                                            <Label>설명</Label>
+                                            <Label>{t('entry.description')}</Label>
                                             <Input
                                                 value={entry.description}
                                                 onChange={(e) =>
                                                     updateEntry(entry.id, { description: e.target.value })
                                                 }
-                                                placeholder="업무 설명"
+                                                placeholder={t('ai.descriptionPlaceholder')}
                                             />
                                         </div>
                                     </div>
@@ -296,7 +298,7 @@ export const AIWorklogPreview: React.FC<AIWorklogPreviewProps> = ({
             {activeEntries.length === 0 && (
                 <Alert>
                     <AlertDescription>
-                        모든 항목이 삭제되었습니다. 취소 버튼을 눌러 다시 시작하세요.
+                        {t('ai.allDeleted')}
                     </AlertDescription>
                 </Alert>
             )}

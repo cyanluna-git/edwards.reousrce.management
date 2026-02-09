@@ -1,0 +1,35 @@
+{
+  "title": "리포트",
+  "tabs": {
+    "capacity": "Capacity (리소스 배정)",
+    "worklog": "WorkLog (실적)"
+  },
+  "yearSelector": "{{year}}년",
+  "capacity": {
+    "monthlyFte": "월별 리소스 배정 (FTE)",
+    "byPosition": "포지션별 배정",
+    "byProjectTop10": "프로젝트별 배정 Top 10",
+    "project": "프로젝트",
+    "fte": "FTE",
+    "noDataYear": "{{year}}년 데이터가 없습니다.",
+    "noData": "데이터가 없습니다."
+  },
+  "worklog": {
+    "monthlyHours": "월별 WorkLog (시간)",
+    "byType": "업무 유형별",
+    "byProjectTop10": "프로젝트별 Top 10",
+    "project": "프로젝트",
+    "hours": "시간",
+    "noDataYear": "{{year}}년 데이터가 없습니다.",
+    "noData": "데이터가 없습니다."
+  },
+  "chart": {
+    "month": "월",
+    "fte": "FTE",
+    "count": "건수",
+    "hours": "시간"
+  },
+  "status": {
+    "loading": "로딩 중..."
+  }
+}

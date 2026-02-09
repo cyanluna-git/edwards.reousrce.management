@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,8 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
   defaultMonth,
   defaultProjectId,
 }) => {
+  const { t } = useTranslation('resource-plans');
+
   const today = new Date();
   const [filterYear, setFilterYear] = useState(defaultYear || today.getFullYear());
   const [filterMonth, setFilterMonth] = useState(defaultMonth || today.getMonth() + 1);
@@ -63,20 +66,10 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
   const assignMutation = useAssignUserToPlan();
 
   // Generate month options
-  const monthOptions = [
-    { value: 1, label: '1월' },
-    { value: 2, label: '2월' },
-    { value: 3, label: '3월' },
-    { value: 4, label: '4월' },
-    { value: 5, label: '5월' },
-    { value: 6, label: '6월' },
-    { value: 7, label: '7월' },
-    { value: 8, label: '8월' },
-    { value: 9, label: '9월' },
-    { value: 10, label: '10월' },
-    { value: 11, label: '11월' },
-    { value: 12, label: '12월' },
-  ];
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: i + 1,
+    label: t('tbd.monthLabel', { month: i + 1 }),
+  }));
 
   // Generate year options (current year +/- 2)
   const currentYear = today.getFullYear();
@@ -90,14 +83,14 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
   const handleAssign = async (plan: ResourcePlan) => {
     const userId = selectedUsers[plan.id];
     if (!userId) {
-      setErrorMessage('Please select a user to assign.');
+      setErrorMessage(t('tbd.selectUserError'));
       return;
     }
 
     // Confirmation dialog
     const assignedUser = activeUsers.find(u => u.id === userId);
     const userName = assignedUser?.korean_name || assignedUser?.name || 'user';
-    if (!window.confirm(`${userName}님을 ${plan.project_name} (${plan.position_name})에 할당하시겠습니까?`)) {
+    if (!window.confirm(t('tbd.confirmAssign', { user: userName, project: plan.project_name, position: plan.position_name }))) {
       return;
     }
 
@@ -120,13 +113,17 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
 
       const assignedUser = activeUsers.find(u => u.id === userId);
       setSuccessMessage(
-        `Successfully assigned ${assignedUser?.korean_name || assignedUser?.name || 'user'} to ${plan.project_name} (${plan.position_name})`
+        t('tbd.assignSuccess', {
+          user: assignedUser?.korean_name || assignedUser?.name || 'user',
+          project: plan.project_name,
+          position: plan.position_name,
+        })
       );
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error: any) {
-      const message = error?.response?.data?.detail || error?.message || 'Failed to assign user';
+      const message = error?.response?.data?.detail || error?.message || t('tbd.assignFailed');
       setErrorMessage(message);
     } finally {
       setAssigningPlanId(null);
@@ -146,7 +143,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            TBD Position Assignment
+            {t('tbd.title')}
           </DialogTitle>
         </DialogHeader>
 
@@ -189,10 +186,10 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
               onValueChange={(v) => setFilterProjectId(v === 'all' ? undefined : v)}
             >
               <SelectTrigger className="w-48 h-8">
-                <SelectValue placeholder="All Projects" />
+                <SelectValue placeholder={t('tbd.allProjects')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Projects</SelectItem>
+                <SelectItem value="all">{t('tbd.allProjects')}</SelectItem>
                 {projects.map(p => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
@@ -201,7 +198,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
           </div>
 
           <div className="ml-auto text-sm text-muted-foreground">
-            {tbdPositions.length} TBD position{tbdPositions.length !== 1 ? 's' : ''}
+            {t('tbd.positionCount', { count: tbdPositions.length })}
           </div>
         </div>
 
@@ -224,28 +221,28 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
           {tbdLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-muted-foreground">Loading TBD positions...</span>
+              <span className="ml-2 text-muted-foreground">{t('tbd.loading')}</span>
             </div>
           ) : tbdError ? (
             <div className="flex items-center justify-center py-12 text-red-500">
               <AlertCircle className="w-5 h-5 mr-2" />
-              Failed to load TBD positions
+              {t('tbd.loadError')}
             </div>
           ) : tbdPositions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <CheckCircle2 className="w-12 h-12 mb-3 text-green-500" />
-              <p className="font-medium">No TBD positions</p>
-              <p className="text-sm">All positions for {filterYear}-{String(filterMonth).padStart(2, '0')} are assigned.</p>
+              <p className="font-medium">{t('tbd.noPositions')}</p>
+              <p className="text-sm">{t('tbd.allAssigned', { year: filterYear, month: String(filterMonth).padStart(2, '0') })}</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-slate-50 sticky top-0">
                 <tr>
-                  <th className="text-left py-2 px-3 font-medium">Project</th>
-                  <th className="text-left py-2 px-3 font-medium">Position / Role</th>
-                  <th className="text-right py-2 px-3 font-medium">Hours</th>
-                  <th className="text-left py-2 px-3 font-medium w-56">Assign To</th>
-                  <th className="text-center py-2 px-3 font-medium w-24">Action</th>
+                  <th className="text-left py-2 px-3 font-medium">{t('tbd.columnProject')}</th>
+                  <th className="text-left py-2 px-3 font-medium">{t('tbd.columnPositionRole')}</th>
+                  <th className="text-right py-2 px-3 font-medium">{t('tbd.columnHours')}</th>
+                  <th className="text-left py-2 px-3 font-medium w-56">{t('tbd.columnAssignTo')}</th>
+                  <th className="text-center py-2 px-3 font-medium w-24">{t('tbd.columnAction')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -276,7 +273,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
                         disabled={assigningPlanId === plan.id}
                       >
                         <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Select user..." />
+                          <SelectValue placeholder={t('tbd.selectUser')} />
                         </SelectTrigger>
                         <SelectContent>
                           {activeUsers.map(user => (
@@ -298,7 +295,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
                         {assigningPlanId === plan.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          'Assign'
+                          t('tbd.assign')
                         )}
                       </Button>
                     </td>
@@ -312,7 +309,7 @@ export const TbdAssignmentModal: React.FC<TbdAssignmentModalProps> = ({
         {/* Footer */}
         <div className="flex justify-end pt-4 border-t">
           <Button variant="outline" onClick={handleClose}>
-            Close
+            {t('tbd.close')}
           </Button>
         </div>
       </DialogContent>

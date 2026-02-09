@@ -1,0 +1,104 @@
+{
+  "title": "Resource Plans",
+  "tabs": {
+    "detail": "Project Detail",
+    "projectSummary": "Project Summary",
+    "roleSummary": "Role Summary"
+  },
+  "actions": {
+    "addRow": "+ Add Member",
+    "editRow": "Edit",
+    "deleteRow": "Delete",
+    "includeCompleted": "Include Completed/Cancelled",
+    "tbdAssignment": "TBD Assignment",
+    "tbdAssignmentTooltip": "Assign actual members to TBD (unassigned) positions",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saving": "Saving..."
+  },
+  "form": {
+    "projectRole": "Project Role",
+    "projectRoleHelp": "Select the role performed within the project.",
+    "selectOption": "Select (optional)",
+    "user": "Assignee (optional)",
+    "userPlaceholder": "TBD (unassigned)",
+    "userHelp": "If no assignee is selected, it will be created as a TBD (unassigned) position.",
+    "monthlyFte": "Monthly FTE Distribution (0.1 ~ 1.0)",
+    "editTitle": "Edit {{name}}",
+    "addTitle": "Add Member/Position"
+  },
+  "table": {
+    "role": "Role",
+    "person": "Person",
+    "total": "Total",
+    "plan": "Plan",
+    "actual": "Actual"
+  },
+  "hierarchy": {
+    "nProjects": "{{count}} projects",
+    "noProjects": "No registered projects."
+  },
+  "calendar": {
+    "today": "Today",
+    "prev3Months": "3 months back",
+    "next3Months": "3 months forward",
+    "prev1Month": "1 month back",
+    "next1Month": "1 month forward",
+    "defaultView": "Default view (from today)"
+  },
+  "confirm": {
+    "deleteRow": "Are you sure you want to delete the \"{{name}}\" row?"
+  },
+  "status": {
+    "loading": "Loading resource plans..."
+  },
+  "summary": {
+    "title": "Resource Summary by Project",
+    "projectColumn": "Project",
+    "grandTotal": "Grand Total",
+    "noData": "No resource plans registered.",
+    "nProjects": "{{count}} projects",
+    "nItems": "{{count}} items",
+    "legendTitle": "Format: Plan/Actual",
+    "legendPast": "Past",
+    "legendCurrent": "Current",
+    "legendFuture": "Future (plan only)",
+    "legendOver": "Over",
+    "legendUnder": "Under"
+  },
+  "roleSummary": {
+    "title": "Resource Summary by Role (Business Area)",
+    "projectRole": "Project Role",
+    "unassigned": "Unassigned",
+    "areaHeader": "{{area}} ({{count}} positions)"
+  },
+  "tbd": {
+    "title": "TBD Position Assignment",
+    "monthLabel": "{{month}}",
+    "allProjects": "All Projects",
+    "positionCount": "{{count}} TBD position(s)",
+    "selectUser": "Select user...",
+    "selectUserError": "Please select a user to assign.",
+    "confirmAssign": "Assign {{user}} to {{project}} ({{position}})?",
+    "assignSuccess": "Successfully assigned {{user}} to {{project}} ({{position}})",
+    "assignFailed": "Failed to assign user",
+    "assign": "Assign",
+    "close": "Close",
+    "loading": "Loading TBD positions...",
+    "loadError": "Failed to load TBD positions",
+    "noPositions": "No TBD positions",
+    "allAssigned": "All positions for {{year}}-{{month}} are assigned.",
+    "columnProject": "Project",
+    "columnPositionRole": "Position / Role",
+    "columnHours": "Hours",
+    "columnAssignTo": "Assign To",
+    "columnAction": "Action"
+  },
+  "resourceTable": {
+    "memberPosition": "Member / Position",
+    "action": "Action",
+    "loading": "Loading data...",
+    "loadError": "Failed to load data: {{message}}",
+    "noMembers": "No members registered."
+  }
+}

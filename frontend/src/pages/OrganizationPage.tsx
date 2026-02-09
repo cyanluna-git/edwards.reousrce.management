@@ -3,6 +3,7 @@
  * Main page with tabs for Teams, Resources, Positions, and Hiring Plans
  */
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TeamsTab } from '@/components/organization/TeamsTab';
 import { ResourcesTab } from '@/components/organization/ResourcesTab';
 import { PositionsTab } from '@/components/organization/PositionsTab';
@@ -12,21 +13,22 @@ type TabType = 'teams' | 'resources' | 'positions' | 'hiring';
 
 export const OrganizationPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('teams');
+    const { t } = useTranslation('organization');
 
     return (
         <div className="container mx-auto p-4 space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">조직 관리</h1>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-2 border-b">
                 {[
-                    { id: 'teams' as TabType, label: 'Teams' },
-                    { id: 'resources' as TabType, label: 'Resources' },
-                    { id: 'positions' as TabType, label: 'Job Positions' },
-                    { id: 'hiring' as TabType, label: 'Hiring Plans' },
+                    { id: 'teams' as TabType, label: t('tabs.teams') },
+                    { id: 'resources' as TabType, label: t('tabs.resources') },
+                    { id: 'positions' as TabType, label: t('tabs.positions') },
+                    { id: 'hiring' as TabType, label: t('tabs.hiring') },
                 ].map((tab) => (
                     <button
                         key={tab.id}

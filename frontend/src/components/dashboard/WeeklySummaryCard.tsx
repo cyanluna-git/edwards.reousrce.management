@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
   scope = "department",
   period = "weekly",
 }) => {
+  const { t } = useTranslation('dashboard');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] =
@@ -132,13 +134,13 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
             <Sparkles className="w-4 h-4 text-amber-500" />
             {isHistoryView ? (
               <span className="flex items-center gap-2">
-                <span className="text-slate-500">과거 요약:</span>
+                <span className="text-slate-500">{t('summary.pastSummary')}:</span>
                 <span>
                   {selectedHistory.period_start} ~ {selectedHistory.period_end}
                 </span>
               </span>
             ) : (
-              "지난 주 AI 업무 요약"
+              t('summary.title')
             )}
             {isFromCache && (
               <Badge
@@ -146,7 +148,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                 className="text-xs py-0 px-1.5 flex items-center gap-1"
               >
                 <Database className="w-3 h-3" />
-                {isHistoryView ? "히스토리" : "캐시"}
+                {isHistoryView ? t('summary.historyBadge') : t('summary.cacheBadge')}
               </Badge>
             )}
           </CardTitle>
@@ -160,7 +162,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                 className="h-7 px-2 text-xs flex gap-1"
               >
                 <ArrowLeft className="w-3 h-3" />
-                현재로 복귀
+                {t('summary.backToCurrent')}
               </Button>
             ) : (
               <>
@@ -170,23 +172,23 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0"
-                      title="과거 요약 보기"
+                      title={t('summary.viewPastSummary')}
                     >
                       <History className="w-4 h-4 text-slate-500" />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>AI 요약 히스토리</DialogTitle>
+                      <DialogTitle>{t('summary.historyTitle')}</DialogTitle>
                     </DialogHeader>
                     <div className="py-2 space-y-2 max-h-[60vh] overflow-y-auto">
                       {historyQuery.isLoading ? (
                         <div className="text-center py-4 text-sm text-muted-foreground">
-                          로딩 중...
+                          {t('summary.historyLoading')}
                         </div>
                       ) : historyQuery.data?.length === 0 ? (
                         <div className="text-center py-4 text-sm text-muted-foreground">
-                          저장된 과거 요약이 없습니다.
+                          {t('summary.noHistory')}
                         </div>
                       ) : (
                         historyQuery.data?.map((item) => (
@@ -203,7 +205,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                               </div>
                               <div className="text-xs text-slate-500 flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                생성일:{" "}
+                                {t('summary.generatedAt')}{" "}
                                 {new Date(item.generated_at).toLocaleString()}
                               </div>
                             </div>
@@ -220,7 +222,7 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
                   onClick={handleForceRegenerate}
                   disabled={isLoading}
                   className="h-7 w-7 p-0"
-                  title="AI로 다시 생성하기"
+                  title={t('summary.regenerate')}
                 >
                   <RefreshCw
                     className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
@@ -241,12 +243,12 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
         ) : hasError && !isHistoryView ? (
           <div className="text-sm text-red-500 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
-            요약 생성 중 오류가 발생했습니다
+            {t('summary.error')}
           </div>
         ) : mode === "user" ? (
-          <UserSummaryContent data={displayData} />
+          <UserSummaryContent data={displayData} t={t} />
         ) : (
-          <TeamSummaryContent data={displayData} />
+          <TeamSummaryContent data={displayData} t={t} />
         )}
       </CardContent>
     </Card>
@@ -255,12 +257,13 @@ export const WeeklySummaryCard: React.FC<WeeklySummaryCardProps> = ({
 
 interface UserSummaryContentProps {
   data?: { summary: string[]; generated_at: string };
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
-const UserSummaryContent: React.FC<UserSummaryContentProps> = ({ data }) => {
+const UserSummaryContent: React.FC<UserSummaryContentProps> = ({ data, t }) => {
   if (!data?.summary?.length) {
     return (
-      <p className="text-sm text-muted-foreground">요약할 데이터가 없습니다.</p>
+      <p className="text-sm text-muted-foreground">{t('summary.noData')}</p>
     );
   }
 
@@ -283,12 +286,13 @@ interface TeamSummaryContentProps {
     issues: string[];
     generated_at: string;
   };
+  t: (key: string, options?: Record<string, unknown>) => string;
 }
 
-const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data }) => {
+const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data, t }) => {
   if (!data) {
     return (
-      <p className="text-sm text-muted-foreground">요약할 데이터가 없습니다.</p>
+      <p className="text-sm text-muted-foreground">{t('summary.noData')}</p>
     );
   }
 
@@ -298,7 +302,7 @@ const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data }) => {
 
   if (!hasContent) {
     return (
-      <p className="text-sm text-muted-foreground">요약할 데이터가 없습니다.</p>
+      <p className="text-sm text-muted-foreground">{t('summary.noData')}</p>
     );
   }
 
@@ -306,7 +310,7 @@ const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data }) => {
     <div className="space-y-3 text-sm">
       {project_summary?.length > 0 && (
         <div>
-          <p className="font-medium text-slate-600 mb-1">📁 프로젝트별</p>
+          <p className="font-medium text-slate-600 mb-1">{t('summary.byProject')}</p>
           <ul className="space-y-0.5 pl-1">
             {project_summary.map((item, index) => (
               <li key={index} className="flex items-start gap-2">
@@ -320,7 +324,7 @@ const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data }) => {
 
       {member_summary?.length > 0 && (
         <div>
-          <p className="font-medium text-slate-600 mb-1">👤 멤버별</p>
+          <p className="font-medium text-slate-600 mb-1">{t('summary.byMember')}</p>
           <ul className="space-y-0.5 pl-1">
             {member_summary.map((item, index) => (
               <li key={index} className="flex items-start gap-2">
@@ -334,7 +338,7 @@ const TeamSummaryContent: React.FC<TeamSummaryContentProps> = ({ data }) => {
 
       {issues?.length > 0 && (
         <div>
-          <p className="font-medium text-amber-600 mb-1">⚠️ 주요 이슈</p>
+          <p className="font-medium text-amber-600 mb-1">{t('summary.keyIssues')}</p>
           <ul className="space-y-0.5 pl-1">
             {issues.map((item, index) => (
               <li key={index} className="flex items-start gap-2 text-amber-700">

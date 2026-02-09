@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Search, X, Folder, FolderOpen } from 'lucide-react';
 import type { Project } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface ProjectSelectorProps {
     projects: Project[];
@@ -16,9 +17,10 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
     projects,
     value,
     onChange,
-    placeholder = '프로젝트를 선택하세요',
+    placeholder,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const { t } = useTranslation('common');
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedAreas, setExpandedAreas] = useState<Set<string>>(new Set(BUSINESS_AREA_ORDER));
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -142,7 +144,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 <span className={selectedProject ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedProject
                         ? `${selectedProject.internal_io?.io_number || selectedProject.id.slice(0, 8)} - ${selectedProject.name}`
-                        : placeholder
+                        : (placeholder || t('select.selectAProject'))
                     }
                 </span>
                 <ChevronDown

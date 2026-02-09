@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import type { ResourcePlan } from '@/types';
 import type { WorklogRoleSummary } from '@/api/client';
@@ -29,6 +30,8 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     currentMonth,
     worklogRoleSummary,
 }) => {
+    const { t } = useTranslation('resource-plans');
+
     // Build worklog map: position_id -> { year-month -> fte }
     const worklogMap: Record<string, Record<string, number>> = {};
     worklogRoleSummary.forEach(w => {
@@ -97,7 +100,7 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
 
     allResourcePlans.forEach(plan => {
         // Use business_unit_name directly from API response
-        const bu = plan.business_unit_name || 'Unassigned';
+        const bu = plan.business_unit_name || t('roleSummary.unassigned');
         const roleId = plan.project_role_id
             ? String(plan.project_role_id)
             : (plan.position_id ? String(plan.position_id) : 'unknown');
@@ -124,37 +127,38 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
     // Dynamically get all BUs from projects and sort alphabetically
     // Unassigned goes to the bottom
     const allBUs = Object.keys(grouped);
+    const unassignedLabel = t('roleSummary.unassigned');
     const sortedBUs = allBUs.sort((a, b) => {
-        if (a === 'Unassigned') return 1;
-        if (b === 'Unassigned') return -1;
+        if (a === unassignedLabel || a === 'Unassigned') return 1;
+        if (b === unassignedLabel || b === 'Unassigned') return -1;
         return a.localeCompare(b);
     });
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
-                <CardTitle>롤별 리소스 집계 (사업영역별)</CardTitle>
+                <CardTitle>{t('roleSummary.title')}</CardTitle>
                 <div className="text-xs bg-slate-50 rounded-md px-3 py-2 border">
-                    <div className="font-medium mb-1">📋 표시 형식: 계획/실적</div>
+                    <div className="font-medium mb-1">{t('summary.legendTitle')}</div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-600">
-                        <span><span className="text-blue-600">●</span> 과거</span>
-                        <span><span className="text-orange-600">●</span> 현재</span>
-                        <span><span className="text-slate-400">●</span> 미래(계획만)</span>
-                        <span><span className="text-red-600">●</span> 초과</span>
-                        <span><span className="text-green-600">●</span> 여유</span>
+                        <span><span className="text-blue-600">●</span> {t('summary.legendPast')}</span>
+                        <span><span className="text-orange-600">●</span> {t('summary.legendCurrent')}</span>
+                        <span><span className="text-slate-400">●</span> {t('summary.legendFuture')}</span>
+                        <span><span className="text-red-600">●</span> {t('summary.legendOver')}</span>
+                        <span><span className="text-green-600">●</span> {t('summary.legendUnder')}</span>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
                 {allResourcePlans.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                        등록된 리소스 계획이 없습니다.
+                        {t('summary.noData')}
                     </div>
                 ) : (
                     <table className="w-full text-sm border-collapse">
                         <thead>
                             <tr className="bg-slate-100">
-                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">프로젝트 역할</th>
+                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[200px]">{t('roleSummary.projectRole')}</th>
                                 {months.map(m => (
                                     <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                         {m.label}
@@ -173,7 +177,7 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
                                         <React.Fragment key={area}>
                                             <tr className="bg-purple-50 border-t-2 border-purple-200">
                                                 <td colSpan={months.length + 1} className="py-2 px-2 sticky left-0 bg-purple-50 font-semibold text-purple-800">
-                                                    📁 {area} ({areaPositions.length}개 포지션)
+                                                    {t('roleSummary.areaHeader', { area, count: areaPositions.length })}
                                                 </td>
                                             </tr>
                                             {areaPositions.map(pos => (
@@ -206,4 +210,3 @@ export const RoleSummaryTab: React.FC<RoleSummaryTabProps> = ({
 };
 
 export default RoleSummaryTab;
-

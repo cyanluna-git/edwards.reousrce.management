@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { useProject, useProjectWorklogStats } from '@/hooks/useProject';
 import { useDeleteProject } from '@/hooks/useProjects';
@@ -83,6 +84,7 @@ const STANDARD_GATES = [
 ];
 
 export const ProjectDetailPage: React.FC = () => {
+  const { t } = useTranslation('projects');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -187,7 +189,7 @@ export const ProjectDetailPage: React.FC = () => {
   };
 
   const handleMilestoneDelete = (milestoneId: number) => {
-    if (confirm('Are you sure you want to delete this milestone?')) {
+    if (confirm(t('milestones.confirmDelete'))) {
       deleteMilestone.mutate(milestoneId);
     }
   };
@@ -204,7 +206,7 @@ export const ProjectDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
-        <p>Loading project details...</p>
+        <p>{t('loading')}</p>
       </div>
     );
   }
@@ -212,7 +214,7 @@ export const ProjectDetailPage: React.FC = () => {
   if (isError) {
     return (
       <div className="container mx-auto p-4">
-        <p className="text-red-500">Error loading project: {error?.message}</p>
+        <p className="text-red-500">{t('error', { message: error?.message })}</p>
       </div>
     );
   }
@@ -220,7 +222,7 @@ export const ProjectDetailPage: React.FC = () => {
   if (!project) {
     return (
       <div className="container mx-auto p-4">
-        <p>Project not found.</p>
+        <p>{t('notFound')}</p>
       </div>
     );
   }
@@ -248,7 +250,7 @@ export const ProjectDetailPage: React.FC = () => {
             className="flex items-center gap-1 text-muted-foreground hover:text-foreground -ml-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back
+            {t('actions.back')}
           </Button>
 
           {/* Tab Navigation */}
@@ -262,7 +264,7 @@ export const ProjectDetailPage: React.FC = () => {
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              Dashboard
+              {t('tabs.dashboard')}
             </button>
             <button
               onClick={() => setActiveTab('detail')}
@@ -273,7 +275,7 @@ export const ProjectDetailPage: React.FC = () => {
               }`}
             >
               <Info className="w-4 h-4" />
-              Details
+              {t('tabs.detail')}
             </button>
           </div>
         </div>
@@ -282,11 +284,11 @@ export const ProjectDetailPage: React.FC = () => {
         <div className="flex space-x-2">
           <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">Edit</Button>
+              <Button variant="outline" size="sm">{t('actions.edit')}</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Edit Project</DialogTitle>
+                <DialogTitle>{t('detail.editProject')}</DialogTitle>
               </DialogHeader>
               <ProjectForm
                 project={project}
@@ -298,19 +300,19 @@ export const ProjectDetailPage: React.FC = () => {
 
           <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
             <DialogTrigger asChild>
-              <Button variant="destructive" size="sm">Delete</Button>
+              <Button variant="destructive" size="sm">{t('actions.delete')}</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Confirm Deletion</DialogTitle>
+                <DialogTitle>{t('detail.confirmDeletion')}</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete project "{project.name}"? This action cannot be undone.
+                  {t('detail.deleteConfirmMessage', { name: project.name })}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>{t('common:buttons.cancel')}</Button>
                 <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? 'Deleting...' : 'Delete'}
+                  {isDeleting ? t('actions.deleting') : t('actions.delete')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -333,66 +335,66 @@ export const ProjectDetailPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
-            <PropertyRow icon={Briefcase} label="Program">
+            <PropertyRow icon={Briefcase} label={t('detail.program')}>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                 {project.program?.name || 'N/A'}
               </span>
             </PropertyRow>
 
-            <PropertyRow icon={Tag} label="Project Type">
+            <PropertyRow icon={Tag} label={t('detail.projectType')}>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                 {project.project_type?.name || 'N/A'}
               </span>
             </PropertyRow>
 
-            <PropertyRow icon={Activity} label="Status">
+            <PropertyRow icon={Activity} label={t('detail.status')}>
               <StatusBadge status={project.status} />
             </PropertyRow>
 
-            <PropertyRow icon={LayoutGrid} label="Category">
+            <PropertyRow icon={LayoutGrid} label={t('detail.category')}>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
                 project.category === 'FUNCTIONAL'
                   ? 'bg-purple-100 text-purple-700 border border-purple-200'
                   : 'bg-blue-100 text-blue-700 border border-blue-200'
               }`}>
-                {project.category === 'FUNCTIONAL' ? 'Functional Project' : 'Product Project'}
+                {project.category === 'FUNCTIONAL' ? t('detail.functionalProject') : t('detail.productProject')}
               </span>
             </PropertyRow>
 
-            <PropertyRow icon={Layers} label="Business Unit">
+            <PropertyRow icon={Layers} label={t('detail.businessUnit')}>
               {project.product_line?.business_unit_id ? (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700">
                   {project.product_line?.business_unit?.name || project.product_line?.business_unit_id}
                 </span>
               ) : (
-                <span className="text-amber-600 italic text-sm">Not assigned</span>
+                <span className="text-amber-600 italic text-sm">{t('detail.notAssigned')}</span>
               )}
             </PropertyRow>
 
-            <PropertyRow icon={FolderTree} label="Family">
+            <PropertyRow icon={FolderTree} label={t('detail.family')}>
               {project.product_line ? (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-700">
                   {project.product_line.name}
                 </span>
               ) : (
-                <span className="text-amber-600 italic text-sm">Not assigned</span>
+                <span className="text-amber-600 italic text-sm">{t('detail.notAssigned')}</span>
               )}
             </PropertyRow>
 
-            <PropertyRow icon={Signal} label="Scale">
+            <PropertyRow icon={Signal} label={t('detail.scale')}>
               <span className="text-sm font-medium">{project.scale || 'N/A'}</span>
             </PropertyRow>
 
-            <PropertyRow icon={Building2} label="Customer">
+            <PropertyRow icon={Building2} label={t('detail.customer')}>
               <span className="text-sm font-medium">{project.customer || 'N/A'}</span>
             </PropertyRow>
 
-            <PropertyRow icon={Package} label="Product">
+            <PropertyRow icon={Package} label={t('detail.product')}>
               <span className="text-sm font-medium">{project.product || 'N/A'}</span>
             </PropertyRow>
 
             {project.pm && (
-              <PropertyRow icon={User} label="Project Manager">
+              <PropertyRow icon={User} label={t('detail.projectManager')}>
                 <div className="flex items-center">
                   <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs mr-2 text-primary font-bold">
                     {(project.pm.name || '?')[0]}
@@ -406,37 +408,37 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="col-span-full pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center text-sm font-semibold mb-3" style={{ color: '#000000' }}>
                 <DollarSign className="w-4 h-4 mr-2" style={{ color: '#64748b' }} />
-                <span>Financial Classification</span>
+                <span>{t('detail.financialClassification')}</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-8">
-                <PropertyRow icon={DollarSign} label="Funding Entity">
+                <PropertyRow icon={DollarSign} label={t('detail.fundingEntity')}>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
                     project.funding_entity_id
                       ? 'bg-green-100 text-green-700 border border-green-200'
                       : 'bg-gray-100 text-gray-500 border border-gray-200'
                   }`}>
-                    {project.funding_entity_id || 'Not Set'}
+                    {project.funding_entity_id || t('detail.notSet')}
                   </span>
                 </PropertyRow>
 
-                <PropertyRow icon={RefreshCw} label="Recharge Status">
+                <PropertyRow icon={RefreshCw} label={t('detail.rechargeStatus')}>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
                     project.recharge_status === 'BILLABLE' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
                     project.recharge_status === 'NON_BILLABLE' ? 'bg-gray-100 text-gray-700 border border-gray-200' :
                     project.recharge_status === 'INTERNAL' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
                     'bg-gray-100 text-gray-500 border border-gray-200'
                   }`}>
-                    {project.recharge_status || 'Not Set'}
+                    {project.recharge_status || t('detail.notSet')}
                   </span>
                 </PropertyRow>
 
-                <PropertyRow icon={TrendingUp} label="Capitalizable">
+                <PropertyRow icon={TrendingUp} label={t('detail.capitalizable')}>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium ${
                     project.is_capitalizable
                       ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                       : 'bg-gray-100 text-gray-700 border border-gray-200'
                   }`}>
-                    {project.is_capitalizable ? 'Yes (CAPEX)' : 'No (OPEX)'}
+                    {project.is_capitalizable ? t('detail.yesCapex') : t('detail.noOpex')}
                   </span>
                 </PropertyRow>
               </div>
@@ -445,10 +447,10 @@ export const ProjectDetailPage: React.FC = () => {
             <div className="col-span-full pt-4 mt-2 border-t border-slate-200 dark:border-slate-700">
               <div className="flex items-center text-sm font-semibold mb-3" style={{ color: '#000000' }}>
                 <FileText className="w-4 h-4 mr-2" style={{ color: '#64748b' }} />
-                <span>Description</span>
+                <span>{t('detail.description')}</span>
               </div>
               <div className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: '#000000' }}>
-                {project.description || <span className="text-slate-400 italic">No description provided.</span>}
+                {project.description || <span className="text-slate-400 italic">{t('detail.noDescription')}</span>}
               </div>
             </div>
           </div>
@@ -458,14 +460,14 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Worklog Activity Heatmap */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Project Activity</CardTitle>
+          <CardTitle className="text-lg">{t('activity.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="w-full overflow-x-auto pb-2">
             {statsLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading activity data...</div>
+              <div className="text-center py-8 text-muted-foreground">{t('activity.loading')}</div>
             ) : worklogStats.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No activity recorded yet.</div>
+              <div className="text-center py-8 text-muted-foreground">{t('activity.noActivity')}</div>
             ) : (
               <WorklogHeatmap data={worklogStats} />
             )}
@@ -476,17 +478,17 @@ export const ProjectDetailPage: React.FC = () => {
       {/* Milestones Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">마일스톤 타임라인</CardTitle>
+          <CardTitle className="text-lg">{t('milestones.title')}</CardTitle>
           <Button variant="outline" size="sm" onClick={openAddMilestoneModal}>
-            + 추가
+            {t('actions.addMilestone')}
           </Button>
         </CardHeader>
         <CardContent>
           {milestonesLoading ? (
-            <div className="text-center py-4">Loading milestones...</div>
+            <div className="text-center py-4">{t('milestones.loading')}</div>
           ) : sortedMilestones.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              마일스톤이 없습니다. 위의 '+ 추가' 버튼을 클릭하여 추가하세요.
+              {t('milestones.noMilestones')}
             </div>
           ) : (
             <div className="relative">
@@ -543,7 +545,7 @@ export const ProjectDetailPage: React.FC = () => {
                           </span>
                           {ms.actual_date && (
                             <span className="ml-2 text-muted-foreground">
-                              (실적: {format(parseISO(ms.actual_date), 'yyyy-MM-dd')})
+                              ({t('milestones.actual')} {format(parseISO(ms.actual_date), 'yyyy-MM-dd')})
                             </span>
                           )}
                         </div>
@@ -551,14 +553,14 @@ export const ProjectDetailPage: React.FC = () => {
                         {/* Days indicator */}
                         <div className="mt-1 text-xs">
                           {daysFromNow > 0 && ms.status === 'Pending' && (
-                            <span className="text-blue-600">D-{daysFromNow}</span>
+                            <span className="text-blue-600">{t('milestones.dDay', { count: daysFromNow })}</span>
                           )}
                           {daysFromNow === 0 && (
-                            <span className="text-orange-600 font-bold">Today!</span>
+                            <span className="text-orange-600 font-bold">{t('milestones.today')}</span>
                           )}
                           {daysFromNow < 0 && ms.status === 'Pending' && (
                             <span className="text-red-600 font-bold">
-                              {Math.abs(daysFromNow)}일 지연
+                              {t('milestones.daysDelayed', { count: Math.abs(daysFromNow) })}
                             </span>
                           )}
                         </div>
@@ -585,7 +587,7 @@ export const ProjectDetailPage: React.FC = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingMilestone ? '마일스톤 수정' : '마일스톤 추가'}
+              {editingMilestone ? t('milestones.editTitle') : t('milestones.addTitle')}
             </DialogTitle>
           </DialogHeader>
 
@@ -593,7 +595,7 @@ export const ProjectDetailPage: React.FC = () => {
             {/* Standard Gates Quick Buttons */}
             {!editingMilestone && (
               <div className="flex gap-2 flex-wrap">
-                <span className="text-sm text-muted-foreground">표준 게이트:</span>
+                <span className="text-sm text-muted-foreground">{t('milestones.standardGates')}</span>
                 {STANDARD_GATES.map((gate) => (
                   <Button
                     key={gate.name}
@@ -609,7 +611,7 @@ export const ProjectDetailPage: React.FC = () => {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">이름 *</label>
+              <label className="text-sm font-medium">{t('milestones.name')} *</label>
               <input
                 type="text"
                 className="w-full px-3 py-2 border rounded-md"
@@ -621,7 +623,7 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">유형</label>
+                <label className="text-sm font-medium">{t('milestones.type')}</label>
                 <select
                   className="w-full px-3 py-2 border rounded-md"
                   value={milestoneForm.type}
@@ -636,7 +638,7 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">상태</label>
+                <label className="text-sm font-medium">{t('milestones.milestoneStatus')}</label>
                 <select
                   className="w-full px-3 py-2 border rounded-md"
                   value={milestoneForm.status}
@@ -654,7 +656,7 @@ export const ProjectDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">목표일 *</label>
+                <label className="text-sm font-medium">{t('milestones.targetDate')} *</label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border rounded-md"
@@ -664,7 +666,7 @@ export const ProjectDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">실적일</label>
+                <label className="text-sm font-medium">{t('milestones.actualDate')}</label>
                 <input
                   type="date"
                   className="w-full px-3 py-2 border rounded-md"
@@ -681,30 +683,30 @@ export const ProjectDetailPage: React.FC = () => {
                 checked={milestoneForm.is_key_gate}
                 onChange={(e) => setMilestoneForm(prev => ({ ...prev, is_key_gate: e.target.checked }))}
               />
-              <label htmlFor="is_key_gate" className="text-sm">Key Gate (주요 마일스톤)</label>
+              <label htmlFor="is_key_gate" className="text-sm">{t('milestones.keyGate')}</label>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">설명</label>
+              <label className="text-sm font-medium">{t('milestones.descriptionLabel')}</label>
               <textarea
                 className="w-full px-3 py-2 border rounded-md"
                 rows={2}
                 value={milestoneForm.description}
                 onChange={(e) => setMilestoneForm(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="마일스톤에 대한 추가 설명..."
+                placeholder={t('milestones.descriptionPlaceholder')}
               />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsMilestoneModalOpen(false)}>
-              취소
+              {t('milestones.cancel')}
             </Button>
             <Button
               onClick={handleMilestoneSubmit}
               disabled={!milestoneForm.name || !milestoneForm.target_date || createMilestone.isPending || updateMilestone.isPending}
             >
-              {createMilestone.isPending || updateMilestone.isPending ? '저장 중...' : '저장'}
+              {createMilestone.isPending || updateMilestone.isPending ? t('milestones.saving') : t('milestones.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

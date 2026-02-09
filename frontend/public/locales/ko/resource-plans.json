@@ -1,0 +1,104 @@
+{
+  "title": "리소스 계획",
+  "tabs": {
+    "detail": "프로젝트 상세",
+    "projectSummary": "프로젝트별 집계",
+    "roleSummary": "롤별 집계"
+  },
+  "actions": {
+    "addRow": "+ 팀원 추가",
+    "editRow": "편집",
+    "deleteRow": "삭제",
+    "includeCompleted": "Completed/Cancelled 포함",
+    "tbdAssignment": "TBD 할당",
+    "tbdAssignmentTooltip": "TBD(미할당) 포지션에 실제 담당자를 배정합니다",
+    "save": "저장",
+    "cancel": "취소",
+    "saving": "저장 중..."
+  },
+  "form": {
+    "projectRole": "Project Role (프로젝트 역할)",
+    "projectRoleHelp": "프로젝트 내 수행 역할을 선택해주세요.",
+    "selectOption": "선택하세요 (옵션)",
+    "user": "담당자 (선택사항)",
+    "userPlaceholder": "TBD (미할당)",
+    "userHelp": "담당자를 선택하지 않으면 TBD(미할당) 포지션으로 생성됩니다.",
+    "monthlyFte": "월별 FTE 배분 (0.1 ~ 1.0)",
+    "editTitle": "{{name}} 수정",
+    "addTitle": "팀원/포지션 추가"
+  },
+  "table": {
+    "role": "역할",
+    "person": "담당자",
+    "total": "합계",
+    "plan": "계획",
+    "actual": "실적"
+  },
+  "hierarchy": {
+    "nProjects": "{{count}} 프로젝트",
+    "noProjects": "등록된 프로젝트가 없습니다."
+  },
+  "calendar": {
+    "today": "오늘",
+    "prev3Months": "3개월 이전",
+    "next3Months": "3개월 이후",
+    "prev1Month": "1개월 이전",
+    "next1Month": "1개월 이후",
+    "defaultView": "기본 뷰 (오늘 기준)"
+  },
+  "confirm": {
+    "deleteRow": "\"{{name}}\" 행을 삭제하시겠습니까?"
+  },
+  "status": {
+    "loading": "리소스 계획 로딩 중..."
+  },
+  "summary": {
+    "title": "프로젝트별 리소스 집계",
+    "projectColumn": "프로젝트",
+    "grandTotal": "전체 합계",
+    "noData": "등록된 리소스 계획이 없습니다.",
+    "nProjects": "{{count}}개 프로젝트",
+    "nItems": "{{count}}개",
+    "legendTitle": "표시 형식: 계획/실적",
+    "legendPast": "과거",
+    "legendCurrent": "현재",
+    "legendFuture": "미래(계획만)",
+    "legendOver": "초과",
+    "legendUnder": "여유"
+  },
+  "roleSummary": {
+    "title": "롤별 리소스 집계 (사업영역별)",
+    "projectRole": "프로젝트 역할",
+    "unassigned": "미할당",
+    "areaHeader": "{{area}} ({{count}}개 포지션)"
+  },
+  "tbd": {
+    "title": "TBD 포지션 할당",
+    "monthLabel": "{{month}}월",
+    "allProjects": "전체 프로젝트",
+    "positionCount": "{{count}}개 TBD 포지션",
+    "selectUser": "사용자 선택...",
+    "selectUserError": "할당할 사용자를 선택해주세요.",
+    "confirmAssign": "{{user}}님을 {{project}} ({{position}})에 할당하시겠습니까?",
+    "assignSuccess": "{{user}}님을 {{project}} ({{position}})에 할당했습니다",
+    "assignFailed": "사용자 할당에 실패했습니다",
+    "assign": "할당",
+    "close": "닫기",
+    "loading": "TBD 포지션 로딩 중...",
+    "loadError": "TBD 포지션 로딩 실패",
+    "noPositions": "TBD 포지션 없음",
+    "allAssigned": "{{year}}-{{month}} 기간의 모든 포지션이 할당되었습니다.",
+    "columnProject": "프로젝트",
+    "columnPositionRole": "포지션 / 역할",
+    "columnHours": "시간",
+    "columnAssignTo": "할당 대상",
+    "columnAction": "액션"
+  },
+  "resourceTable": {
+    "memberPosition": "팀원/포지션",
+    "action": "액션",
+    "loading": "데이터를 불러오는 중...",
+    "loadError": "데이터 로딩 실패: {{message}}",
+    "noMembers": "등록된 인원이 없습니다."
+  }
+}

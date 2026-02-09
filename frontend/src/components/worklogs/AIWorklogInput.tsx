@@ -13,6 +13,7 @@ import { AIWorklogPreview } from './AIWorklogPreview';
 import { useAIHealth, useAIWorklogParse } from '@/hooks/useAIWorklog';
 import { useAuth } from '@/hooks/useAuth';
 import type { AIWorklogEntry } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 interface AIWorklogInputProps {
     targetDate: Date;
@@ -27,6 +28,7 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
     const [inputText, setInputText] = useState('');
     const [parsedEntries, setParsedEntries] = useState<AIWorklogEntry[] | null>(null);
     const [warnings, setWarnings] = useState<string[]>([]);
+    const { t } = useTranslation('worklogs');
 
     const { data: healthData, isLoading: isHealthLoading } = useAIHealth();
     const parseMutation = useAIWorklogParse();
@@ -47,7 +49,7 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
             setWarnings(result.warnings);
         } catch (error) {
             console.error('AI parsing failed:', error);
-            setWarnings(['AI 파싱에 실패했습니다. 다시 시도해주세요.']);
+            setWarnings([t('ai.parseFailed')]);
         }
     };
 
@@ -68,14 +70,14 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
             {/* AI Status Indicator */}
             <div className="flex items-center gap-2">
                 {isHealthLoading ? (
-                    <Badge variant="secondary">AI 상태 확인 중...</Badge>
+                    <Badge variant="secondary">{t('ai.statusChecking')}</Badge>
                 ) : isAIHealthy ? (
                     <Badge variant="default" className="bg-green-600">
-                        AI 연결됨 ({healthData?.model})
+                        {t('ai.connected', { model: healthData?.model })}
                     </Badge>
                 ) : (
                     <Badge variant="destructive">
-                        AI 연결 안됨
+                        {t('ai.disconnected')}
                     </Badge>
                 )}
             </div>
@@ -98,37 +100,35 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
-                            자연어로 업무 입력
+                            {t('ai.inputTitle')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {/* 입력 가이드 */}
                         <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground">
-                            <p className="font-medium text-foreground mb-2">💡 이렇게 입력해보세요</p>
+                            <p className="font-medium text-foreground mb-2">{t('ai.inputGuideTitle')}</p>
                             <ul className="space-y-1 text-xs">
-                                <li>• OQC 킥오프 미팅 준비하고 계획서 메일 배포 <span className="text-primary font-medium">2시간</span></li>
-                                <li>• 팀원과 1:1 미팅 <span className="text-primary font-medium">1시간</span></li>
-                                <li>• GEN3 프로젝트 코드 리뷰하고 머지함 <span className="text-primary font-medium">1시간</span></li>
-                                <li>• Innovation 활동으로 Dashboard 개발 <span className="text-primary font-medium">4시간</span></li>
+                                <li>{t('ai.inputGuideEx1')} <span className="text-primary font-medium">2시간</span></li>
+                                <li>{t('ai.inputGuideEx2')} <span className="text-primary font-medium">1시간</span></li>
+                                <li>{t('ai.inputGuideEx3')} <span className="text-primary font-medium">1시간</span></li>
+                                <li>{t('ai.inputGuideEx4')} <span className="text-primary font-medium">4시간</span></li>
                             </ul>
                         </div>
 
                         <div className="space-y-2">
                             <Textarea
-                                placeholder={`오늘 한 일을 자유롭게 적어주세요...
-
-예: HRS 설계 리뷰 미팅 2시간, OQC 인프라 DB 설계 오전에 함, 오후에 문서 작성`}
+                                placeholder={t('ai.inputPlaceholder')}
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 className="min-h-[140px] resize-none"
                                 disabled={!isAIHealthy || parseMutation.isPending}
                             />
                             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                                <span className="bg-muted px-2 py-0.5 rounded">오전에 = 4h</span>
-                                <span className="bg-muted px-2 py-0.5 rounded">오후에 = 4h</span>
-                                <span className="bg-muted px-2 py-0.5 rounded">잠깐 = 0.5h</span>
-                                <span className="bg-muted px-2 py-0.5 rounded">하루종일 = 8h</span>
-                                <span className="bg-muted px-2 py-0.5 rounded">N시간 = N</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">{t('ai.shortcutMorning')}</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">{t('ai.shortcutAfternoon')}</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">{t('ai.shortcutBrief')}</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">{t('ai.shortcutAllDay')}</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">{t('ai.shortcutNHours')}</span>
                             </div>
                         </div>
 
@@ -140,10 +140,10 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
                                 {parseMutation.isPending ? (
                                     <>
                                         <span className="animate-spin mr-2">⏳</span>
-                                        분석 중...
+                                        {t('ai.analyzing')}
                                     </>
                                 ) : (
-                                    'AI 분석'
+                                    t('ai.analyzeButton')
                                 )}
                             </Button>
                         </div>
@@ -151,7 +151,7 @@ export const AIWorklogInput: React.FC<AIWorklogInputProps> = ({
                         {!isAIHealthy && !isHealthLoading && (
                             <Alert>
                                 <AlertDescription>
-                                    AI 서비스에 연결할 수 없습니다. 수동으로 워크로그를 입력해주세요.
+                                    {t('ai.serviceUnavailable')}
                                 </AlertDescription>
                             </Alert>
                         )}

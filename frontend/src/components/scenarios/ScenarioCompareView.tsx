@@ -3,6 +3,7 @@
  * Shows side-by-side milestone comparison between two scenarios
  */
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, parseISO } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ProjectScenario } from '@/types';
@@ -14,6 +15,7 @@ interface ScenarioCompareViewProps {
 }
 
 export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
+    const { t } = useTranslation('projects');
     const [scenario1Id, setScenario1Id] = useState<number | undefined>();
     const [scenario2Id, setScenario2Id] = useState<number | undefined>();
 
@@ -32,37 +34,37 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>시나리오 비교</CardTitle>
+                <CardTitle>{t('scenarios.compare')}</CardTitle>
             </CardHeader>
             <CardContent>
                 {/* Scenario Selectors */}
                 <div className="flex gap-4 mb-6">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">시나리오 1 (기준)</label>
+                        <label className="block text-sm font-medium mb-1">{t('scenarios.scenario1Baseline')}</label>
                         <select
                             className="w-full p-2 border rounded-md bg-background"
                             value={scenario1Id || ''}
                             onChange={(e) => setScenario1Id(Number(e.target.value) || undefined)}
                         >
-                            <option value="">선택...</option>
+                            <option value="">{t('scenarios.select')}</option>
                             {scenarios.map((s) => (
                                 <option key={s.id} value={s.id}>
-                                    {s.name} {s.is_baseline && '(Baseline)'}
+                                    {s.name} {s.is_baseline && t('scenarios.baselineTag')}
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium mb-1">시나리오 2 (비교)</label>
+                        <label className="block text-sm font-medium mb-1">{t('scenarios.scenario2Compare')}</label>
                         <select
                             className="w-full p-2 border rounded-md bg-background"
                             value={scenario2Id || ''}
                             onChange={(e) => setScenario2Id(Number(e.target.value) || undefined)}
                         >
-                            <option value="">선택...</option>
+                            <option value="">{t('scenarios.select')}</option>
                             {scenarios.filter(s => s.id !== scenario1Id).map((s) => (
                                 <option key={s.id} value={s.id}>
-                                    {s.name} {s.is_baseline && '(Baseline)'}
+                                    {s.name} {s.is_baseline && t('scenarios.baselineTag')}
                                 </option>
                             ))}
                         </select>
@@ -71,7 +73,7 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
 
                 {/* Comparison Table */}
                 {isLoading ? (
-                    <div className="text-center py-4">비교 중...</div>
+                    <div className="text-center py-4">{t('scenarios.comparing')}</div>
                 ) : comparison ? (
                     <div className="space-y-4">
                         {/* Summary */}
@@ -81,13 +83,13 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
                                 ? 'bg-green-50 text-green-700'
                                 : 'bg-gray-50 text-gray-700'
                             }`}>
-                            <span className="font-medium">총 일정 변화: </span>
+                            <span className="font-medium">{t('scenarios.totalScheduleChange')} </span>
                             <span className="font-bold">
                                 {comparison.total_delta_days > 0
-                                    ? `+${comparison.total_delta_days}일 (지연)`
+                                    ? t('scenarios.delayed', { count: comparison.total_delta_days })
                                     : comparison.total_delta_days < 0
-                                        ? `${comparison.total_delta_days}일 (단축)`
-                                        : '변화 없음'}
+                                        ? t('scenarios.shortened', { count: Math.abs(comparison.total_delta_days) })
+                                        : t('scenarios.noChange')}
                             </span>
                         </div>
 
@@ -95,10 +97,10 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b">
-                                    <th className="text-left py-2 px-2">마일스톤</th>
+                                    <th className="text-left py-2 px-2">{t('scenarios.milestone')}</th>
                                     <th className="text-center py-2 px-2">{comparison.scenario_1_name}</th>
                                     <th className="text-center py-2 px-2">{comparison.scenario_2_name}</th>
-                                    <th className="text-center py-2 px-2">차이</th>
+                                    <th className="text-center py-2 px-2">{t('scenarios.difference')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -122,7 +124,7 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
                                                 : ''
                                             }`}>
                                             {mc.delta_days !== null && mc.delta_days !== undefined
-                                                ? `${mc.delta_days > 0 ? '+' : ''}${mc.delta_days}일`
+                                                ? `${mc.delta_days > 0 ? '+' : ''}${t('scenarios.daysUnit', { count: mc.delta_days })}`
                                                 : '-'}
                                         </td>
                                     </tr>
@@ -132,7 +134,7 @@ export function ScenarioCompareView({ scenarios }: ScenarioCompareViewProps) {
                     </div>
                 ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                        두 시나리오를 선택하여 비교하세요.
+                        {t('scenarios.selectToCompare')}
                     </div>
                 )}
             </CardContent>

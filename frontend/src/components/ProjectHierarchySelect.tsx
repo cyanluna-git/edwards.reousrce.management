@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRechargeIOsByBusinessUnit } from '@/hooks/useRechargeIOs';
 import { useFrequentSelections } from '@/hooks/useFrequentSelections';
 import { ChevronDown, ChevronRight, Folder, Package, Briefcase, Building2, Wrench, Info, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type SelectionMode = 'project' | 'product_line' | 'support' | 'none';
 
@@ -32,7 +33,7 @@ export function ProjectHierarchySelect({
     onProjectChange,
     onProductLineChange,
     projectRequired = true,
-    placeholder = '프로젝트/제품군 선택...',
+    placeholder,
     className = '',
 }: ProjectHierarchySelectProps) {
     const { user } = useAuth();
@@ -55,6 +56,7 @@ export function ProjectHierarchySelect({
     const [selectionMode, setSelectionMode] = useState<SelectionMode>(
         projectId ? 'project' : productLineId ? 'product_line' : 'none'
     );
+    const { t } = useTranslation('common');
 
     // Collect all non-leaf node IDs for expand-all
     const allParentNodeIds = useMemo(() => {
@@ -108,7 +110,7 @@ export function ProjectHierarchySelect({
             // Search in support projects
             for (const proj of projectHierarchy.support_projects || []) {
                 if (proj.id === projectId) {
-                    return `[비프로젝트] ${proj.name}`;
+                    return `${t('select.nonProject')} ${proj.name}`;
                 }
             }
         }
@@ -116,7 +118,7 @@ export function ProjectHierarchySelect({
             for (const bu of productLineHierarchy) {
                 for (const pl of bu.children || []) {
                     if (pl.id === productLineId) {
-                        return `[제품군] ${pl.name}`;
+                        return `${t('select.productLine')} ${pl.name}`;
                     }
                 }
             }
@@ -287,7 +289,7 @@ export function ProjectHierarchySelect({
     if (isLoading) {
         return (
             <div className={`p-2 border rounded-md bg-background text-muted-foreground ${className}`}>
-                로딩 중...
+                {t('select.loading')}
             </div>
         );
     }
@@ -399,7 +401,7 @@ export function ProjectHierarchySelect({
                 className="w-full flex items-center justify-between p-2 border rounded-md bg-background hover:bg-slate-50 text-left"
             >
                 <span className={selectedName ? 'text-foreground' : 'text-muted-foreground'}>
-                    {selectedName || placeholder}
+                    {selectedName || (placeholder || t('select.selectProject'))}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -422,7 +424,7 @@ export function ProjectHierarchySelect({
                         <div className="p-2 border-b bg-white sticky top-0">
                             <input
                                 type="text"
-                                placeholder="프로젝트/제품군 검색..."
+                                placeholder={t('select.searchProject')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full p-2 text-sm border rounded bg-white"
@@ -435,7 +437,7 @@ export function ProjectHierarchySelect({
                             <div className="px-3 py-2 border-b bg-slate-50/80">
                                 <div className="flex items-center gap-1 mb-1.5">
                                     <Clock className="h-3 w-3 text-slate-400" />
-                                    <span className="text-xs text-slate-400 font-medium">자주 사용</span>
+                                    <span className="text-xs text-slate-400 font-medium">{t('select.frequentlyUsed')}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                     {validFrequentItems.map(item => {
@@ -467,7 +469,7 @@ export function ProjectHierarchySelect({
                             {filteredProductProjects.length > 0 && (
                                 <div className="border-b">
                                     <div className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100">
-                                        제품 프로젝트
+                                        {t('select.productProjects')}
                                     </div>
                                     {filteredProductProjects.map(node => renderProjectNode(node))}
                                 </div>
@@ -477,7 +479,7 @@ export function ProjectHierarchySelect({
                             {filteredFunctionalProjects.length > 0 && (
                                 <div className="border-b">
                                     <div className="px-3 py-2 text-xs font-semibold text-slate-500 bg-slate-100">
-                                        기능 프로젝트 (내 팀)
+                                        {t('select.functionalProjects')}
                                     </div>
                                     {filteredFunctionalProjects.map(node => renderProjectNode(node))}
                                 </div>
@@ -487,7 +489,7 @@ export function ProjectHierarchySelect({
                             {filteredSupportProjects.length > 0 && (
                                 <div className="border-b">
                                     <div className="px-3 py-2 text-xs font-semibold text-slate-500 bg-amber-50 flex items-center gap-2">
-                                        비프로젝트 업무
+                                        {t('select.supportProjects')}
                                         {user?.primary_business_unit && (
                                             <span className="text-xs font-normal text-amber-600">
                                                 ({user.primary_business_unit.code})
@@ -530,7 +532,7 @@ export function ProjectHierarchySelect({
                                         className={`w-full flex items-center gap-2 px-3 py-3 text-sm hover:bg-slate-50 text-left ${selectionMode === 'none' ? 'bg-slate-100' : ''
                                             }`}
                                     >
-                                        <span className="text-slate-500">해당 없음 (비프로젝트 업무)</span>
+                                        <span className="text-slate-500">{t('select.noSelection')}</span>
                                     </button>
                                 </div>
                             )}
@@ -541,7 +543,7 @@ export function ProjectHierarchySelect({
                                 filteredSupportProjects.length === 0 &&
                                 filteredProductLines.length === 0 && (
                                     <div className="p-4 text-center text-muted-foreground text-sm">
-                                        검색 결과가 없습니다.
+                                        {t('select.searchNoResults')}
                                     </div>
                                 )}
                         </div>

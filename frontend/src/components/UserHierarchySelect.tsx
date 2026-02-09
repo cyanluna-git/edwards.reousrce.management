@@ -7,6 +7,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, Building2, Users, User, Search, X } from 'lucide-react';
 import { getDepartments, getDivisions, type Department, type Division } from '@/api/client';
+import { useTranslation } from 'react-i18next';
 
 interface UserData {
     id: string;
@@ -54,7 +55,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
     users,
     value,
     onChange,
-    placeholder = '담당자 선택...',
+    placeholder,
     className = '',
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -62,6 +63,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
     const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation('common');
 
     // Fetch departments and divisions for hierarchy
     const { data: departments = [] } = useQuery<Department[]>({
@@ -169,7 +171,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
         if (unassigned.length > 0) {
             result.push({
                 id: 'unassigned',
-                name: '미배정',
+                name: t('select.unassigned'),
                 type: 'department',
                 children: [],
                 users: unassigned,
@@ -305,7 +307,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                     <Icon className={`h-4 w-4 ${node.type === 'division' ? 'text-blue-500' : 'text-green-500'}`} />
                     <span>{node.name}</span>
                     <span className="text-xs text-slate-400">
-                        ({node.users.length + node.children.reduce((sum, c) => sum + c.users.length, 0)}명)
+                        {t('select.personCount', { count: node.users.length + node.children.reduce((sum, c) => sum + c.users.length, 0) })}
                     </span>
                 </button>
                 {isExpanded && (
@@ -329,7 +331,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                 <span className={selectedUser ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedUser
                         ? `${selectedUser.korean_name || selectedUser.name} (${selectedUser.name})`
-                        : placeholder
+                        : (placeholder || t('select.selectUser'))
                     }
                 </span>
                 <div className="flex items-center gap-1">
@@ -356,7 +358,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                             <input
                                 ref={inputRef}
                                 type="text"
-                                placeholder="이름 검색 (한글/영어)..."
+                                placeholder={t('select.searchUser')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-8 pr-3 py-2 text-sm border rounded bg-white"
@@ -372,7 +374,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                             className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50 text-left border-b ${!value ? 'bg-blue-100 text-blue-700' : ''
                                 }`}
                         >
-                            <span className="text-orange-600 font-medium">TBD (미할당)</span>
+                            <span className="text-orange-600 font-medium">{t('select.tbd')}</span>
                         </button>
 
                         {/* Search Results or Hierarchy */}
@@ -395,7 +397,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                                                     <span className="text-xs text-slate-500 ml-1">({user.name})</span>
                                                 </span>
                                                 <span className="text-xs text-slate-400">
-                                                    {user.department?.name || '미배정'}
+                                                    {user.department?.name || t('select.unassigned')}
                                                     {user.position?.name && ` · ${user.position.name}`}
                                                 </span>
                                             </div>
@@ -404,7 +406,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                                 </div>
                             ) : (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
-                                    검색 결과가 없습니다.
+                                    {t('select.searchNoResults')}
                                 </div>
                             )
                         ) : (
@@ -415,7 +417,7 @@ export const UserHierarchySelect: React.FC<UserHierarchySelectProps> = ({
                                 </div>
                             ) : (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
-                                    등록된 사용자가 없습니다.
+                                    {t('select.noRegisteredUsers')}
                                 </div>
                             )
                         )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useMyFTE } from '@/hooks/useDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import { AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -44,7 +45,7 @@ function UtilizationIndicator({ percent }: { percent: number | null }) {
 }
 
 // Progress bar for planned projects
-function FTEProgressBar({ item }: { item: MyFTEProjectItem }) {
+function FTEProgressBar({ item, t }: { item: MyFTEProjectItem; t: (key: string, options?: Record<string, unknown>) => string }) {
   const plannedPercent = item.planned_fte ? Math.min((item.planned_fte / 1.0) * 100, 100) : 0;
   const actualPercent = Math.min((item.actual_fte / 1.0) * 100, 100);
   const displayName = item.project_name || item.project_code || '-';
@@ -67,9 +68,9 @@ function FTEProgressBar({ item }: { item: MyFTEProjectItem }) {
         </div>
         <div className="flex items-center gap-3 text-sm">
           {item.planned_fte !== null && (
-            <span className="text-slate-500">계획 {item.planned_fte.toFixed(2)}</span>
+            <span className="text-slate-500">{t('myFte.planned')} {item.planned_fte.toFixed(2)}</span>
           )}
-          <span className="font-medium">실적 {item.actual_fte.toFixed(2)}</span>
+          <span className="font-medium">{t('myFte.actual')} {item.actual_fte.toFixed(2)}</span>
           <UtilizationIndicator percent={item.utilization_percent} />
         </div>
       </div>
@@ -78,7 +79,7 @@ function FTEProgressBar({ item }: { item: MyFTEProjectItem }) {
       <div className="space-y-1">
         {item.planned_fte !== null && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 w-8">계획</span>
+            <span className="text-[10px] text-slate-400 w-8">{t('myFte.planned')}</span>
             <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-blue-300 rounded-full transition-all duration-300"
@@ -88,7 +89,7 @@ function FTEProgressBar({ item }: { item: MyFTEProjectItem }) {
           </div>
         )}
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-slate-400 w-8">실적</span>
+          <span className="text-[10px] text-slate-400 w-8">{t('myFte.actual')}</span>
           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-300 ${
@@ -132,13 +133,14 @@ function FTESimpleRow({ item }: { item: MyFTEProjectItem }) {
 }
 
 export function MyFTECard({ year, month }: MyFTECardProps) {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, error } = useMyFTE(year, month);
 
   if (isLoading) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          FTE 데이터 로딩 중...
+          {t('myFte.loading')}
         </CardContent>
       </Card>
     );
@@ -148,7 +150,7 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-red-500">
-          FTE 데이터를 불러오는데 실패했습니다.
+          {t('myFte.loadFailed')}
         </CardContent>
       </Card>
     );
@@ -171,15 +173,15 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">
-            {year}년 {month}월 나의 리소스 배분
+            {t('myFte.title', { year, month })}
           </CardTitle>
           <div className="flex items-center gap-3">
             <div className="text-sm">
-              <span className="text-slate-500">계획</span>{' '}
+              <span className="text-slate-500">{t('myFte.planned')}</span>{' '}
               <span className="font-semibold">{summary.planned_fte.toFixed(2)} FTE</span>
             </div>
             <div className="text-sm">
-              <span className="text-slate-500">실적</span>{' '}
+              <span className="text-slate-500">{t('myFte.actual')}</span>{' '}
               <span className="font-semibold">{summary.actual_fte.toFixed(2)} FTE</span>
             </div>
             {summary.utilization_percent !== null && (
@@ -188,7 +190,7 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
             {isOverAllocated && (
               <span className="flex items-center gap-1 text-amber-600 text-xs">
                 <AlertTriangle className="w-4 h-4" />
-                초과
+                {t('myFte.overAllocated')}
               </span>
             )}
           </div>
@@ -197,7 +199,7 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
       <CardContent className="space-y-4">
         {hasNoData ? (
           <div className="text-center py-6 text-muted-foreground">
-            이 달의 리소스 배분 데이터가 없습니다.
+            {t('myFte.noData')}
           </div>
         ) : (
           <>
@@ -212,10 +214,10 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
                 {/* Planned projects */}
                 {hasPlanned && (
                   <div className="mb-3">
-                    <div className="text-xs text-slate-500 mb-1 pl-3">계획됨</div>
+                    <div className="text-xs text-slate-500 mb-1 pl-3">{t('myFte.plannedLabel')}</div>
                     <div className="bg-slate-50 rounded-lg px-3">
                       {product_functional.planned.map((item) => (
-                        <FTEProgressBar key={item.project_id} item={item} />
+                        <FTEProgressBar key={item.project_id} item={item} t={t} />
                       ))}
                     </div>
                   </div>
@@ -224,7 +226,7 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
                 {/* Unplanned projects */}
                 {hasUnplanned && (
                   <div>
-                    <div className="text-xs text-slate-500 mb-1 pl-3">계획 외</div>
+                    <div className="text-xs text-slate-500 mb-1 pl-3">{t('myFte.unplannedLabel')}</div>
                     <div className="bg-amber-50 rounded-lg px-3 py-1">
                       {product_functional.unplanned.map((item) => (
                         <FTESimpleRow key={item.project_id} item={item} />
@@ -248,7 +250,7 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
                   ))}
                   {support.length > 1 && (
                     <div className="flex items-center justify-between py-1.5 text-sm border-t border-green-200 mt-1">
-                      <span className="text-slate-500">합계</span>
+                      <span className="text-slate-500">{t('myFte.subtotal')}</span>
                       <span className="font-semibold">{supportTotalFTE.toFixed(2)} FTE</span>
                     </div>
                   )}
@@ -258,14 +260,14 @@ export function MyFTECard({ year, month }: MyFTECardProps) {
 
             {/* Total Summary */}
             <div className="bg-slate-100 rounded-lg p-3 flex items-center justify-between">
-              <span className="font-semibold text-slate-700">총계</span>
+              <span className="font-semibold text-slate-700">{t('myFte.grandTotal')}</span>
               <div className="flex items-center gap-4">
                 <div className="text-sm">
-                  <span className="text-slate-500">계획</span>{' '}
+                  <span className="text-slate-500">{t('myFte.planned')}</span>{' '}
                   <span className="font-bold">{summary.planned_fte.toFixed(2)} FTE</span>
                 </div>
                 <div className="text-sm">
-                  <span className="text-slate-500">실적</span>{' '}
+                  <span className="text-slate-500">{t('myFte.actual')}</span>{' '}
                   <span className="font-bold">{summary.actual_fte.toFixed(2)} FTE</span>
                 </div>
                 {summary.utilization_percent !== null && (

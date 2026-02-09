@@ -3,6 +3,7 @@ import { useWorkTypeCategories, WorkTypeCategory } from '@/hooks/useWorkTypeCate
 import { useAuth } from '@/hooks/useAuth';
 import { useFrequentSelections } from '@/hooks/useFrequentSelections';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface WorkTypeCategorySelectProps {
     value?: number;
@@ -14,7 +15,7 @@ interface WorkTypeCategorySelectProps {
 export function WorkTypeCategorySelect({
     value,
     onChange,
-    placeholder = '업무 유형 선택',
+    placeholder,
     className = '',
 }: WorkTypeCategorySelectProps) {
     const { data: categories = [], isLoading } = useWorkTypeCategories();
@@ -22,6 +23,7 @@ export function WorkTypeCategorySelect({
     const [isOpen, setIsOpen] = useState(false);
     const [expandedL1s, setExpandedL1s] = useState<Set<number>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
+    const { t } = useTranslation('common');
     const { topItems } = useFrequentSelections('worktype', user?.id);
 
     // Expand all L1s when dropdown opens
@@ -141,7 +143,7 @@ export function WorkTypeCategorySelect({
     if (isLoading) {
         return (
             <div className={`p-2 border rounded-md bg-background text-muted-foreground ${className}`}>
-                로딩 중...
+                {t('select.loading')}
             </div>
         );
     }
@@ -157,7 +159,7 @@ export function WorkTypeCategorySelect({
                 <span className={selectedCategory ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedCategory
                         ? selectedCategory.name_ko || selectedCategory.name
-                        : placeholder}
+                        : (placeholder || t('select.selectWorkType'))}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -180,7 +182,7 @@ export function WorkTypeCategorySelect({
                         <div className="p-2 border-b bg-white">
                             <input
                                 type="text"
-                                placeholder="업무 유형 검색..."
+                                placeholder={t('select.searchWorkType')}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full p-2 text-sm border rounded bg-white"
@@ -193,7 +195,7 @@ export function WorkTypeCategorySelect({
                             <div className="px-3 py-2 border-b bg-slate-50/80">
                                 <div className="flex items-center gap-1 mb-1.5">
                                     <Clock className="h-3 w-3 text-slate-400" />
-                                    <span className="text-xs text-slate-400 font-medium">자주 사용</span>
+                                    <span className="text-xs text-slate-400 font-medium">{t('select.frequentlyUsed')}</span>
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                     {validFrequentItems.map(item => (
@@ -218,7 +220,7 @@ export function WorkTypeCategorySelect({
                         <div className="max-h-[260px] overflow-y-auto">
                             {filteredCategories.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
-                                    검색 결과가 없습니다.
+                                    {t('select.searchNoResults')}
                                 </div>
                             ) : (
                                 filteredCategories.map((l1) => (

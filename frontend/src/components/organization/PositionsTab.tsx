@@ -30,8 +30,10 @@ import {
     deleteProjectRole,
 } from '@/api/client';
 import type { JobPosition } from '@/types';
+import { useTranslation } from 'react-i18next';
 export const PositionsTab: React.FC = () => {
     const [subTab, setSubTab] = useState<'functional' | 'project'>('functional');
+    const { t } = useTranslation('organization');
 
     return (
         <div className="space-y-4">
@@ -44,7 +46,7 @@ export const PositionsTab: React.FC = () => {
                         }`}
                     onClick={() => setSubTab('functional')}
                 >
-                    Functional Roles (조직 직책)
+                    {t('positions.functionalRoles')}
                 </button>
                 <button
                     className={`px-4 py-2 -mb-px ${subTab === 'project'
@@ -53,7 +55,7 @@ export const PositionsTab: React.FC = () => {
                         }`}
                     onClick={() => setSubTab('project')}
                 >
-                    Project Roles (프로젝트 역할)
+                    {t('positions.projectRoles')}
                 </button>
             </div>
 
@@ -73,6 +75,7 @@ const FunctionalRolesSection: React.FC = () => {
     const createPosition = useCreateJobPosition();
     const updatePosition = useUpdateJobPosition();
     const deletePosition = useDeleteJobPosition();
+    const { t } = useTranslation('organization');
 
     const openAddModal = () => {
         setEditingPosition(null);
@@ -100,7 +103,7 @@ const FunctionalRolesSection: React.FC = () => {
     };
 
     const handleDelete = async (position: JobPosition) => {
-        if (!confirm(`"${position.name}" 직책을 삭제하시겠습니까?`)) return;
+        if (!confirm(t('positions.confirmDeletePosition', { name: position.name }))) return;
         await deletePosition.mutateAsync(position.id);
     };
 
@@ -109,12 +112,12 @@ const FunctionalRolesSection: React.FC = () => {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Functional Roles (조직 직책)</CardTitle>
+                        <CardTitle>{t('positions.functionalRoles')}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                            회사에서 부여한 공식 직책 (예: Manager, Function Leader, Tech Lead, Senior Engineer)
+                            {t('positions.functionalDesc')}
                         </p>
                     </div>
-                    <Button onClick={openAddModal}>+ 추가</Button>
+                    <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -123,7 +126,7 @@ const FunctionalRolesSection: React.FC = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b bg-slate-50">
-                                    <th className="text-left py-3 px-4">직책 이름</th>
+                                    <th className="text-left py-3 px-4">{t('positions.positionName')}</th>
                                     <th className="text-right py-3 px-4 w-32">Actions</th>
                                 </tr>
                             </thead>
@@ -133,10 +136,10 @@ const FunctionalRolesSection: React.FC = () => {
                                         <td className="py-3 px-4 font-medium">{position.name}</td>
                                         <td className="py-3 px-4 text-right">
                                             <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(position)}>
-                                                ✏️ 수정
+                                                {t('common:buttons.edit')}
                                             </button>
                                             <button className="text-red-600 hover:underline" onClick={() => handleDelete(position)}>
-                                                🗑️ 삭제
+                                                {t('common:buttons.delete')}
                                             </button>
                                         </td>
                                     </tr>
@@ -150,11 +153,11 @@ const FunctionalRolesSection: React.FC = () => {
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingPosition ? '직책 수정' : '새 직책 추가'}</DialogTitle>
-                        <DialogDescription>조직 내 공식 직책을 관리합니다.</DialogDescription>
+                        <DialogTitle>{editingPosition ? t('positions.editPosition') : t('positions.addPosition')}</DialogTitle>
+                        <DialogDescription>{t('positions.functionalModalDesc')}</DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <label className="block text-sm font-medium mb-1">직책 이름 *</label>
+                        <label className="block text-sm font-medium mb-1">{t('positions.positionNameRequired')}</label>
                         <input
                             type="text"
                             className="w-full border rounded px-3 py-2"
@@ -164,9 +167,9 @@ const FunctionalRolesSection: React.FC = () => {
                         />
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsModalOpen(false)}>취소</Button>
+                        <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t('common:buttons.cancel')}</Button>
                         <Button onClick={handleSave} disabled={!formName.trim()}>
-                            {editingPosition ? '수정' : '추가'}
+                            {editingPosition ? t('common:buttons.update') : t('common:buttons.add')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -182,6 +185,7 @@ const ProjectRolesSection: React.FC = () => {
     const [editingRole, setEditingRole] = useState<{ id: string; name: string; category?: string } | null>(null);
     const [formName, setFormName] = useState('');
     const [formCategory, setFormCategory] = useState('');
+    const { t } = useTranslation('organization');
 
     const { data: roles = [], isLoading } = useQuery({
         queryKey: ['project-roles'],
@@ -237,7 +241,7 @@ const ProjectRolesSection: React.FC = () => {
     };
 
     const handleDelete = async (role: { id: string; name: string }) => {
-        if (!confirm(`"${role.name}" 역할을 삭제하시겠습니까?`)) return;
+        if (!confirm(t('positions.confirmDeleteRole', { name: role.name }))) return;
         await deleteMutation.mutateAsync(role.id);
     };
 
@@ -248,12 +252,12 @@ const ProjectRolesSection: React.FC = () => {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle>Project Roles (프로젝트 역할)</CardTitle>
+                        <CardTitle>{t('positions.projectRoles')}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                            프로젝트에서 수행하는 기술적 역할 (예: SW Engineer, HW Engineer, PM)
+                            {t('positions.projectDesc')}
                         </p>
                     </div>
-                    <Button onClick={openAddModal}>+ 추가</Button>
+                    <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -262,10 +266,10 @@ const ProjectRolesSection: React.FC = () => {
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b bg-slate-50">
-                                    <th className="text-left py-3 px-4">역할 이름</th>
-                                    <th className="text-left py-3 px-4">카테고리</th>
-                                    <th className="text-center py-3 px-4">할당 인원</th>
-                                    <th className="text-center py-3 px-4">프로젝트</th>
+                                    <th className="text-left py-3 px-4">{t('positions.roleName')}</th>
+                                    <th className="text-left py-3 px-4">{t('positions.category')}</th>
+                                    <th className="text-center py-3 px-4">{t('positions.assignedUsers')}</th>
+                                    <th className="text-center py-3 px-4">{t('positions.projects')}</th>
                                     <th className="text-right py-3 px-4 w-32">Actions</th>
                                 </tr>
                             </thead>
@@ -290,10 +294,10 @@ const ProjectRolesSection: React.FC = () => {
                                         </td>
                                         <td className="py-3 px-4 text-right">
                                             <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(role)}>
-                                                ✏️ 수정
+                                                {t('common:buttons.edit')}
                                             </button>
                                             <button className="text-red-600 hover:underline" onClick={() => handleDelete(role)}>
-                                                🗑️ 삭제
+                                                {t('common:buttons.delete')}
                                             </button>
                                         </td>
                                     </tr>
@@ -307,12 +311,12 @@ const ProjectRolesSection: React.FC = () => {
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingRole ? '역할 수정' : '새 역할 추가'}</DialogTitle>
-                        <DialogDescription>프로젝트에서 수행하는 역할을 관리합니다.</DialogDescription>
+                        <DialogTitle>{editingRole ? t('positions.editRole') : t('positions.addRole')}</DialogTitle>
+                        <DialogDescription>{t('positions.projectModalDesc')}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">역할 이름 *</label>
+                            <label className="block text-sm font-medium mb-1">{t('positions.roleNameRequired')}</label>
                             <input
                                 type="text"
                                 className="w-full border rounded px-3 py-2"
@@ -322,13 +326,13 @@ const ProjectRolesSection: React.FC = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">카테고리</label>
+                            <label className="block text-sm font-medium mb-1">{t('positions.category')}</label>
                             <select
                                 className="w-full border rounded px-3 py-2"
                                 value={formCategory}
                                 onChange={(e) => setFormCategory(e.target.value)}
                             >
-                                <option value="">선택 안함</option>
+                                <option value="">{t('positions.noCategory')}</option>
                                 {categories.map((cat) => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
@@ -336,9 +340,9 @@ const ProjectRolesSection: React.FC = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsModalOpen(false)}>취소</Button>
+                        <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t('common:buttons.cancel')}</Button>
                         <Button onClick={handleSave} disabled={!formName.trim() || createMutation.isPending || updateMutation.isPending}>
-                            {editingRole ? '수정' : '추가'}
+                            {editingRole ? t('common:buttons.update') : t('common:buttons.add')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

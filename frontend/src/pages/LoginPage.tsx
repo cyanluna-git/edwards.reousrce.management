@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useTranslation('auth');
 
   useEffect(() => {
     const errorType = searchParams.get('error');
@@ -45,16 +47,16 @@ export function LoginPage() {
       if (err.response) {
         const detail = err.response?.data?.detail;
         if (err.response.status === 401) {
-          setError('Incorrect email or password.');
+          setError(t('errors.invalidCredentials'));
         } else if (err.response.status === 422) {
-          setError('Invalid data format. Please check your input.');
+          setError(t('errors.invalidDataFormat'));
         } else if (typeof detail === 'string') {
           setError(detail);
         } else {
-          setError(`An unexpected server error occurred: ${err.response.status}`);
+          setError(t('errors.serverError', { status: err.response.status }));
         }
       } else {
-        setError('Login failed. Please check your network connection.');
+        setError(t('errors.loginFailed'));
       }
     } finally {
       setIsLoading(false);
@@ -77,13 +79,13 @@ export function LoginPage() {
 
               {/* Title */}
               <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                Edwards Engineering
+                {t('login.title')}
               </h1>
               <h2 className="text-xl font-semibold text-blue-600 mb-3">
-                Management Board
+                {t('login.subtitle')}
               </h2>
               <p className="text-sm text-slate-500">
-                Resource & Project Management System
+                {t('login.description')}
               </p>
             </div>
 
@@ -104,28 +106,28 @@ export function LoginPage() {
                     <div className="text-sm">
                       {ssoError.type === 'unregistered' ? (
                         <>
-                          <p className="font-semibold text-amber-800 mb-1">Account Not Registered</p>
+                          <p className="font-semibold text-amber-800 mb-1">{t('ssoErrors.accountNotRegistered')}</p>
                           <p className="text-amber-700">
-                            <span className="font-medium">{ssoError.email}</span> is not registered in this system.
+                            {t('ssoErrors.notRegisteredMessage', { email: ssoError.email })}
                           </p>
                           <p className="text-amber-700 mt-2">
-                            Please contact <span className="font-medium">Gerald Park</span> to request access.
+                            {t('ssoErrors.contactAdmin')}
                           </p>
                           <a
                             href="mailto:gerald.park@edwardsvacuum.com?subject=EOB Access Request&body=Please register my account for Edwards Operation Board.%0A%0AEmail: "
                             className="inline-block mt-2 text-amber-800 underline hover:text-amber-900 font-medium"
                           >
-                            Send access request email
+                            {t('ssoErrors.sendAccessRequest')}
                           </a>
                         </>
                       ) : (
                         <>
-                          <p className="font-semibold text-red-800 mb-1">Account Inactive</p>
+                          <p className="font-semibold text-red-800 mb-1">{t('ssoErrors.accountInactive')}</p>
                           <p className="text-red-700">
-                            The account <span className="font-medium">{ssoError.email}</span> is currently inactive.
+                            {t('ssoErrors.inactiveMessage', { email: ssoError.email })}
                           </p>
                           <p className="text-red-700 mt-2">
-                            Please contact <span className="font-medium">Gerald Park</span> to reactivate your account.
+                            {t('ssoErrors.contactReactivate')}
                           </p>
                         </>
                       )}
@@ -136,7 +138,7 @@ export function LoginPage() {
                     onClick={() => setSsoError(null)}
                     className="mt-3 text-xs text-slate-500 hover:text-slate-700 underline"
                   >
-                    Dismiss
+                    {t('common:buttons.dismiss')}
                   </button>
                 </div>
               </div>
@@ -148,7 +150,7 @@ export function LoginPage() {
                 {/* Email Field */}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-slate-700">
-                    Email
+                    {t('login.email')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -157,7 +159,7 @@ export function LoginPage() {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="name@edwardsvacuum.com or @csk.kr"
+                      placeholder={t('login.emailPlaceholder')}
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -169,7 +171,7 @@ export function LoginPage() {
                 {/* Password Field */}
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium text-slate-700">
-                    Password
+                    {t('login.password')}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -178,7 +180,7 @@ export function LoginPage() {
                     <Input
                       id="password"
                       type="password"
-                      placeholder="Enter your password"
+                      placeholder={t('login.passwordPlaceholder')}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -206,10 +208,10 @@ export function LoginPage() {
                   {isLoading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Signing in...
+                      {t('login.signingIn')}
                     </span>
                   ) : (
-                    'Sign In'
+                    t('login.signIn')
                   )}
                 </Button>
 
@@ -220,7 +222,7 @@ export function LoginPage() {
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
                     <span className="bg-white px-2 text-slate-500 font-medium tracking-wider">
-                      Or continue with
+                      {t('login.orContinueWith')}
                     </span>
                   </div>
                 </div>
@@ -233,7 +235,7 @@ export function LoginPage() {
                   onClick={() => {
                     // Use absolute URL for SSO login to avoid issues with proxies during redirection
                     const apiBase = import.meta.env.VITE_API_URL || '';
-                    
+
                     // Force /api prefix if not present to ensure it hits the Nginx API proxy
                     let ssoLoginUrl = '';
                     if (apiBase && apiBase !== '/') {
@@ -241,10 +243,10 @@ export function LoginPage() {
                     } else {
                       ssoLoginUrl = `/api/auth/sso/login`;
                     }
-                    
+
                     // Clean up double slashes
                     ssoLoginUrl = ssoLoginUrl.replace(/\/+/g, '/');
-                    
+
                     if (window.location.hostname === 'localhost' && !apiBase.startsWith('http')) {
                       // In local dev, redirect to the known backend port
                       window.location.href = `http://localhost:8004/api/auth/sso/login`;
@@ -261,7 +263,7 @@ export function LoginPage() {
                     <path fill="#05a6f0" d="M1 12h10v10H1z"/>
                     <path fill="#ffba08" d="M12 12h10v10H12z"/>
                   </svg>
-                  Sign in with Microsoft SSO
+                  {t('login.ssoButton')}
                 </Button>
               </form>
 
@@ -275,10 +277,10 @@ export function LoginPage() {
               className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 transition-colors"
             >
               <Info className="w-4 h-4" />
-              포털 소개
+              {t('login.portalIntro')}
             </Link>
             <p className="text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} Edwards Korea Engineering. All rights reserved.
+              {t('common:footer.copyright', { year: new Date().getFullYear() })}
             </p>
           </div>
         </div>

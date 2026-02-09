@@ -4,7 +4,8 @@
  */
 import React from 'react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useFormatters } from '@/hooks/useFormatters';
 import {
     Dialog,
     DialogContent,
@@ -26,18 +27,21 @@ export const AIWorklogModal: React.FC<AIWorklogModalProps> = ({
     targetDate,
     onComplete,
 }) => {
+    const { t } = useTranslation('worklogs');
+    const { locale } = useFormatters();
+
     const handleComplete = () => {
         onComplete?.();
         onClose();
     };
 
-    const formattedDate = format(targetDate, 'yyyy-MM-dd (EEE)', { locale: ko });
+    const formattedDate = format(targetDate, 'yyyy-MM-dd (EEE)', { locale });
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-[700px] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>AI 업무 입력 - {formattedDate}</DialogTitle>
+                    <DialogTitle>{t('modal.aiTitle')} - {formattedDate}</DialogTitle>
                 </DialogHeader>
                 <AIWorklogInput
                     targetDate={targetDate}

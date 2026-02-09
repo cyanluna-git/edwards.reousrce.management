@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import type { ProjectSummary, WorklogProjectSummary } from '@/api/client';
 import type { Project } from '@/types';
@@ -31,6 +32,8 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
     currentYear,
     currentMonth,
 }) => {
+    const { t } = useTranslation('resource-plans');
+
     // Use the same hierarchy as Projects page
     const { data: hierarchy } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
@@ -161,7 +164,7 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                 <tr className="bg-green-50 border-t border-green-200">
                     <td className="py-1.5 px-2 sticky left-0 bg-green-50 font-medium text-green-800" style={{ paddingLeft: `${indent * 16 + 8}px` }}>
                         ▸ {pl.name} {pl.code && <span className="text-xs text-green-600">({pl.code})</span>}
-                        <span className="text-xs text-green-600 ml-2">{projectCount}개</span>
+                        <span className="text-xs text-green-600 ml-2">{t('summary.nItems', { count: projectCount })}</span>
                     </td>
                     {months.map(m => {
                         const key = `${m.year}-${m.month}`;
@@ -194,7 +197,7 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
                 <tr className="bg-blue-50 border-t-2 border-blue-200">
                     <td className="py-2 px-2 sticky left-0 bg-blue-50 font-semibold text-blue-800">
                         📁 {bu.name} <span className="text-xs text-blue-600">({bu.code})</span>
-                        <span className="text-sm text-blue-600 ml-2">({projectCount}개 프로젝트)</span>
+                        <span className="text-sm text-blue-600 ml-2">({t('summary.nProjects', { count: projectCount })})</span>
                     </td>
                     {months.map(m => {
                         const key = `${m.year}-${m.month}`;
@@ -223,41 +226,41 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
     return (
         <Card>
             <CardHeader className="flex flex-row items-start justify-between">
-                <CardTitle>프로젝트별 리소스 집계</CardTitle>
+                <CardTitle>{t('summary.title')}</CardTitle>
                 <div className="text-xs bg-slate-50 rounded-md px-3 py-2 border">
-                    <div className="font-medium mb-1">📋 표시 형식: 계획/실적</div>
+                    <div className="font-medium mb-1">{t('summary.legendTitle')}</div>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-slate-600">
-                        <span><span className="text-blue-600">●</span> 과거</span>
-                        <span><span className="text-orange-600">●</span> 현재</span>
-                        <span><span className="text-slate-400">●</span> 미래(계획만)</span>
-                        <span><span className="text-red-600">●</span> 초과</span>
-                        <span><span className="text-green-600">●</span> 여유</span>
+                        <span><span className="text-blue-600">●</span> {t('summary.legendPast')}</span>
+                        <span><span className="text-orange-600">●</span> {t('summary.legendCurrent')}</span>
+                        <span><span className="text-slate-400">●</span> {t('summary.legendFuture')}</span>
+                        <span><span className="text-red-600">●</span> {t('summary.legendOver')}</span>
+                        <span><span className="text-green-600">●</span> {t('summary.legendUnder')}</span>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
                 {productProjects.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                        등록된 리소스 계획이 없습니다.
+                        {t('summary.noData')}
                     </div>
                 ) : (
                     <table className="w-full text-sm border-collapse">
                         <thead>
                             <tr className="bg-slate-100">
-                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[350px]">프로젝트</th>
+                                <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[350px]">{t('summary.projectColumn')}</th>
                                 {months.map(m => (
                                     <th key={`${m.year}-${m.month}`} className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">
                                         {m.label}
                                     </th>
                                 ))}
-                                <th className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">합계</th>
+                                <th className="text-center py-2 px-1 border-b text-xs font-medium min-w-[60px]">{t('table.total')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {productProjects.map(bu => renderBusinessUnitSection(bu))}
                             {/* Grand Total Row */}
                             <tr className="bg-amber-50 font-bold border-t-2 border-amber-300">
-                                <td className="py-2 px-2 sticky left-0 bg-amber-50">🔢 전체 합계</td>
+                                <td className="py-2 px-2 sticky left-0 bg-amber-50">{t('summary.grandTotal')}</td>
                                 {months.map(m => {
                                     const key = `${m.year}-${m.month}`;
                                     const total = projectSummary
@@ -282,4 +285,3 @@ export const ProjectSummaryTab: React.FC<ProjectSummaryTabProps> = ({
 };
 
 export default ProjectSummaryTab;
-

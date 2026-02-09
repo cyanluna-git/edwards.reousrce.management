@@ -1,0 +1,28 @@
+{
+  "main": {
+    "dashboard": "Dashboard",
+    "worklogs": "WorkLogs",
+    "resourcePlans": "Resource Plans",
+    "resourceMatrix": "Resource Matrix",
+    "reports": "Reports",
+    "projects": "Projects",
+    "organization": "Organization",
+    "settings": "Settings",
+    "profile": "Profile",
+    "requestBoard": "Request Board"
+  },
+  "sections": {
+    "monitoring": "Monitoring",
+    "entry": "Entry",
+    "adminSettings": "Admin Settings"
+  },
+  "sidebar": {
+    "welcome": "Welcome,",
+    "guest": "Guest",
+    "logout": "Logout",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "appName": "Edwards POB",
+    "requestFeedback": "Leave feedback/suggestions."
+  }
+}

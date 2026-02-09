@@ -1,0 +1,13 @@
+{
+  "required": "필수 입력 항목입니다.",
+  "email": "유효한 이메일 주소를 입력해주세요.",
+  "minLength": "최소 {{min}}자 이상이어야 합니다.",
+  "maxLength": "최대 {{max}}자까지 입력 가능합니다.",
+  "passwordMatch": "비밀번호가 일치하지 않습니다.",
+  "numberRange": "{{min}}에서 {{max}} 사이의 값이어야 합니다.",
+  "positiveNumber": "양수여야 합니다.",
+  "dateRange": "종료일은 시작일 이후여야 합니다.",
+  "fteRange": "FTE는 0.0에서 1.0 사이여야 합니다.",
+  "hoursRange": "시간은 0에서 24 사이여야 합니다.",
+  "selectRequired": "옵션을 선택해주세요."
+}
