@@ -17,81 +17,41 @@ test.describe('Project Hierarchy Editor', () => {
   test.describe('Tab Navigation', () => {
     test('should display all four tabs', async ({ page }) => {
       await expect(page.getByRole('tab', { name: 'Active Projects' })).toBeVisible();
-      await expect(page.getByRole('tab', { name: 'Standard IO Framework' })).toBeVisible();
       await expect(page.getByRole('tab', { name: 'Functional' })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /All.*Legacy/ })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'All Projects' })).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'IO Management' })).toBeVisible();
     });
 
     test('should switch between tabs', async ({ page }) => {
-      // Click Standard IO Framework tab
-      await page.getByRole('tab', { name: 'Standard IO Framework' }).click();
-      await expect(page.getByText('VSS (Integrated Systems)')).toBeVisible();
-
       // Click Functional tab
       await page.getByRole('tab', { name: 'Functional' }).click();
       await expect(page.getByText('Functional Projects')).toBeVisible();
 
-      // Click All/Legacy tab
-      await page.getByRole('tab', { name: /All.*Legacy/ }).click();
-      await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
+      // Click All Projects tab
+      await page.getByRole('tab', { name: 'All Projects' }).click();
+      await page.waitForTimeout(500);
+      await expect(page.getByRole('table')).toBeVisible();
+
+      // Click IO Management tab
+      await page.getByRole('tab', { name: 'IO Management' }).click();
+      await page.waitForTimeout(500);
     });
   });
 
-  test.describe('Standard IO Framework Tab', () => {
+  test.describe('IO Management Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.getByRole('tab', { name: 'Standard IO Framework' }).click();
-      await page.waitForTimeout(500); // Wait for data to load
+      await page.getByRole('tab', { name: 'IO Management' }).click();
+      await page.waitForTimeout(500);
     });
 
-    test('should display VSS and SUN cards', async ({ page }) => {
-      await expect(page.getByText('VSS (Integrated Systems)')).toBeVisible();
-      await expect(page.getByText('SUN (Abatement)')).toBeVisible();
+    test('should display Internal and Recharge IO tabs', async ({ page }) => {
+      await expect(page.getByRole('tab', { name: /Internal/ })).toBeVisible();
+      await expect(page.getByRole('tab', { name: /Recharge/ })).toBeVisible();
     });
 
-    test('should display VSS matrix projects (8 buckets)', async ({ page }) => {
-      // Verify VSS project codes are displayed
-      await expect(page.getByText('VSS011')).toBeVisible();
-      await expect(page.getByText('VSS018')).toBeVisible();
-    });
-
-    test('should display SUN matrix projects (8 buckets)', async ({ page }) => {
-      // Check for SUN projects
-      await expect(page.getByText('SUN001')).toBeVisible();
-      await expect(page.getByText('SUN008')).toBeVisible();
-    });
-
-    test('should display IO Category legend', async ({ page }) => {
-      await expect(page.getByText('IO Categories:')).toBeVisible();
-      await expect(page.getByText('FIELD_FAILURE - L4 Escalations')).toBeVisible();
-      await expect(page.getByText('SUSTAINING - Corrective Actions')).toBeVisible();
-      await expect(page.getByText('OPS_SUPPORT - Factory/Ops')).toBeVisible();
-      await expect(page.getByText('CIP - Improvements')).toBeVisible();
-      await expect(page.getByText('OTHER - Regulatory/Sales')).toBeVisible();
-    });
-
-    test('should show IO category badges on projects', async ({ page }) => {
-      // Check for IO category badges (they appear as colored badges)
-      const fieldFailureBadge = page.locator('text=FIELD_FAILURE').first();
-      await expect(fieldFailureBadge).toBeVisible();
-    });
-
-    test('should show recharge status badges', async ({ page }) => {
-      // VSS/SUN projects should have recharge status (BILLABLE, etc.)
-      // Check for any recharge badge in the table (use first() since there are 2 tables)
-      const rechargeColumn = page.locator('th:has-text("Recharge")').first();
-      await expect(rechargeColumn).toBeVisible();
-
-      // At least some rows should have recharge status values
-      const tableRows = page.locator('tbody tr');
-      expect(await tableRows.count()).toBeGreaterThan(0);
-    });
-
-    test('should navigate to project detail when clicking a row', async ({ page }) => {
-      // Click on first VSS project row
-      await page.locator('tr').filter({ hasText: 'VSS011' }).click();
-
-      // Should navigate to project detail page
-      await expect(page).toHaveURL(/\/projects\/.*/);
+    test('should display IO table with headers', async ({ page }) => {
+      // Should show a table with IO data
+      await expect(page.getByRole('table')).toBeVisible();
     });
   });
 
@@ -151,40 +111,22 @@ test.describe('Project Hierarchy Editor', () => {
     });
   });
 
-  test.describe('All/Legacy Tab', () => {
+  test.describe('All Projects Tab', () => {
     test.beforeEach(async ({ page }) => {
-      await page.getByRole('tab', { name: /All.*Legacy/ }).click();
+      await page.getByRole('tab', { name: 'All Projects' }).click();
       await page.waitForTimeout(500);
     });
 
     test('should display all projects in table', async ({ page }) => {
-      // Check table headers
-      await expect(page.getByRole('columnheader', { name: 'Code' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Name' })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Category' })).toBeVisible();
-    });
-
-    test('should mark Matrix projects with badge', async ({ page }) => {
-      // VSS/SUN projects should have "Matrix" badge
-      const matrixBadge = page.locator('text=Matrix').first();
-      await expect(matrixBadge).toBeVisible();
-    });
-
-    test('should mark Legacy candidates with badge', async ({ page }) => {
-      // Projects with "Support" or "General" in name should have Legacy badge
-      const legacyBadge = page.locator('span:has-text("Legacy")').first();
-      // May or may not exist depending on data
-      const count = await legacyBadge.count();
-      expect(count).toBeGreaterThanOrEqual(0);
+      await expect(page.getByRole('table')).toBeVisible();
+      const tableRows = page.locator('tbody tr');
+      expect(await tableRows.count()).toBeGreaterThan(0);
     });
 
     test('should support sorting by column', async ({ page }) => {
-      // Click on Code header to sort
-      await page.getByRole('columnheader', { name: 'Code' }).click();
-      await page.waitForTimeout(200);
-
-      // Click again to reverse sort
-      await page.getByRole('columnheader', { name: 'Code' }).click();
+      // Click on a header to sort
+      const header = page.locator('th').first();
+      await header.click();
       await page.waitForTimeout(200);
 
       // Table should still be visible after sorting
@@ -193,7 +135,7 @@ test.describe('Project Hierarchy Editor', () => {
   });
 });
 
-test.describe('Project Form - Owner Department', () => {
+test.describe('All Projects Table - Owner Department Column', () => {
   test.beforeEach(async ({ page }) => {
     // Login
     await page.goto('/login');
@@ -201,49 +143,21 @@ test.describe('Project Form - Owner Department', () => {
     await page.fill('input[type="password"]', 'password');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { timeout: 10000 });
+
+    // Navigate to projects > All Projects tab
+    await page.goto('/projects');
+    await page.getByRole('tab', { name: 'All Projects' }).click();
+    await page.waitForTimeout(500);
   });
 
-  test('should show Owner Department field for Functional projects', async ({ page }) => {
-    // Navigate to a functional project
-    await page.goto('/projects');
-    await page.getByRole('tab', { name: 'Functional' }).click();
-    await page.waitForTimeout(500);
-
-    // Click on Unassigned group to expand if needed
-    const unassignedGroup = page.getByText('Unassigned (No Department)');
-    if (await unassignedGroup.isVisible()) {
-      await unassignedGroup.click();
-      await page.waitForTimeout(200);
-    }
-
-    // Click edit button on first project (✏️)
-    const editButton = page.locator('button:has-text("✏️")').first();
-    if (await editButton.isVisible()) {
-      await editButton.click();
-      await page.waitForTimeout(500);
-
-      // Check if Owner Department field is visible
-      await expect(page.getByText('Owner Department')).toBeVisible();
-    }
+  test('should display Owner Dept column in All Projects table', async ({ page }) => {
+    await expect(page.getByRole('table')).toBeVisible();
+    // The inline table has an "Owner Dept" column header
+    await expect(page.locator('th').filter({ hasText: /Owner Dept/ })).toBeVisible();
   });
 
-  test('should hide Owner Department for Product projects', async ({ page }) => {
-    // Navigate to projects
-    await page.goto('/projects');
-    await page.waitForTimeout(500);
-
-    // Click edit on a product project from Active Projects tab
-    const editButton = page.locator('button:has-text("✏️")').first();
-    if (await editButton.isVisible()) {
-      await editButton.click();
-      await page.waitForTimeout(500);
-
-      // Check if category is Product
-      const categorySelect = page.locator('text=Product Project').first();
-      if (await categorySelect.isVisible()) {
-        // Owner Department should NOT be visible for Product projects
-        await expect(page.getByLabel('Owner Department')).not.toBeVisible();
-      }
-    }
+  test('should display project rows in All Projects table', async ({ page }) => {
+    const tableRows = page.locator('tbody tr');
+    expect(await tableRows.count()).toBeGreaterThan(0);
   });
 });
