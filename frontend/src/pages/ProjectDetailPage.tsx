@@ -7,6 +7,7 @@ import { useDeleteProject } from '@/hooks/useProjects';
 import { WorklogHeatmap } from '@/components/WorklogHeatmap';
 import { useMilestones, useCreateMilestone, useUpdateMilestone, useDeleteMilestone } from '@/hooks/useMilestones';
 import { MILESTONE_STATUS_COLORS } from '@/lib/constants';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
   Card,
   CardContent,
@@ -27,7 +28,6 @@ import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 import {
   Briefcase,
-  Tag,
   Activity,
   Signal,
   Building2,
@@ -91,6 +91,7 @@ export const ProjectDetailPage: React.FC = () => {
   const returnTab = (location.state as any)?.returnTab;
   const { data: project, isLoading, isError, error } = useProject(id || '');
   const { mutate: deleteProject, isPending: isDeleting } = useDeleteProject();
+  const { canManageProjects } = usePermissions();
 
   // Milestones
   const { data: milestones = [], isLoading: milestonesLoading } = useMilestones(id || '');
@@ -281,43 +282,45 @@ export const ProjectDetailPage: React.FC = () => {
         </div>
 
         {/* Actions */}
-        <div className="flex space-x-2">
-          <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">{t('actions.edit')}</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{t('detail.editProject')}</DialogTitle>
-              </DialogHeader>
-              <ProjectForm
-                project={project}
-                onSuccess={() => setIsUpdateModalOpen(false)}
-                onCancel={() => setIsUpdateModalOpen(false)}
-              />
-            </DialogContent>
-          </Dialog>
+        {canManageProjects && (
+          <div className="flex space-x-2">
+            <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">{t('actions.edit')}</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{t('detail.editProject')}</DialogTitle>
+                </DialogHeader>
+                <ProjectForm
+                  project={project}
+                  onSuccess={() => setIsUpdateModalOpen(false)}
+                  onCancel={() => setIsUpdateModalOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
 
-          <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm">{t('actions.delete')}</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t('detail.confirmDeletion')}</DialogTitle>
-                <DialogDescription>
-                  {t('detail.deleteConfirmMessage', { name: project.name })}
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>{t('common:buttons.cancel')}</Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? t('actions.deleting') : t('actions.delete')}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm">{t('actions.delete')}</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t('detail.confirmDeletion')}</DialogTitle>
+                  <DialogDescription>
+                    {t('detail.deleteConfirmMessage', { name: project.name })}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>{t('common:buttons.cancel')}</Button>
+                  <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                    {isDeleting ? t('actions.deleting') : t('actions.delete')}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
       </div>
 
       {/* Dashboard Tab */}
@@ -335,17 +338,13 @@ export const ProjectDetailPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
-            <PropertyRow icon={Briefcase} label={t('detail.program')}>
+            <PropertyRow icon={Briefcase} label={t('detail.productLine')}>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                {project.program?.name || 'N/A'}
+                {project.product_line?.name || 'N/A'}
               </span>
             </PropertyRow>
 
-            <PropertyRow icon={Tag} label={t('detail.projectType')}>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                {project.project_type?.name || 'N/A'}
-              </span>
-            </PropertyRow>
+            {/* ProjectType removed - no longer in data model */}
 
             <PropertyRow icon={Activity} label={t('detail.status')}>
               <StatusBadge status={project.status} />
@@ -479,9 +478,11 @@ export const ProjectDetailPage: React.FC = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">{t('milestones.title')}</CardTitle>
-          <Button variant="outline" size="sm" onClick={openAddMilestoneModal}>
-            {t('actions.addMilestone')}
-          </Button>
+          {canManageProjects && (
+            <Button variant="outline" size="sm" onClick={openAddMilestoneModal}>
+              {t('actions.addMilestone')}
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {milestonesLoading ? (
@@ -504,8 +505,8 @@ export const ProjectDetailPage: React.FC = () => {
                   return (
                     <div
                       key={ms.id}
-                      className="relative pl-10 cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => openEditMilestoneModal(ms)}
+                      className={`relative pl-10 ${canManageProjects ? 'cursor-pointer hover:opacity-80' : ''} transition-opacity`}
+                      onClick={canManageProjects ? () => openEditMilestoneModal(ms) : undefined}
                     >
                       {/* Timeline dot */}
                       <div className={`absolute left-2.5 w-4 h-4 rounded-full border-2 ${STATUS_DOT_COLORS[ms.status] || 'bg-gray-500'}`} />

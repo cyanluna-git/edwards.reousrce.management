@@ -48,7 +48,7 @@ export const ProjectSelector: React.FC<ProjectSelectorProps> = ({
         const groups: Record<string, Project[]> = {};
 
         activeProjects.forEach((p: Project) => {
-            const buName = p.program?.business_unit?.name || 'Others';
+            const buName = p.product_line?.business_unit?.name || 'Others';
             if (!groups[buName]) {
                 groups[buName] = [];
             }

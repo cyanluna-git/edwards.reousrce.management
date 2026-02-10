@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.security import require_role
 from app.models.organization import BusinessUnit, Department, SubTeam
 from app.models.user import User
 
@@ -46,8 +47,7 @@ class BusinessUnitResponse(BusinessUnitBase):
 class DepartmentBase(BaseModel):
     name: str
     code: str
-    business_unit_id: Optional[str] = None
-    division_id: Optional[str] = None  # NEW
+    division_id: Optional[str] = None
     is_active: bool = True
 
 
@@ -58,8 +58,7 @@ class DepartmentCreate(DepartmentBase):
 class DepartmentUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
-    business_unit_id: Optional[str] = None
-    division_id: Optional[str] = None  # NEW
+    division_id: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -122,6 +121,7 @@ async def list_business_units(
 async def create_business_unit(
     bu_in: BusinessUnitCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new business unit"""
     # Check for duplicate code
@@ -149,6 +149,7 @@ async def update_business_unit(
     bu_id: str,
     bu_in: BusinessUnitUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a business unit"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()
@@ -171,23 +172,15 @@ async def update_business_unit(
 async def delete_business_unit(
     bu_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete a business unit (soft delete by setting inactive)"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()
     if not bu:
         raise HTTPException(status_code=404, detail="Business unit not found")
 
-    # Check for dependent departments (only active ones)
-    dept_count = (
-        db.query(Department)
-        .filter(Department.business_unit_id == bu_id, Department.is_active == True)
-        .count()
-    )
-    if dept_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot delete: {dept_count} active departments belong to this business unit",
-        )
+    # Business units are not linked to departments anymore
+    # Departments belong to Divisions in the organization hierarchy
 
     bu.is_active = False
     db.commit()
@@ -201,7 +194,6 @@ async def delete_business_unit(
 
 @router.get("", response_model=List[DepartmentResponse])
 async def list_departments(
-    business_unit_id: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(
         True, description="Filter by active status. Default: only active."
     ),
@@ -209,8 +201,6 @@ async def list_departments(
 ):
     """List all departments with optional filters (default: active only)"""
     query = db.query(Department)
-    if business_unit_id:
-        query = query.filter(Department.business_unit_id == business_unit_id)
     if is_active is not None:
         query = query.filter(Department.is_active == is_active)
     return query.order_by(Department.name).all()
@@ -220,18 +210,9 @@ async def list_departments(
 async def create_department(
     dept_in: DepartmentCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new department"""
-    # Verify business unit exists (only if provided)
-    if dept_in.business_unit_id:
-        bu = (
-            db.query(BusinessUnit)
-            .filter(BusinessUnit.id == dept_in.business_unit_id)
-            .first()
-        )
-        if not bu:
-            raise HTTPException(status_code=400, detail="Business unit not found")
-
     # Verify division exists (only if provided)
     if dept_in.division_id:
         from app.models.organization import Division
@@ -244,7 +225,6 @@ async def create_department(
         id=f"DEPT_{dept_in.code.upper()}",
         name=dept_in.name,
         code=dept_in.code,
-        business_unit_id=dept_in.business_unit_id,
         division_id=dept_in.division_id,
         is_active=dept_in.is_active,
     )
@@ -271,6 +251,7 @@ async def update_department(
     department_id: str,
     dept_in: DepartmentUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a department"""
     dept = db.query(Department).filter(Department.id == department_id).first()
@@ -283,8 +264,6 @@ async def update_department(
         dept.name = update_data["name"]
     if "code" in update_data:
         dept.code = update_data["code"]
-    if "business_unit_id" in update_data:
-        dept.business_unit_id = update_data["business_unit_id"]
     if "division_id" in update_data:
         dept.division_id = update_data["division_id"]
     if "is_active" in update_data:
@@ -299,6 +278,7 @@ async def update_department(
 async def delete_department(
     department_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete a department (soft delete)"""
     dept = db.query(Department).filter(Department.id == department_id).first()
@@ -399,6 +379,7 @@ async def create_sub_team(
     department_id: str,
     st_in: SubTeamCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new sub-team under a department"""
     dept = db.query(Department).filter(Department.id == department_id).first()
@@ -423,6 +404,7 @@ async def update_sub_team(
     sub_team_id: str,
     st_in: SubTeamUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a sub-team"""
     st = db.query(SubTeam).filter(SubTeam.id == sub_team_id).first()
@@ -447,6 +429,7 @@ async def update_sub_team(
 async def delete_sub_team(
     sub_team_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete a sub-team (soft delete)"""
     st = db.query(SubTeam).filter(SubTeam.id == sub_team_id).first()

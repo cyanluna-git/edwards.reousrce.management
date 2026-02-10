@@ -55,7 +55,6 @@ class FieldMapper:
         "IO": "code",
         "Project": "name",
         "Program": "_program_name",  # For program_id lookup
-        "Complexity": "_complexity",  # For project_type_id lookup
         "Status": "status",
         "Customer": "customer",
         "Product": "product",
@@ -183,7 +182,6 @@ class LookupManager:
         self.department_map: Dict[str, str] = {}
         self.sub_team_map: Dict[str, str] = {}
         self.program_map: Dict[str, str] = {}
-        self.project_type_map: Dict[str, str] = {}
         self.work_type_category_map: Dict[str, int] = {}  # legacy name → category_id
 
         # Track seen values for deduplication
@@ -219,19 +217,6 @@ class LookupManager:
             ("RA", None): "ST_RA",
         }
 
-    def initialize_project_type_map(self):
-        """Initialize project type mappings."""
-        self.project_type_map = {
-            "NPI Project": "NPI",
-            "ETO Project": "ETO",
-            "Support": "SUPPORT",
-            "Legacy": "LEGACY",
-            "Internal Project": "INTERNAL",
-            "Sustaining": "SUSTAINING",
-            "Team Task": "TEAM_TASK",
-            "A&D": "AND",
-            "": "OTHER",
-        }
 
     def get_sub_team_id(self, department: Optional[str], business_area: Optional[str]) -> Optional[str]:
         """Get sub-team ID from department and business area."""
@@ -259,7 +244,6 @@ class DataTransformer:
         self.lookup = lookup_manager or LookupManager()
         self.lookup.initialize_department_map()
         self.lookup.initialize_sub_team_map()
-        self.lookup.initialize_project_type_map()
 
     def transform_user(self, row: Dict[str, Any], hashed_password: str) -> TransformResult:
         """
@@ -376,9 +360,6 @@ class DataTransformer:
         if program_name and program_name not in self.lookup.program_map:
             warnings.append(f"Unknown program '{program_name}', using PRG_UNKNOWN")
 
-        # Map project type
-        project_type_id = self.lookup.project_type_map.get(complexity, "OTHER")
-
         # Generate unique code
         base_code = io_code if io_code else f"PRJ-{source_id}"
         code = base_code
@@ -401,7 +382,6 @@ class DataTransformer:
             data={
                 "id": proj_uuid,
                 "program_id": program_id,
-                "project_type_id": project_type_id,
                 "code": code,
                 "name": name[:300],  # Truncate if necessary
                 "status": ValueTransformer.map_project_status(status),

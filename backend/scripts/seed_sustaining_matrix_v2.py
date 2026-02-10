@@ -228,7 +228,7 @@ def ensure_programs(db) -> dict:
     return programs
 
 
-def upsert_matrix_projects(db, matrix_data: list, funding_entity_id: str, program_id: str, project_type_id: str) -> tuple:
+def upsert_matrix_projects(db, matrix_data: list, funding_entity_id: str) -> tuple:
     """
     Upsert matrix projects for a given funding entity.
     - If project doesn't exist: CREATE it
@@ -263,13 +263,7 @@ def upsert_matrix_projects(db, matrix_data: list, funding_entity_id: str, progra
                 changes.append(f"recharge_status: '{existing.recharge_status}' → 'BILLABLE'")
                 existing.recharge_status = "BILLABLE"
 
-            if existing.project_type_id != project_type_id:
-                changes.append(f"project_type: '{existing.project_type_id}' → '{project_type_id}'")
-                existing.project_type_id = project_type_id
-
-            if existing.program_id != program_id:
-                changes.append(f"program: '{existing.program_id}' → '{program_id}'")
-                existing.program_id = program_id
+            # program_id and project_type_id removed - no longer used
 
             if changes:
                 updated_count += 1
@@ -282,8 +276,7 @@ def upsert_matrix_projects(db, matrix_data: list, funding_entity_id: str, progra
                 id=generate_uuid(),
                 code=item["code"],
                 name=item["name"],
-                program_id=program_id,
-                project_type_id=project_type_id,
+                # program_id and project_type_id removed - no longer used
                 status="InProgress",
                 category="FUNCTIONAL",  # Sustaining projects are functional
                 funding_entity_id=funding_entity_id,
@@ -410,8 +403,6 @@ def main():
             db,
             SUN_MATRIX,
             funding_entity_id="ENTITY_SUN",
-            program_id=programs["SUN"],
-            project_type_id=project_type_id
         )
         print()
 

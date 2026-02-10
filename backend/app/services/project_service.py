@@ -13,7 +13,6 @@ from app.models.project import (
     Project,
     ProjectMilestone,
     Program as ProgramModel,
-    ProjectType as ProjectTypeModel,
     ProductLine as ProductLineModel,
 )
 from app.models.internal_io import InternalIO
@@ -40,8 +39,6 @@ class ProjectService:
         return (
             self.db.query(Project)
             .options(
-                joinedload(Project.program).joinedload(ProgramModel.business_unit),
-                joinedload(Project.project_type),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.internal_io),
                 joinedload(Project.recharge_io),
@@ -56,8 +53,6 @@ class ProjectService:
         *,
         skip: int = 0,
         limit: int = 100,
-        program_id: Optional[str] = None,
-        project_type_id: Optional[str] = None,
         status: Optional[str] = None,
         sort_by: Optional[str] = None,
     ) -> List[Project]:
@@ -84,8 +79,6 @@ class ProjectService:
             )
             .outerjoin(activity_subquery, Project.id == activity_subquery.c.project_id)
             .options(
-                joinedload(Project.program).joinedload(ProgramModel.business_unit),
-                joinedload(Project.project_type),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.internal_io),
                 joinedload(Project.recharge_io),
@@ -93,10 +86,6 @@ class ProjectService:
             )
         )
 
-        if program_id:
-            query = query.filter(Project.program_id == program_id)
-        if project_type_id:
-            query = query.filter(Project.project_type_id == project_type_id)
         if status:
             query = query.filter(Project.status == status)
 
@@ -236,15 +225,6 @@ class ProjectService:
             self.db.query(ProgramModel)
             .filter(ProgramModel.is_active == True)
             .order_by(ProgramModel.name)
-            .all()
-        )
-
-    def get_project_types(self) -> List[ProjectTypeModel]:
-        """Get all active project types."""
-        return (
-            self.db.query(ProjectTypeModel)
-            .filter(ProjectTypeModel.is_active == True)
-            .order_by(ProjectTypeModel.name)
             .all()
         )
 
@@ -433,7 +413,6 @@ class ProjectService:
             )
             .filter(
                 Project.category == "FUNCTIONAL",
-                Project.project_type_id != "SUSTAINING",
                 Project.status.in_(ACTIVE_STATUSES),
             )
         )

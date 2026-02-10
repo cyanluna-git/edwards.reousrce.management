@@ -14,7 +14,6 @@ from app.models.internal_io import InternalIO
 from app.models.recharge_io import RechargeIO
 from app.models.project import (
     Program,
-    ProjectType,
     ProductLine,
     Project,
     ProjectMilestone,
@@ -44,7 +43,6 @@ __all__ = [
     "RechargeIO",
     # Project
     "Program",
-    "ProjectType",
     "ProductLine",
     "Project",
     "ProjectMilestone",

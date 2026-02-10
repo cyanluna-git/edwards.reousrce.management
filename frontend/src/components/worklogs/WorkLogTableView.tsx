@@ -12,8 +12,7 @@ import { Input } from '@/components/ui/input';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { getBusinessUnits, getDepartments, getSubTeams, getUsers, getPrograms, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
-import type { Program } from '@/types';
+import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
 
 export function WorkLogTableView() {
     const { t } = useTranslation('worklogs');
@@ -22,7 +21,6 @@ export function WorkLogTableView() {
 
     // Data for filters
     const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-    const [programs, setPrograms] = useState<Program[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [subTeams, setSubTeams] = useState<SubTeam[]>([]);
     const [users, setUsers] = useState<UserDetails[]>([]);
@@ -36,7 +34,6 @@ export function WorkLogTableView() {
     );
     // 프로젝트 기반 필터
     const [businessUnitFilter, setBusinessUnitFilter] = useState<string>('');
-    const [programFilter, setProgramFilter] = useState<string>('');
     const [projectFilter, setProjectFilter] = useState<string>('');
     // 조직 기반 필터
     const [departmentFilter, setDepartmentFilter] = useState<string>('');
@@ -48,7 +45,6 @@ export function WorkLogTableView() {
     // Load data on mount
     useEffect(() => {
         getBusinessUnits().then(setBusinessUnits);
-        getPrograms().then(setPrograms);
         getDepartments().then(setDepartments);
         getUsers().then(setUsers);
     }, []);
@@ -76,24 +72,17 @@ export function WorkLogTableView() {
     const { data: allProjects = [] } = useProjects();
 
     // ============ 프로젝트 기반 필터 로직 ============
-    const filteredPrograms = useMemo(() =>
-        businessUnitFilter
-            ? programs.filter(p => p.business_unit_id === businessUnitFilter)
-            : programs,
-        [programs, businessUnitFilter]
-    );
-
     const filteredProjects = useMemo(() => {
         let result = allProjects.filter(p => !['Closed', 'Completed'].includes(p.status || ''));
 
-        if (programFilter) {
-            result = result.filter(p => p.program_id === programFilter);
-        } else if (businessUnitFilter) {
-            const programIds = filteredPrograms.map(prg => prg.id);
-            result = result.filter(p => programIds.includes(p.program_id || ''));
+        // Filter by business unit through product line
+        if (businessUnitFilter) {
+            result = result.filter(p =>
+                p.product_line?.business_unit_id === businessUnitFilter
+            );
         }
         return result;
-    }, [allProjects, programFilter, businessUnitFilter, filteredPrograms]);
+    }, [allProjects, businessUnitFilter]);
 
     // ============ 조직 기반 필터 로직 ============
     const filteredUsers = useMemo(() => {
@@ -118,7 +107,6 @@ export function WorkLogTableView() {
 
     const resetFilters = () => {
         setBusinessUnitFilter('');
-        setProgramFilter('');
         setProjectFilter('');
         setDepartmentFilter('');
         setSubTeamFilter('');
@@ -167,7 +155,7 @@ export function WorkLogTableView() {
                         </div>
                     </div>
 
-                    {/* Row 2: 프로젝트 기반 필터 */}
+                    {/* Row 2: 프로젝트 기반 필터 - BusinessUnit → Product Line → Project */}
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm text-muted-foreground w-16">{t('table.project')}:</span>
                         <select
@@ -175,26 +163,12 @@ export function WorkLogTableView() {
                             value={businessUnitFilter}
                             onChange={(e) => {
                                 setBusinessUnitFilter(e.target.value);
-                                setProgramFilter('');
                                 setProjectFilter('');
                             }}
                         >
                             <option value="">{t('table.allBusinessAreas')}</option>
                             {businessUnits.map(bu => (
                                 <option key={bu.id} value={bu.id}>{bu.name}</option>
-                            ))}
-                        </select>
-                        <select
-                            className="px-2 py-1 border rounded-md text-sm h-8"
-                            value={programFilter}
-                            onChange={(e) => {
-                                setProgramFilter(e.target.value);
-                                setProjectFilter('');
-                            }}
-                        >
-                            <option value="">{t('table.allPrograms')}</option>
-                            {filteredPrograms.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
                         <select

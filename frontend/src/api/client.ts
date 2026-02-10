@@ -172,7 +172,7 @@ export const ssoRegister = async (data: SSORegistrationData): Promise<Token> => 
 
 // ============ Milestones API ============
 
-import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate, Program, ProjectType } from '@/types';
+import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 
 export const getMilestones = async (projectId: string): Promise<ProjectMilestone[]> => {
   const response = await apiClient.get(`/projects/${projectId}/milestones`);
@@ -199,15 +199,7 @@ export const deleteMilestone = async (projectId: string, milestoneId: number): P
 
 // ============ Meta API ============
 
-export const getPrograms = async (): Promise<Program[]> => {
-  const response = await apiClient.get('/projects/meta/programs');
-  return response.data;
-};
-
-export const getProjectTypes = async (): Promise<ProjectType[]> => {
-  const response = await apiClient.get('/projects/meta/types');
-  return response.data;
-};
+// getPrograms removed - Program entity no longer exists
 
 import type { ProductLine } from '@/types';
 
@@ -962,9 +954,9 @@ export interface ProjectAllocationRow {
   allocations: Record<string, MonthlyAllocation>;
 }
 
-export interface ProgramGroup {
-  program_id: string;
-  program_name: string;
+export interface ProductLineGroup {
+  product_line_id: string;
+  product_line_name: string;
   projects: ProjectAllocationRow[];
   total_by_month: Record<string, number>;
 }
@@ -973,22 +965,20 @@ export interface ResourceAllocationMatrix {
   start_month: string;
   end_month: string;
   months: string[];
-  programs: ProgramGroup[];
+  product_lines: ProductLineGroup[];
   grand_total_by_month: Record<string, number>;
 }
 
 export const getResourceAllocationMatrix = async (
   startMonth: string,
   endMonth: string,
-  departmentId?: string,
-  programId?: string
+  departmentId?: string
 ): Promise<ResourceAllocationMatrix> => {
   const params = new URLSearchParams({
     start_month: startMonth,
     end_month: endMonth,
   });
   if (departmentId) params.append('department_id', departmentId);
-  if (programId) params.append('program_id', programId);
 
   const response = await apiClient.get(`/resource-matrix/allocation?${params.toString()}`);
   return response.data;
@@ -1024,15 +1014,13 @@ export interface PivotMatrixResponse {
 export const getResourcePivotMatrix = async (
   startMonth: string,
   endMonth: string,
-  departmentId?: string,
-  programId?: string
+  departmentId?: string
 ): Promise<PivotMatrixResponse> => {
   const params = new URLSearchParams({
     start_month: startMonth,
     end_month: endMonth,
   });
   if (departmentId) params.append('department_id', departmentId);
-  if (programId) params.append('program_id', programId);
 
   const response = await apiClient.get(`/resource-matrix/pivot?${params.toString()}`);
   return response.data;

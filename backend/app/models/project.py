@@ -40,21 +40,6 @@ class Program(Base):
 
     # Relationships
     business_unit = relationship("BusinessUnit", back_populates="programs")
-    projects = relationship("Project", back_populates="program")
-
-
-class ProjectType(Base):
-    """프로젝트 유형"""
-
-    __tablename__ = "project_types"
-
-    id = Column(String(20), primary_key=True)  # e.g., "NPI", "ETO", "CIP"
-    name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=True)
-    is_active = Column(Boolean, default=True)
-
-    # Relationships
-    projects = relationship("Project", back_populates="project_type")
 
 
 class ProductLine(Base):
@@ -102,8 +87,6 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    program_id = Column(String(50), ForeignKey("programs.id"), nullable=False)
-    project_type_id = Column(String(20), ForeignKey("project_types.id"), nullable=False)
 
     # Internal IO relationship (replaces old 'code' column)
     internal_io_id = Column(String(36), ForeignKey("internal_ios.id"), nullable=True)
@@ -145,8 +128,6 @@ class Project(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    program = relationship("Program", back_populates="projects")
-    project_type = relationship("ProjectType", back_populates="projects")
     product_line = relationship("ProductLine", back_populates="projects")
     internal_io = relationship("InternalIO", back_populates="projects")
     recharge_io = relationship("RechargeIO", back_populates="projects")

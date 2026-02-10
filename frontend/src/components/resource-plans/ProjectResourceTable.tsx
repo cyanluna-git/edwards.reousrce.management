@@ -16,9 +16,9 @@ export interface ResourceRow {
 interface ProjectResourceTableProps {
     projectId: string;
     months: { year: number; month: number; label: string }[];
-    onAddMember: () => void;
-    onEditRow: (row: ResourceRow) => void;
-    onDeleteRow: (row: ResourceRow) => void;
+    onAddMember?: () => void;
+    onEditRow?: (row: ResourceRow) => void;
+    onDeleteRow?: (row: ResourceRow) => void;
 }
 
 // Memoized to prevent re-renders when parent state changes but props are same
@@ -89,20 +89,24 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
         return (
             <div className="p-4 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
                 <span>{t('resourceTable.noMembers')}</span>
-                <Button size="sm" variant="outline" onClick={onAddMember}>
-                    {t('actions.addRow')}
-                </Button>
+                {onAddMember && (
+                    <Button size="sm" variant="outline" onClick={onAddMember}>
+                        {t('actions.addRow')}
+                    </Button>
+                )}
             </div>
         );
     }
 
     return (
         <div className="px-3 pb-3 overflow-x-auto">
-            <div className="flex justify-end p-2">
-                <Button size="sm" variant="outline" onClick={onAddMember}>
-                    {t('actions.addRow')}
-                </Button>
-            </div>
+            {onAddMember && (
+                <div className="flex justify-end p-2">
+                    <Button size="sm" variant="outline" onClick={onAddMember}>
+                        {t('actions.addRow')}
+                    </Button>
+                </div>
+            )}
             <table className="w-full text-sm border-collapse">
                 <thead>
                     <tr className="bg-slate-100">
@@ -136,20 +140,26 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
                                 );
                             })}
                             <td className="text-center py-2 px-2">
-                                <div className="flex justify-center gap-1">
-                                    <button
-                                        className="text-xs text-blue-600 hover:underline px-1"
-                                        onClick={() => onEditRow(row)}
-                                    >
-                                        {t('actions.editRow')}
-                                    </button>
-                                    <button
-                                        className="text-xs text-red-600 hover:underline px-1"
-                                        onClick={() => onDeleteRow(row)}
-                                    >
-                                        {t('actions.deleteRow')}
-                                    </button>
-                                </div>
+                                {(onEditRow || onDeleteRow) && (
+                                    <div className="flex justify-center gap-1">
+                                        {onEditRow && (
+                                            <button
+                                                className="text-xs text-blue-600 hover:underline px-1"
+                                                onClick={() => onEditRow(row)}
+                                            >
+                                                {t('actions.editRow')}
+                                            </button>
+                                        )}
+                                        {onDeleteRow && (
+                                            <button
+                                                className="text-xs text-red-600 hover:underline px-1"
+                                                onClick={() => onDeleteRow(row)}
+                                            >
+                                                {t('actions.deleteRow')}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </td>
                         </tr>
                     ))}

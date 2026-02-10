@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_role
 from app.models.user import User
 from app.schemas.resource_plan import (
     ResourcePlan,
@@ -102,7 +102,7 @@ async def list_resource_plans(
 async def create_resource_plan(
     plan_in: ResourcePlanCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("ADMIN", "FM")),
 ):
     """
     Create a new resource plan.
@@ -137,6 +137,7 @@ async def update_resource_plan(
     plan_id: int,
     plan_in: ResourcePlanUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "FM")),
 ):
     """
     Update a resource plan.
@@ -154,6 +155,7 @@ async def update_resource_plan(
 async def delete_resource_plan(
     plan_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "FM")),
 ):
     """
     Delete a resource plan.
@@ -172,6 +174,7 @@ async def assign_user_to_plan(
     plan_id: int,
     assign_in: ResourcePlanAssign,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "FM")),
 ):
     """
     Assign a user to a TBD position.

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_role
 from app.models.user import User
 from app.models.organization import JobPosition
 
@@ -71,8 +71,8 @@ async def get_job_position(
 )
 async def create_job_position(
     data: JobPositionCreate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new job position"""
     import uuid
@@ -99,8 +99,8 @@ async def create_job_position(
 async def update_job_position(
     position_id: str,
     data: JobPositionUpdate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a job position"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()
@@ -128,8 +128,8 @@ async def update_job_position(
 @router.delete("/{position_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_job_position(
     position_id: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete (soft-delete by setting inactive) a job position"""
     position = db.query(JobPosition).filter(JobPosition.id == position_id).first()

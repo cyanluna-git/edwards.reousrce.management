@@ -126,7 +126,6 @@ def get_resource_allocation_matrix(
     start_month: str,
     end_month: str,
     department_id: Optional[str] = None,
-    program_id: Optional[str] = None,
 ) -> ResourceAllocationMatrix:
     """
     Generate Resource Allocation Matrix
@@ -157,11 +156,6 @@ def get_resource_allocation_matrix(
         )
     )
 
-    if program_id:
-        query = query.join(ResourcePlan.project).filter(
-            Project.program_id == program_id
-        )
-
     resource_plans = query.all()
 
     matrix_data = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -171,7 +165,8 @@ def get_resource_allocation_matrix(
         if month_key not in months:
             continue
 
-        program_id_key = plan.project.program_id
+        # Group by product_line instead of program
+        product_line_id_key = plan.project.product_line_id or "ungrouped"
         project_id_key = plan.project_id
         fte = round(plan.planned_hours / 160, 2)
 
@@ -183,31 +178,32 @@ def get_resource_allocation_matrix(
             fte=fte,
         )
 
-        matrix_data[program_id_key][project_id_key][month_key].append(detail)
+        matrix_data[product_line_id_key][project_id_key][month_key].append(detail)
 
-    programs: List[ProgramGroup] = []
+    programs: List[ProgramGroup] = []  # Note: Still using ProgramGroup schema name for compatibility
     grand_total_by_month: Dict[str, float] = {month: 0.0 for month in months}
 
-    programs_query = (
-        db.query(Program)
-        .options(joinedload(Program.projects).joinedload(Project.internal_io))
-        .filter(Program.is_active == True)
+    # Query product lines instead of programs
+    from app.models.project import ProductLine as ProductLineModel
+
+    product_lines_query = (
+        db.query(ProductLineModel)
+        .options(joinedload(ProductLineModel.projects).joinedload(Project.internal_io))
+        .filter(ProductLineModel.is_active == True)
     )
-    if program_id:
-        programs_query = programs_query.filter(Program.id == program_id)
 
-    for program in programs_query.all():
+    for product_line in product_lines_query.all():
         projects: List[ProjectAllocationRow] = []
-        program_total_by_month: Dict[str, float] = {month: 0.0 for month in months}
+        product_line_total_by_month: Dict[str, float] = {month: 0.0 for month in months}
 
-        for project in program.projects:
+        for project in product_line.projects:
             if not project:
                 continue
 
             allocations: Dict[str, MonthlyAllocation] = {}
 
             for month in months:
-                details = matrix_data[program.id][project.id].get(month, [])
+                details = matrix_data[product_line.id][project.id].get(month, [])
                 total_fte = sum(d.fte for d in details)
 
                 allocations[month] = MonthlyAllocation(
@@ -215,7 +211,7 @@ def get_resource_allocation_matrix(
                     total_fte=round(total_fte, 2),
                     details=details,
                 )
-                program_total_by_month[month] += total_fte
+                product_line_total_by_month[month] += total_fte
                 grand_total_by_month[month] += total_fte
 
             if any(a.total_fte > 0 for a in allocations.values()):
@@ -232,12 +228,12 @@ def get_resource_allocation_matrix(
         if projects:
             programs.append(
                 ProgramGroup(
-                    program_id=program.id,
-                    program_name=program.name,
+                    program_id=product_line.id,  # Using product_line.id in program_id field
+                    program_name=product_line.name,  # Using product_line.name
                     projects=projects,
                     total_by_month={
                         month: round(total, 2)
-                        for month, total in program_total_by_month.items()
+                        for month, total in product_line_total_by_month.items()
                     },
                 )
             )
@@ -260,7 +256,6 @@ def get_resource_pivot_matrix(
     start_month: str,
     end_month: str,
     department_id: Optional[str] = None,
-    program_id: Optional[str] = None,
 ) -> PivotMatrixResponse:
     """
     Generate Resource Allocation Pivot Table (User x IO)
@@ -313,9 +308,6 @@ def get_resource_pivot_matrix(
             )
         )
     )
-
-    if program_id:
-        query = query.join(WorkLog.project).filter(Project.program_id == program_id)
 
     if department_id:
         query = query.join(WorkLog.user).filter(User.department_id == department_id)

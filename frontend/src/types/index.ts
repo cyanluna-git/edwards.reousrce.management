@@ -82,20 +82,7 @@ export interface UserHistory {
 }
 
 // Project Types
-export interface Program {
-    id: string
-    name: string
-    business_unit_id: string
-    description?: string
-    is_active: boolean
-    business_unit?: BusinessUnit
-}
-
-export interface ProjectType {
-    id: string
-    name: string
-    description?: string
-}
+// Program interface removed - no longer used after removing program_id field
 
 export interface ProductLine {
     id: string
@@ -161,8 +148,6 @@ export interface RechargeIOUpdate {
 }
 
 export interface ProjectBase {
-    program_id: string
-    project_type_id: string
     internal_io_id?: string  // FK to internal_ios table
     recharge_io_id?: string  // FK to recharge_ios table
     name: string
@@ -188,8 +173,6 @@ export interface ProjectBase {
 export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
-    program_id?: string | null
-    project_type_id?: string | null
     internal_io_id?: string | null
     recharge_io_id?: string | null
     name?: string
@@ -213,8 +196,6 @@ export interface ProjectUpdate {
 
 export interface Project extends ProjectBase {
     id: string
-    program?: Program
-    project_type?: ProjectType
     product_line?: ProductLine
     owner_department?: Department  // Nested department for FUNCTIONAL projects
     internal_io?: InternalIO  // Nested IO info
