@@ -313,7 +313,7 @@ def export_docker_images(project_dir):
     images_to_export = [
         ('edwards_project-backend:latest', 'edwards-backend.tar.gz'),
         ('edwards_project-frontend:latest', 'edwards-frontend.tar.gz'),
-        ('postgres:16', 'postgres-16.tar.gz'),
+        ('postgres:15', 'postgres-15.tar.gz'),
     ]
     
     for image_name, file_name in images_to_export:
