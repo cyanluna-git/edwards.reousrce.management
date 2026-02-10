@@ -27,20 +27,18 @@ def get_allocation_matrix(
     start_month: str,
     end_month: str,
     department_id: Optional[str] = None,
-    program_id: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
     Get Resource Allocation Matrix
 
-    Returns a hierarchical view of resource allocations by program and project
+    Returns a hierarchical view of resource allocations by product line and project
     across the specified month range.
 
     Args:
         start_month: Start month in YYYY-MM format (e.g., "2026-01")
         end_month: End month in YYYY-MM format (e.g., "2026-12")
         department_id: Optional filter by department ID
-        program_id: Optional filter by program ID
 
     Returns:
         ResourceAllocationMatrix with aggregated data
@@ -54,7 +52,6 @@ def get_allocation_matrix(
             start_month=start_month,
             end_month=end_month,
             department_id=department_id,
-            program_id=program_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -67,7 +64,6 @@ def get_pivot_matrix(
     start_month: str,
     end_month: str,
     department_id: Optional[str] = None,
-    program_id: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
     """
@@ -82,7 +78,6 @@ def get_pivot_matrix(
             start_month=start_month,
             end_month=end_month,
             department_id=department_id,
-            program_id=program_id,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -39,8 +39,6 @@ class ProjectService:
         return (
             self.db.query(Project)
             .options(
-                joinedload(Project.program).joinedload(ProgramModel.business_unit),
-                joinedload(Project.project_type),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.internal_io),
                 joinedload(Project.recharge_io),
@@ -55,7 +53,6 @@ class ProjectService:
         *,
         skip: int = 0,
         limit: int = 100,
-        program_id: Optional[str] = None,
         status: Optional[str] = None,
         sort_by: Optional[str] = None,
     ) -> List[Project]:
@@ -82,7 +79,6 @@ class ProjectService:
             )
             .outerjoin(activity_subquery, Project.id == activity_subquery.c.project_id)
             .options(
-                joinedload(Project.program).joinedload(ProgramModel.business_unit),
                 joinedload(Project.product_line).joinedload(ProductLineModel.business_unit),
                 joinedload(Project.internal_io),
                 joinedload(Project.recharge_io),
@@ -90,8 +86,6 @@ class ProjectService:
             )
         )
 
-        if program_id:
-            query = query.filter(Project.program_id == program_id)
         if status:
             query = query.filter(Project.status == status)
 

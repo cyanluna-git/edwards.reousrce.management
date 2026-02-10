@@ -975,15 +975,13 @@ export interface ResourceAllocationMatrix {
 export const getResourceAllocationMatrix = async (
   startMonth: string,
   endMonth: string,
-  departmentId?: string,
-  programId?: string
+  departmentId?: string
 ): Promise<ResourceAllocationMatrix> => {
   const params = new URLSearchParams({
     start_month: startMonth,
     end_month: endMonth,
   });
   if (departmentId) params.append('department_id', departmentId);
-  if (programId) params.append('program_id', programId);
 
   const response = await apiClient.get(`/resource-matrix/allocation?${params.toString()}`);
   return response.data;
@@ -1019,15 +1017,13 @@ export interface PivotMatrixResponse {
 export const getResourcePivotMatrix = async (
   startMonth: string,
   endMonth: string,
-  departmentId?: string,
-  programId?: string
+  departmentId?: string
 ): Promise<PivotMatrixResponse> => {
   const params = new URLSearchParams({
     start_month: startMonth,
     end_month: endMonth,
   });
   if (departmentId) params.append('department_id', departmentId);
-  if (programId) params.append('program_id', programId);
 
   const response = await apiClient.get(`/resource-matrix/pivot?${params.toString()}`);
   return response.data;

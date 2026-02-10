@@ -155,7 +155,6 @@ export interface RechargeIOUpdate {
 }
 
 export interface ProjectBase {
-    program_id: string
     internal_io_id?: string  // FK to internal_ios table
     recharge_io_id?: string  // FK to recharge_ios table
     name: string
@@ -181,7 +180,6 @@ export interface ProjectBase {
 export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
-    program_id?: string | null
     internal_io_id?: string | null
     recharge_io_id?: string | null
     name?: string
@@ -205,7 +203,6 @@ export interface ProjectUpdate {
 
 export interface Project extends ProjectBase {
     id: string
-    program?: Program
     product_line?: ProductLine
     owner_department?: Department  // Nested department for FUNCTIONAL projects
     internal_io?: InternalIO  // Nested IO info

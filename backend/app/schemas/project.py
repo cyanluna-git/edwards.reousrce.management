@@ -129,9 +129,6 @@ class RechargeIO(RechargeIOBase):
 
 # Base schema for Project
 class ProjectBase(BaseModel):
-    program_id: Optional[str] = (
-        None  # Optional - using Product Line (Family) for grouping instead
-    )
     internal_io_id: Optional[str] = None  # FK to internal_ios table
     recharge_io_id: Optional[str] = None  # FK to recharge_ios table
     name: str
@@ -157,7 +154,6 @@ class ProjectCreate(ProjectBase):
 
 # Schema for updating a Project
 class ProjectUpdate(BaseModel):
-    program_id: Optional[str] = None
     internal_io_id: Optional[str] = None
     recharge_io_id: Optional[str] = None
     name: Optional[str] = None
@@ -177,7 +173,6 @@ class ProjectUpdate(BaseModel):
 # Schema for returning a Project from the API
 class Project(ProjectBase):
     id: str
-    program: Optional[Program] = None
     product_line: Optional[ProductLine] = None
     owner_department: Optional[Department] = None  # Nested department for FUNCTIONAL projects
     internal_io: Optional[InternalIO] = None  # Nested IO info

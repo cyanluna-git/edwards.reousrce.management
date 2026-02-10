@@ -40,7 +40,6 @@ class Program(Base):
 
     # Relationships
     business_unit = relationship("BusinessUnit", back_populates="programs")
-    projects = relationship("Project", back_populates="program")
 
 
 class ProductLine(Base):
@@ -88,7 +87,6 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    program_id = Column(String(50), ForeignKey("programs.id"), nullable=True)
 
     # Internal IO relationship (replaces old 'code' column)
     internal_io_id = Column(String(36), ForeignKey("internal_ios.id"), nullable=True)
@@ -130,7 +128,6 @@ class Project(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    program = relationship("Program", back_populates="projects")
     product_line = relationship("ProductLine", back_populates="projects")
     internal_io = relationship("InternalIO", back_populates="projects")
     recharge_io = relationship("RechargeIO", back_populates="projects")

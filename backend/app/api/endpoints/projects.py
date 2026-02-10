@@ -130,7 +130,6 @@ async def delete_product_line(product_line_id: str, db: Session = Depends(get_db
 
 @router.get("", response_model=List[Project])
 async def list_projects(
-    program_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     sort_by: Optional[str] = Query(None, description="Sort options: 'activity'"),
     skip: int = Query(0, ge=0),
@@ -144,7 +143,6 @@ async def list_projects(
     projects = service.get_multi(
         skip=skip,
         limit=limit,
-        program_id=program_id,
         status=status,
         sort_by=sort_by,
     )
