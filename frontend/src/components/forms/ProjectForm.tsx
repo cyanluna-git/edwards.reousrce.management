@@ -17,8 +17,7 @@ import {
 } from '@/components/ui/select';
 import { Project, ProjectCreate, ProjectUpdate, ProjectStatus, ProjectScale } from '@/types';
 import { useCreateProject, useUpdateProject } from '@/hooks/useProjects';
-// Note: getPrograms and getProjectTypes are hidden from UI
-import { /* getPrograms, getProjectTypes, */ getProductLines, getUsers, getBusinessUnits, getDepartments, type Department } from '@/api/client';
+import { getProductLines, getUsers, getBusinessUnits, getDepartments, getInternalIOs, getRechargeIOs, type Department } from '@/api/client';
 
 // ============================================================
 // Constants
@@ -46,19 +45,6 @@ export const CATEGORY_OPTIONS: { value: 'PRODUCT' | 'FUNCTIONAL'; label: string;
     { value: 'FUNCTIONAL', label: 'Functional Project', color: 'bg-purple-500' },
 ];
 
-export const FUNDING_ENTITY_OPTIONS = [
-    { value: 'ENTITY_VSS', label: 'VSS Division' },
-    { value: 'ENTITY_SUN', label: 'SUN Division' },
-    { value: 'ENTITY_LOCAL_KR', label: 'Local Korea' },
-    { value: 'ENTITY_SHARED', label: 'Shared Services' },
-];
-
-export const RECHARGE_STATUS_OPTIONS = [
-    { value: 'BILLABLE', label: 'Billable' },
-    { value: 'NON_BILLABLE', label: 'Non-Billable' },
-    { value: 'INTERNAL', label: 'Internal' },
-];
-
 // ============================================================
 // Types
 // ============================================================
@@ -84,9 +70,8 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     const getDefaultValues = (): Partial<ProjectFormData & { business_unit_id?: string }> => {
         if (isEditMode && project) {
             return {
-                program_id: project.program_id || undefined,
-                project_type_id: project.project_type_id || undefined,
                 internal_io_id: project.internal_io_id || undefined,
+                recharge_io_id: project.recharge_io_id || undefined,
                 name: project.name || '',
                 status: project.status || 'Prospective',
                 scale: project.scale || undefined,
@@ -99,10 +84,6 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
                 customer: project.customer || '',
                 product: project.product || '',
                 description: project.description || '',
-                // Financial fields
-                funding_entity_id: project.funding_entity_id || undefined,
-                recharge_status: project.recharge_status || undefined,
-                is_capitalizable: project.is_capitalizable || false,
                 owner_department_id: project.owner_department_id || undefined,
             };
         }
@@ -124,13 +105,12 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     const { mutate, isPending, isError, error } = isEditMode ? updateMutation : createMutation;
 
     // Fetch meta data
-    // Note: programs and projectTypes are hidden from UI, commented out to avoid lint warnings
-    // const { data: programs } = useQuery({ queryKey: ['programs'], queryFn: getPrograms });
-    // const { data: projectTypes } = useQuery({ queryKey: ['projectTypes'], queryFn: getProjectTypes });
     const { data: businessUnits } = useQuery({ queryKey: ['businessUnits'], queryFn: getBusinessUnits });
     const { data: productLines } = useQuery({ queryKey: ['productLines'], queryFn: getProductLines });
     const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers() });
     const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: () => getDepartments() });
+    const { data: internalIOs } = useQuery({ queryKey: ['internalIOs'], queryFn: () => getInternalIOs({ is_active: true }) });
+    const { data: rechargeIOs } = useQuery({ queryKey: ['rechargeIOs'], queryFn: () => getRechargeIOs({ is_active: true }) });
 
     // Filter users with PM position
     const pmUsers = users?.filter(u => u.position_id === 'JP_PM') || [];
@@ -479,75 +459,60 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
             </div>
 
             {/* ═══════════════════════════════════════════════════════════════
-                SECTION 4: Financial Classification
+                SECTION 5: Internal Order & Recharge IO
             ═══════════════════════════════════════════════════════════════ */}
             <div className="border-t pt-3">
-                <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Classification</h4>
+                <h4 className="text-xs font-medium text-muted-foreground mb-2">Financial Tracking</h4>
 
-                <div className="grid grid-cols-3 gap-3">
-                    {/* Funding Entity */}
+                <div className="grid grid-cols-2 gap-3">
+                    {/* Internal IO */}
                     <div>
-                        <Label className="text-xs">Funding Entity</Label>
+                        <Label className="text-xs">Internal IO</Label>
                         <Controller
-                            name="funding_entity_id"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger className="h-8">
-                                        <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {FUNDING_ENTITY_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </div>
-
-                    {/* Recharge Status */}
-                    <div>
-                        <Label className="text-xs">Recharge</Label>
-                        <Controller
-                            name="recharge_status"
-                            control={control}
-                            render={({ field }) => (
-                                <Select onValueChange={field.onChange} value={field.value || ''}>
-                                    <SelectTrigger className="h-8">
-                                        <SelectValue placeholder="Select" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {RECHARGE_STATUS_OPTIONS.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
-                                                {opt.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        />
-                    </div>
-
-                    {/* Capitalizable */}
-                    <div>
-                        <Label className="text-xs">Capitalizable</Label>
-                        <Controller
-                            name="is_capitalizable"
+                            name="internal_io_id"
                             control={control}
                             render={({ field }) => (
                                 <Select
-                                    onValueChange={(value) => field.onChange(value === 'true')}
-                                    value={field.value ? 'true' : 'false'}
+                                    onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                                    value={field.value || 'none'}
                                 >
                                     <SelectTrigger className="h-8">
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select Internal IO" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="true">Yes (CAPEX)</SelectItem>
-                                        <SelectItem value="false">No (OPEX)</SelectItem>
+                                        <SelectItem value="none">None</SelectItem>
+                                        {internalIOs?.map((io) => (
+                                            <SelectItem key={io.id} value={io.id}>
+                                                {io.io_number} - {io.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                    </div>
+
+                    {/* Recharge IO */}
+                    <div>
+                        <Label className="text-xs">Recharge IO</Label>
+                        <Controller
+                            name="recharge_io_id"
+                            control={control}
+                            render={({ field }) => (
+                                <Select
+                                    onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                                    value={field.value || 'none'}
+                                >
+                                    <SelectTrigger className="h-8">
+                                        <SelectValue placeholder="Select Recharge IO" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        {rechargeIOs?.map((io) => (
+                                            <SelectItem key={io.id} value={io.id}>
+                                                {io.io_number} - {io.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             )}

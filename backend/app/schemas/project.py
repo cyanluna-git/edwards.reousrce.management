@@ -40,15 +40,6 @@ class Program(BaseModel):
         from_attributes = True
 
 
-# Schema for ProjectType
-class ProjectType(BaseModel):
-    id: str
-    name: str
-
-    class Config:
-        from_attributes = True
-
-
 # Schema for ProductLine
 class ProductLine(BaseModel):
     id: str
@@ -141,9 +132,6 @@ class ProjectBase(BaseModel):
     program_id: Optional[str] = (
         None  # Optional - using Product Line (Family) for grouping instead
     )
-    project_type_id: Optional[str] = (
-        None  # Optional - Scale field covers this functionality
-    )
     internal_io_id: Optional[str] = None  # FK to internal_ios table
     recharge_io_id: Optional[str] = None  # FK to recharge_ios table
     name: str
@@ -170,7 +158,6 @@ class ProjectCreate(ProjectBase):
 # Schema for updating a Project
 class ProjectUpdate(BaseModel):
     program_id: Optional[str] = None
-    project_type_id: Optional[str] = None
     internal_io_id: Optional[str] = None
     recharge_io_id: Optional[str] = None
     name: Optional[str] = None
@@ -191,7 +178,6 @@ class ProjectUpdate(BaseModel):
 class Project(ProjectBase):
     id: str
     program: Optional[Program] = None
-    project_type: Optional[ProjectType] = None
     product_line: Optional[ProductLine] = None
     owner_department: Optional[Department] = None  # Nested department for FUNCTIONAL projects
     internal_io: Optional[InternalIO] = None  # Nested IO info

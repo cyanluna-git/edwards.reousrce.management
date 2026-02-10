@@ -8,7 +8,7 @@ from app.models.organization import (
     JobPosition,
     Division,
 )
-from app.models.project import Project, ProjectType, Program, ProductLine
+from app.models.project import Project, Program, ProductLine
 from app.schemas.user import UserCreate
 from app.services.user_service import UserService
 import uuid
@@ -1153,19 +1153,9 @@ def init_data(db: Session):
         print(f"Members created: {created_count} users")
 
     # ============================================================
-    # 7. Project Types
+    # 7. Project Types - REMOVED (deprecated in favor of Scale field)
     # ============================================================
-    existing_pt = db.query(ProjectType).first()
-    if existing_pt:
-        print("Project Types already exist, skipping...")
-    else:
-        pt_npi = ProjectType(id="NPI", name="New Product Introduction")
-        pt_eto = ProjectType(id="ETO", name="Engineering To Order")
-        pt_cip = ProjectType(id="CIP", name="Continuous Improvement")
-        pt_support = ProjectType(id="SUP", name="Support / General")
-        db.add_all([pt_npi, pt_eto, pt_cip, pt_support])
-        db.commit()
-        print("Project Types created.")
+    # Project types have been removed from the schema
 
     # ============================================================
     # 7.5 Product Lines (제품군) - Updated with business_unit_id
@@ -1316,7 +1306,6 @@ def init_data(db: Session):
                 "code": "406372",
                 "name": "Gen3+, HRSD, H2D-HP x 2, HVM",
                 "program_id": "EUV_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": "TSMC HVM",
             },
@@ -1324,7 +1313,6 @@ def init_data(db: Session):
                 "code": "406422",
                 "name": "Gen3+ SMM2",
                 "program_id": "EUV_NPI",
-                "project_type_id": "NPI",
                 "status": "Completed",
                 "customer": "ASML",
             },
@@ -1332,7 +1320,6 @@ def init_data(db: Session):
                 "code": "406376",
                 "name": "Gen4, Kanarra",
                 "program_id": "EUV_NPI",
-                "project_type_id": "NPI",
                 "status": "OnHold",
                 "customer": None,
             },
@@ -1340,7 +1327,6 @@ def init_data(db: Session):
                 "code": "406397",
                 "name": "2025 Ruby - SIC integration",
                 "program_id": "IS_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": None,
             },
@@ -1348,7 +1334,6 @@ def init_data(db: Session):
                 "code": "406399",
                 "name": "2025 Havasu",
                 "program_id": "IS_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": "TEL",
             },
@@ -1356,7 +1341,6 @@ def init_data(db: Session):
                 "code": "406437",
                 "name": "2025 EUV Gen4 Phase 1 Tumalo",
                 "program_id": "IS_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": None,
             },
@@ -1364,7 +1348,6 @@ def init_data(db: Session):
                 "code": "406420",
                 "name": "2025 Protron | Single ROW",
                 "program_id": "ABT_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": None,
             },
@@ -1372,7 +1355,6 @@ def init_data(db: Session):
                 "code": "404721",
                 "name": "EUV TSMC Gen3 H2D-R(TS marked)",
                 "program_id": "EUV_ETO",
-                "project_type_id": "ETO",
                 "status": "InProgress",
                 "customer": "TSMC",
             },
@@ -1380,7 +1362,6 @@ def init_data(db: Session):
                 "code": "406362",
                 "name": "2025 NRTL (DTLR / ARS)",
                 "program_id": "ACM_NPI",
-                "project_type_id": "NPI",
                 "status": "InProgress",
                 "customer": "SEC",
             },
@@ -1392,7 +1373,6 @@ def init_data(db: Session):
                 code=p["code"],
                 name=p["name"],
                 program_id=p["program_id"],
-                project_type_id=p["project_type_id"],
                 status=p["status"],
                 customer=p.get("customer"),
                 pm_id=pm_id,

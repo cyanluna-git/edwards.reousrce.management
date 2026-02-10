@@ -15,7 +15,6 @@ from app.schemas.project import (
     MilestoneCreate,
     MilestoneUpdate,
     Program,
-    ProjectType,
     ProductLine,
     ProductLineCreate,
     ProductLineUpdate,
@@ -37,15 +36,6 @@ async def list_programs(db: Session = Depends(get_db)):
     """
     service = ProjectService(db)
     return service.get_programs()
-
-
-@router.get("/meta/types", response_model=List[ProjectType])
-async def list_project_types(db: Session = Depends(get_db)):
-    """
-    List all active project types
-    """
-    service = ProjectService(db)
-    return service.get_project_types()
 
 
 @router.get("/meta/product-lines", response_model=List[ProductLine])
@@ -141,7 +131,6 @@ async def delete_product_line(product_line_id: str, db: Session = Depends(get_db
 @router.get("", response_model=List[Project])
 async def list_projects(
     program_id: Optional[str] = Query(None),
-    project_type_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     sort_by: Optional[str] = Query(None, description="Sort options: 'activity'"),
     skip: int = Query(0, ge=0),
@@ -156,7 +145,6 @@ async def list_projects(
         skip=skip,
         limit=limit,
         program_id=program_id,
-        project_type_id=project_type_id,
         status=status,
         sort_by=sort_by,
     )

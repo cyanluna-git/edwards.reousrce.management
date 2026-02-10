@@ -91,12 +91,6 @@ export interface Program {
     business_unit?: BusinessUnit
 }
 
-export interface ProjectType {
-    id: string
-    name: string
-    description?: string
-}
-
 export interface ProductLine {
     id: string
     name: string
@@ -162,7 +156,6 @@ export interface RechargeIOUpdate {
 
 export interface ProjectBase {
     program_id: string
-    project_type_id: string
     internal_io_id?: string  // FK to internal_ios table
     recharge_io_id?: string  // FK to recharge_ios table
     name: string
@@ -189,7 +182,6 @@ export interface ProjectCreate extends ProjectBase { }
 
 export interface ProjectUpdate {
     program_id?: string | null
-    project_type_id?: string | null
     internal_io_id?: string | null
     recharge_io_id?: string | null
     name?: string
@@ -214,7 +206,6 @@ export interface ProjectUpdate {
 export interface Project extends ProjectBase {
     id: string
     program?: Program
-    project_type?: ProjectType
     product_line?: ProductLine
     owner_department?: Department  // Nested department for FUNCTIONAL projects
     internal_io?: InternalIO  // Nested IO info
