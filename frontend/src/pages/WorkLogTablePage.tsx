@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
-import { getBusinessUnits, getDepartments, getSubTeams, getUsers, getPrograms, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
+import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
 import type { Program } from '@/types';
 
 export function WorkLogTablePage() {
@@ -25,7 +25,6 @@ export function WorkLogTablePage() {
 
     // Data for filters
     const [businessUnits, setBusinessUnits] = useState<BusinessUnit[]>([]);
-    const [programs, setPrograms] = useState<Program[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [subTeams, setSubTeams] = useState<SubTeam[]>([]);
     const [users, setUsers] = useState<UserDetails[]>([]);
@@ -51,7 +50,6 @@ export function WorkLogTablePage() {
     // Load data on mount
     useEffect(() => {
         getBusinessUnits().then(setBusinessUnits);
-        getPrograms().then(setPrograms);
         getDepartments().then(setDepartments);
         getUsers().then(setUsers);
     }, []);
@@ -87,19 +85,18 @@ export function WorkLogTablePage() {
         [programs, businessUnitFilter]
     );
 
-    // 2. Projects filtered by Program and BusinessUnit, excluding Closed/Completed
+    // 2. Projects filtered by BusinessUnit, excluding Closed/Completed
     const filteredProjects = useMemo(() => {
         let result = allProjects.filter(p => !['Closed', 'Completed'].includes(p.status || ''));
 
-        if (programFilter) {
-            result = result.filter(p => p.program_id === programFilter);
-        } else if (businessUnitFilter) {
-            // Filter by BusinessUnit via Program
-            const programIds = filteredPrograms.map(prg => prg.id);
-            result = result.filter(p => programIds.includes(p.program_id || ''));
+        // Filter by business unit through product line
+        if (businessUnitFilter) {
+            result = result.filter(p =>
+                p.product_line?.business_unit_id === businessUnitFilter
+            );
         }
         return result;
-    }, [allProjects, programFilter, businessUnitFilter, filteredPrograms]);
+    }, [allProjects, businessUnitFilter]);
 
     // ============ 조직 기반 필터 로직 ============
     // Users filtered by subteam

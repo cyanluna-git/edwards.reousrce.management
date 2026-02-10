@@ -29,10 +29,13 @@ router = APIRouter()
 # ============ Meta Endpoints (Must be before {project_id} routes) ============
 
 
-@router.get("/meta/programs", response_model=List[Program])
+@router.get("/meta/programs", response_model=List[Program], deprecated=True)
 async def list_programs(db: Session = Depends(get_db)):
     """
-    List all active programs
+    [DEPRECATED] List all active programs
+
+    This endpoint is deprecated as program_id has been removed from projects.
+    Use product lines instead: GET /meta/product-lines
     """
     service = ProjectService(db)
     return service.get_programs()

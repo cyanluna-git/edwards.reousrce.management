@@ -94,7 +94,7 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
   columnWidths,
 }) => {
   const [selectedBU, setSelectedBU] = useState<string>(
-    editState.fields.program_id || project.program?.business_unit_id || ''
+    project.product_line?.business_unit_id || ''
   );
 
   // [rerender-functional-setstate] Memoized handlers
@@ -108,13 +108,8 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
 
   const handleBusinessUnitChange = useCallback((buId: string) => {
     setSelectedBU(buId);
-    // Find program for this BU (simplified - in real app, fetch programs by BU)
-    const bu = businessUnits.find(b => b.id === buId);
-    if (bu) {
-      // Note: This is simplified. In production, you'd need to fetch/filter programs by BU
-      updateField('program_id', project.program_id); // Keep existing for now
-    }
-  }, [businessUnits, updateField, project.program_id]);
+    // Business Unit changed - product line selection may need to be filtered
+  }, []);
 
   if (isEditing) {
     return (
@@ -177,7 +172,6 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
             value={selectedBU}
             onChange={(value) => handleBusinessUnitChange(value)}
             businessUnits={businessUnits}
-            error={editState.errors.program_id}
           />
         </TableCell>
 
@@ -340,7 +334,7 @@ const InlineEditableRowInner: React.FC<InlineEditableRowProps> = ({
 
       {/* Business Unit */}
       <TableCell className="text-sm text-gray-900 truncate" style={{ width: columnWidths.business_unit }}>
-        {project.program?.business_unit?.name || EmptyPlaceholder}
+        {project.product_line?.business_unit?.name || EmptyPlaceholder}
       </TableCell>
 
       {/* Product Line */}

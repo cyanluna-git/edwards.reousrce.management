@@ -561,7 +561,8 @@ def migrate_projects(db: Session, program_map, type_map):
         description = clean_value(row.get("Description", ""))
 
         # Map to foreign keys - use PRG_UNKNOWN as default for empty/missing programs
-        program_id = program_map.get(program_name, "PRG_UNKNOWN")
+        # program_id removed - no longer used
+        # program_id = program_map.get(program_name, "PRG_UNKNOWN")
 
         project_type_id = type_map.get(complexity, "OTHER")
 
@@ -578,8 +579,7 @@ def migrate_projects(db: Session, program_map, type_map):
 
         project = Project(
             id=proj_uuid,
-            program_id=program_id,
-            project_type_id=project_type_id,
+            # program_id and project_type_id removed - no longer used
             code=code,
             name=name[:300],  # Truncate if necessary
             status=map_status(status),

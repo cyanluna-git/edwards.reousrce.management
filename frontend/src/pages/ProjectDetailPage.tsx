@@ -335,9 +335,9 @@ export const ProjectDetailPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8">
-            <PropertyRow icon={Briefcase} label={t('detail.program')}>
+            <PropertyRow icon={Briefcase} label={t('detail.productLine')}>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                {project.program?.name || 'N/A'}
+                {project.product_line?.name || 'N/A'}
               </span>
             </PropertyRow>
 

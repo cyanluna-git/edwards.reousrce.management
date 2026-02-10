@@ -172,7 +172,7 @@ export const ssoRegister = async (data: SSORegistrationData): Promise<Token> => 
 
 // ============ Milestones API ============
 
-import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate, Program } from '@/types';
+import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 
 export const getMilestones = async (projectId: string): Promise<ProjectMilestone[]> => {
   const response = await apiClient.get(`/projects/${projectId}/milestones`);

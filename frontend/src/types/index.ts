@@ -82,14 +82,7 @@ export interface UserHistory {
 }
 
 // Project Types
-export interface Program {
-    id: string
-    name: string
-    business_unit_id: string
-    description?: string
-    is_active: boolean
-    business_unit?: BusinessUnit
-}
+// Program interface removed - no longer used after removing program_id field
 
 export interface ProductLine {
     id: string

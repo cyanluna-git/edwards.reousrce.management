@@ -34,7 +34,6 @@ export function useInlineProjectEdit() {
         name: project.name,
         category: project.category,
         status: project.status,
-        program_id: project.program_id,
         product_line_id: project.product_line_id,
         owner_department_id: project.owner_department_id,
         pm_id: project.pm_id,
@@ -96,7 +95,7 @@ export function useInlineProjectEdit() {
 
     // Convert empty strings to null for ID fields (backend expects UUID or null)
     const cleanedFields = { ...editState.fields };
-    const idFields = ['internal_io_id', 'recharge_io_id', 'pm_id', 'product_line_id', 'program_id', 'project_type_id', 'owner_department_id'] as const;
+    const idFields = ['internal_io_id', 'recharge_io_id', 'pm_id', 'product_line_id', 'owner_department_id'] as const;
     for (const field of idFields) {
       if (cleanedFields[field] === '') {
         cleanedFields[field] = null;

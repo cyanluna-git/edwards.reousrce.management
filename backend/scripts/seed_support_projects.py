@@ -104,8 +104,7 @@ def seed_support_projects(db):
             category=proj_data["category"],
             status=proj_data["status"],
             description=proj_data["description"],
-            program_id="PRG_SUPPORT" if support_program else None,
-            project_type_id=None,  # Support projects don't have a type
+            # program_id and project_type_id removed - no longer used
         )
         db.add(project)
         print(f"  [CREATE] {proj_data['name']}")
