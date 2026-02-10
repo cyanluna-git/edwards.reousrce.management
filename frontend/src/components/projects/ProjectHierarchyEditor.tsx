@@ -42,6 +42,8 @@ import {
     getDepartments,
 } from '@/api/client';
 import type { ProductLine, Project } from '@/types';
+import { useApiError } from '@/hooks/useApiError';
+import { useTranslation } from 'react-i18next';
 import { useProjectHierarchy } from '@/hooks/useProjectHierarchy';
 import { useUsers } from '@/hooks/useUsers';
 import ProjectForm from '@/components/forms/ProjectForm';
@@ -89,6 +91,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { canManageProjects } = usePermissions();
+    const getErrorMessage = useApiError();
+    const { t } = useTranslation('projects');
     const { data: hierarchy, isLoading } = useProjectHierarchy();
     const productProjects = hierarchy?.product_projects || [];
     const functionalProjects = hierarchy?.functional_projects || [];
@@ -236,8 +240,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || 'Failed to delete Business Unit');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         }
     });
 
@@ -374,19 +378,19 @@ export const ProjectHierarchyEditor: React.FC = () => {
         }
     };
 
-    if (isLoading) return <div>Loading hierarchy...</div>;
+    if (isLoading) return <div>{t('hierarchy.loadingHierarchy')}</div>;
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Projects</h2>
+                <h2 className="text-2xl font-bold">{t('hierarchy.title')}</h2>
                 {canManageProjects && (
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={handleAddBusinessUnit}>
-                            + New Business Unit
+                            {t('hierarchy.newBusinessUnit')}
                         </Button>
                         <Button onClick={() => handleAddProject('', 'product_line')}>
-                            + New Project
+                            {t('hierarchy.newProject')}
                         </Button>
                     </div>
                 )}
@@ -394,10 +398,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="product">Active Projects</TabsTrigger>
-                    <TabsTrigger value="functional">Functional</TabsTrigger>
-                    <TabsTrigger value="all">All Projects</TabsTrigger>
-                    <TabsTrigger value="io-management">IO Management</TabsTrigger>
+                    <TabsTrigger value="product">{t('hierarchy.tabActive')}</TabsTrigger>
+                    <TabsTrigger value="functional">{t('hierarchy.tabFunctional')}</TabsTrigger>
+                    <TabsTrigger value="all">{t('hierarchy.tabAll')}</TabsTrigger>
+                    <TabsTrigger value="io-management">{t('hierarchy.tabIO')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="product" className="mt-4">
@@ -406,8 +410,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         <Card className="mb-4 border-amber-200 bg-amber-50">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-amber-800 flex items-center gap-2">
-                                    <span>Ungrouped Projects</span>
-                                    <span className="text-sm font-normal text-amber-600">({activeUngroupedProjects.length} active projects without Product Line)</span>
+                                    <span>{t('hierarchy.ungroupedTitle')}</span>
+                                    <span className="text-sm font-normal text-amber-600">{t('hierarchy.ungroupedDesc', { count: activeUngroupedProjects.length })}</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -430,14 +434,14 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 <Button
                                                     variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
                                                     onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
-                                                    title="Edit to assign Product Line"
+                                                    title={t('hierarchy.editToAssign')}
                                                 >
                                                     ✏️
                                                 </Button>
                                                 <Button
                                                     variant="ghost" size="sm" className="h-6 w-6 text-red-600"
                                                     onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
-                                                    title="Delete Project"
+                                                    title={t('hierarchy.deleteProject')}
                                                 >
                                                     🗑️
                                                 </Button>
@@ -451,7 +455,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
                     <Card>
                         <CardHeader>
-                            <CardTitle>Product Hierarchy (Business Unit &gt; Product Line &gt; Project)</CardTitle>
+                            <CardTitle>{t('hierarchy.productHierarchyTitle')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
@@ -474,7 +478,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         size="sm"
                                                         className="h-8 w-8 text-green-600"
                                                         onClick={(e) => { e.stopPropagation(); handleAddProductLine(bu.id); }}
-                                                        title="Add Product Line"
+                                                        title={t('hierarchy.addProductLine')}
                                                     >
                                                         ➕ PL
                                                     </Button>
@@ -483,7 +487,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         size="sm"
                                                         className="h-8 w-8 text-blue-600"
                                                         onClick={(e) => { e.stopPropagation(); handleEditBusinessUnit(bu); }}
-                                                        title="Edit Business Unit"
+                                                        title={t('hierarchy.editBusinessUnit')}
                                                     >
                                                         ✏️
                                                     </Button>
@@ -492,7 +496,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                         size="sm"
                                                         className="h-8 w-8 text-red-600"
                                                         onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'business_unit', id: bu.id, name: bu.name }); }}
-                                                        title="Delete Business Unit"
+                                                        title={t('hierarchy.deleteBusinessUnit')}
                                                     >
                                                         🗑️
                                                     </Button>
@@ -522,21 +526,21 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                     <Button
                                                                         variant="ghost" size="sm" className="h-7 w-7 text-green-600"
                                                                         onClick={(e) => { e.stopPropagation(); handleAddProject(pl.id, 'product_line'); }}
-                                                                        title="Add Project"
+                                                                        title={t('hierarchy.addProject')}
                                                                     >
                                                                         ➕
                                                                     </Button>
                                                                     <Button
                                                                         variant="ghost" size="sm" className="h-7 w-7 text-blue-600"
                                                                         onClick={(e) => { e.stopPropagation(); handleEditProductLine(pl, bu.id); }}
-                                                                        title="Edit Product Line"
+                                                                        title={t('hierarchy.editProductLine')}
                                                                     >
                                                                         ✏️
                                                                     </Button>
                                                                     <Button
                                                                         variant="ghost" size="sm" className="h-7 w-7 text-red-600"
                                                                         onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'product_line', id: pl.id, name: pl.name }); }}
-                                                                        title="Delete Product Line"
+                                                                        title={t('hierarchy.deleteProductLine')}
                                                                     >
                                                                         🗑️
                                                                     </Button>
@@ -565,14 +569,14 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                                 <Button
                                                                                     variant="ghost" size="sm" className="h-6 w-6 text-blue-600"
                                                                                     onClick={() => navigate(`/projects/${proj.id}`, { state: { returnTab: 'product' } })}
-                                                                                    title="View/Edit Project"
+                                                                                    title={t('hierarchy.editProjectTitle')}
                                                                                 >
                                                                                     ✏️
                                                                                 </Button>
                                                                                 <Button
                                                                                     variant="ghost" size="sm" className="h-6 w-6 text-red-600"
                                                                                     onClick={() => setDeleteConfirm({ type: 'project', id: proj.id, name: proj.name })}
-                                                                                    title="Delete Project"
+                                                                                    title={t('hierarchy.deleteProject')}
                                                                                 >
                                                                                     🗑️
                                                                                 </Button>
@@ -581,14 +585,14 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                                     </div>
                                                                 ))}
                                                                 {(!pl.children || pl.children.length === 0) && (
-                                                                    <div className="text-xs text-muted-foreground italic pl-6">No projects</div>
+                                                                    <div className="text-xs text-muted-foreground italic pl-6">{t('hierarchy.noProjects')}</div>
                                                                 )}
                                                             </div>
                                                         )}
                                                     </div>
                                                 ))}
                                                 {(!bu.children || bu.children.length === 0) && (
-                                                    <div className="text-xs text-muted-foreground italic pl-4">No product lines</div>
+                                                    <div className="text-xs text-muted-foreground italic pl-4">{t('hierarchy.noProductLines')}</div>
                                                 )}
                                             </div>
                                         )}
@@ -602,7 +606,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 <TabsContent value="functional" className="mt-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Functional Projects (Department &gt; Project)</CardTitle>
+                            <CardTitle>{t('hierarchy.functionalTitle')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
@@ -622,7 +626,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                 <Button
                                                     variant="ghost" size="sm" className="h-8 w-8 text-green-600"
                                                     onClick={(e) => { e.stopPropagation(); handleAddProject(dept.id, 'department'); }}
-                                                    title="Add Functional Project"
+                                                    title={t('hierarchy.addProject')}
                                                 >
                                                     ➕
                                                 </Button>
@@ -662,7 +666,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                                                     </div>
                                                 ))}
                                                 {(!dept.children || dept.children.length === 0) && (
-                                                    <div className="text-xs text-muted-foreground italic">No projects</div>
+                                                    <div className="text-xs text-muted-foreground italic">{t('hierarchy.noProjects')}</div>
                                                 )}
                                             </div>
                                         )}
@@ -675,7 +679,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
 
                 <TabsContent value="all" className="mt-4">
                     <div className="mb-4">
-                        <h2 className="text-xl font-semibold">All Projects ({allProjects.length} total)</h2>
+                        <h2 className="text-xl font-semibold">{t('hierarchy.allProjectsCount', { count: allProjects.length })}</h2>
                     </div>
                     <ProjectInlineTable
                         projects={allProjects}
@@ -699,11 +703,11 @@ export const ProjectHierarchyEditor: React.FC = () => {
             <Dialog open={buModalOpen} onOpenChange={setBuModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{buFormData.id ? 'Edit Business Unit' : 'Add Business Unit'}</DialogTitle>
+                        <DialogTitle>{buFormData.id ? t('hierarchy.editBU') : t('hierarchy.addBU')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="bu-name" className="text-right">Name</Label>
+                            <Label htmlFor="bu-name" className="text-right">{t('common:form.name')}</Label>
                             <Input
                                 id="bu-name"
                                 value={buFormData.name}
@@ -712,19 +716,19 @@ export const ProjectHierarchyEditor: React.FC = () => {
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="bu-code" className="text-right">Code</Label>
+                            <Label htmlFor="bu-code" className="text-right">{t('common:form.code')}</Label>
                             <Input
                                 id="bu-code"
                                 value={buFormData.code}
                                 onChange={(e) => setBuFormData({ ...buFormData, code: e.target.value })}
                                 className="col-span-3"
-                                placeholder="Auto-generated if empty"
+                                placeholder={t('hierarchy.autoGenerated')}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setBuModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveBusinessUnit} disabled={!buFormData.name}>Save</Button>
+                        <Button variant="outline" onClick={() => setBuModalOpen(false)}>{t('common:buttons.cancel')}</Button>
+                        <Button onClick={handleSaveBusinessUnit} disabled={!buFormData.name}>{t('common:buttons.save')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -733,11 +737,11 @@ export const ProjectHierarchyEditor: React.FC = () => {
             <Dialog open={plModalOpen} onOpenChange={setPlModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{plFormData.id ? 'Edit Product Line' : 'Add Product Line'}</DialogTitle>
+                        <DialogTitle>{plFormData.id ? t('hierarchy.editPL') : t('hierarchy.addPL')}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="pl-name" className="text-right">Name</Label>
+                            <Label htmlFor="pl-name" className="text-right">{t('common:form.name')}</Label>
                             <Input
                                 id="pl-name"
                                 value={plFormData.name}
@@ -746,13 +750,13 @@ export const ProjectHierarchyEditor: React.FC = () => {
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="pl-bu" className="text-right">Business Unit</Label>
+                            <Label htmlFor="pl-bu" className="text-right">{t('detail.businessUnit')}</Label>
                             <Select
                                 value={plFormData.business_unit_id}
                                 onValueChange={(v) => setPlFormData({ ...plFormData, business_unit_id: v })}
                             >
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select Business Unit" />
+                                    <SelectValue placeholder={t('hierarchy.selectBusinessUnit')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {businessUnits.map((bu) => (
@@ -762,13 +766,13 @@ export const ProjectHierarchyEditor: React.FC = () => {
                             </Select>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="pl-category" className="text-right">Category</Label>
+                            <Label htmlFor="pl-category" className="text-right">{t('hierarchy.lineCategory')}</Label>
                             <Select
                                 value={plFormData.line_category}
                                 onValueChange={(v: any) => setPlFormData({ ...plFormData, line_category: v })}
                             >
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Category" />
+                                    <SelectValue placeholder={t('hierarchy.lineCategory')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="PRODUCT">PRODUCT</SelectItem>
@@ -778,7 +782,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                             </Select>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="pl-desc" className="text-right">Description</Label>
+                            <Label htmlFor="pl-desc" className="text-right">{t('common:form.description')}</Label>
                             <Input
                                 id="pl-desc"
                                 value={plFormData.description}
@@ -788,8 +792,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setPlModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSaveProductLine} disabled={!plFormData.name}>Save</Button>
+                        <Button variant="outline" onClick={() => setPlModalOpen(false)}>{t('common:buttons.cancel')}</Button>
+                        <Button onClick={handleSaveProductLine} disabled={!plFormData.name}>{t('common:buttons.save')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -799,7 +803,7 @@ export const ProjectHierarchyEditor: React.FC = () => {
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>
-                            {editingProject ? 'Edit Project' : 'Add New Project'}
+                            {editingProject ? t('hierarchy.editProjectTitle') : t('hierarchy.addProjectTitle')}
                         </DialogTitle>
                     </DialogHeader>
                     <ProjectForm
@@ -818,10 +822,10 @@ export const ProjectHierarchyEditor: React.FC = () => {
             <Dialog open={!!deleteConfirm} onOpenChange={(open) => { if (!open) { setDeleteConfirm(null); setDeleteError(null); } }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Confirm Delete</DialogTitle>
+                        <DialogTitle>{t('hierarchy.confirmDelete')}</DialogTitle>
                         <DialogDescription>
-                            Are you sure you want to delete {deleteConfirm?.type === 'business_unit' ? 'Business Unit' : deleteConfirm?.type === 'product_line' ? 'Product Line' : 'Project'} "{deleteConfirm?.name}"?
-                            {deleteConfirm?.type === 'product_line' && ' This looks like it might have child projects. Ensure it is empty first or they may become orphaned.'}
+                            {t('hierarchy.confirmDeleteMessage', { type: deleteConfirm?.type === 'business_unit' ? t('hierarchy.typeBusinessUnit') : deleteConfirm?.type === 'product_line' ? t('hierarchy.typeProductLine') : t('hierarchy.typeProject'), name: deleteConfirm?.name })}
+                            {deleteConfirm?.type === 'product_line' && ` ${t('hierarchy.confirmDeleteOrphanWarning')}`}
                         </DialogDescription>
                     </DialogHeader>
                     {deleteError && (
@@ -830,8 +834,8 @@ export const ProjectHierarchyEditor: React.FC = () => {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>{t('common:buttons.cancel')}</Button>
+                        <Button variant="destructive" onClick={handleDelete}>{t('common:buttons.delete')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
   ChevronDown,
@@ -35,10 +36,10 @@ function FadeInSection({
 }
 
 // Mock UI Components
-function WorklogMockUI() {
+function WorklogMockUI({ label }: { label: string }) {
   return (
     <div className="rounded-xl border bg-white shadow-lg p-3 w-56">
-      <div className="text-xs font-medium text-slate-600 mb-2">Worklog Entry</div>
+      <div className="text-xs font-medium text-slate-600 mb-2">{label}</div>
       <div className="space-y-2">
         <div className="h-7 bg-slate-100 rounded flex items-center px-2">
           <div className="h-2 w-16 bg-blue-300 rounded" />
@@ -55,10 +56,10 @@ function WorklogMockUI() {
   );
 }
 
-function ResourceMatrixMockUI() {
+function ResourceMatrixMockUI({ label }: { label: string }) {
   return (
     <div className="rounded-xl border bg-white shadow-lg p-3 w-56">
-      <div className="text-xs font-medium text-slate-600 mb-2">Resource Matrix</div>
+      <div className="text-xs font-medium text-slate-600 mb-2">{label}</div>
       <div className="grid grid-cols-4 gap-1">
         {['Jan', 'Feb', 'Mar', 'Apr'].map((m) => (
           <div key={m} className="text-[8px] text-slate-400 text-center">
@@ -79,10 +80,10 @@ function ResourceMatrixMockUI() {
   );
 }
 
-function TimelineMockUI() {
+function TimelineMockUI({ label }: { label: string }) {
   return (
     <div className="rounded-xl border bg-white shadow-lg p-3 w-56">
-      <div className="text-xs font-medium text-slate-600 mb-2">Project Timeline</div>
+      <div className="text-xs font-medium text-slate-600 mb-2">{label}</div>
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500" />
@@ -104,10 +105,10 @@ function TimelineMockUI() {
   );
 }
 
-function DashboardMockUI() {
+function DashboardMockUI({ label }: { label: string }) {
   return (
     <div className="rounded-xl border bg-white shadow-lg p-3 w-56">
-      <div className="text-xs font-medium text-slate-600 mb-2">Team Dashboard</div>
+      <div className="text-xs font-medium text-slate-600 mb-2">{label}</div>
       <div className="flex gap-1.5 mb-2">
         <div className="h-2 w-12 bg-blue-400 rounded" />
         <div className="h-2 w-8 bg-green-400 rounded" />
@@ -122,12 +123,12 @@ function DashboardMockUI() {
   );
 }
 
-function AISummaryMockUI() {
+function AISummaryMockUI({ label }: { label: string }) {
   return (
     <div className="rounded-xl border bg-white shadow-lg p-3 w-56">
       <div className="flex items-center gap-1.5 mb-2">
         <Sparkles className="w-3 h-3 text-purple-500" />
-        <span className="text-xs font-medium text-slate-600">AI Weekly Summary</span>
+        <span className="text-xs font-medium text-slate-600">{label}</span>
       </div>
       <div className="space-y-1.5">
         <div className="h-2 w-full bg-purple-100 rounded" />
@@ -208,6 +209,8 @@ function Step({ number, title, description }: StepProps) {
 }
 
 export function LandingPage() {
+  const { t } = useTranslation('auth');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Hero Section */}
@@ -220,23 +223,21 @@ export function LandingPage() {
 
           {/* Headlines */}
           <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4">
-            Edwards Engineering
+            {t('landing.heroTitle')}
             <br />
-            <span className="text-blue-600">Management Board</span>
+            <span className="text-blue-600">{t('landing.heroSubtitle')}</span>
           </h1>
           <p className="text-xl text-slate-600 mb-3">
-            Unified Resource & Project Management for EUV Program IS
+            {t('landing.heroTagline')}
           </p>
           <p className="text-base text-slate-500 mb-8 max-w-xl mx-auto">
-            SharePoint와 Excel 기반 워크플로우를 대체하는 통합 관리 플랫폼으로,
-            <br className="hidden sm:block" />
-            워크로그 추적, 리소스 예측, 마일스톤 관리를 한 곳에서 수행합니다.
+            {t('landing.heroDescription')}
           </p>
 
           {/* CTA Button */}
           <Link to="/login">
             <Button className="h-14 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl shadow-lg shadow-blue-500/25 text-lg transition-all duration-200">
-              로그인
+              {t('landing.login')}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </Link>
@@ -253,28 +254,28 @@ export function LandingPage() {
         <section className="py-20 px-4">
           <div className="max-w-5xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-slate-800 mb-4">
-              해결하는 문제
+              {t('landing.problemsTitle')}
             </h2>
             <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
-              기존 업무 방식의 비효율성을 해소하고 데이터 기반 의사결정을 지원합니다.
+              {t('landing.problemsSubtitle')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <ProblemCard
                 icon={
                   <FileSpreadsheet className="w-8 h-8 text-red-500" />
                 }
-                title="분산된 데이터"
-                description="SharePoint와 Excel 파일에 흩어진 정보를 통합하여 단일 소스로 관리합니다."
+                title={t('landing.scatteredData')}
+                description={t('landing.scatteredDataDesc')}
               />
               <ProblemCard
                 icon={<ClipboardList className="w-8 h-8 text-red-500" />}
-                title="수동 추적"
-                description="수작업으로 관리하던 워크로그와 리소스 현황을 자동화된 시스템으로 추적합니다."
+                title={t('landing.manualTracking')}
+                description={t('landing.manualTrackingDesc')}
               />
               <ProblemCard
                 icon={<Eye className="w-8 h-8 text-red-500" />}
-                title="제한된 가시성"
-                description="실시간 대시보드와 리포트로 프로젝트 현황을 즉시 파악할 수 있습니다."
+                title={t('landing.limitedVisibility')}
+                description={t('landing.limitedVisibilityDesc')}
               />
             </div>
           </div>
@@ -286,41 +287,41 @@ export function LandingPage() {
         <section className="py-20 px-4 bg-white/50">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-slate-800 mb-4">
-              주요 기능
+              {t('landing.featuresTitle')}
             </h2>
             <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
-              엔지니어링 리소스 관리에 필요한 모든 기능을 제공합니다.
+              {t('landing.featuresSubtitle')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FeatureCard
                 icon={<Clock className="w-6 h-6 text-white" />}
-                title="워크로그 추적"
-                description="프로젝트별 일일 업무 시간을 기록하고, AI가 자동으로 분류합니다."
-                mockUI={<WorklogMockUI />}
+                title={t('landing.worklogTracking')}
+                description={t('landing.worklogTrackingDesc')}
+                mockUI={<WorklogMockUI label={t('landing.mockWorklogEntry')} />}
               />
               <FeatureCard
                 icon={<Calendar className="w-6 h-6 text-white" />}
-                title="리소스 예측"
-                description="월별 FTE 배분을 계획하고 리소스 매트릭스로 시각화합니다."
-                mockUI={<ResourceMatrixMockUI />}
+                title={t('landing.resourceForecasting')}
+                description={t('landing.resourceForecastingDesc')}
+                mockUI={<ResourceMatrixMockUI label={t('landing.mockResourceMatrix')} />}
               />
               <FeatureCard
                 icon={<FolderKanban className="w-6 h-6 text-white" />}
-                title="프로젝트 관리"
-                description="프로젝트 라이프사이클과 PCP 게이트(G3, G5, G6)를 추적합니다."
-                mockUI={<TimelineMockUI />}
+                title={t('landing.projectManagement')}
+                description={t('landing.projectManagementDesc')}
+                mockUI={<TimelineMockUI label={t('landing.mockProjectTimeline')} />}
               />
               <FeatureCard
                 icon={<LayoutDashboard className="w-6 h-6 text-white" />}
-                title="팀 대시보드"
-                description="개인 및 팀 단위 대시보드로 기간별 현황을 한눈에 파악합니다."
-                mockUI={<DashboardMockUI />}
+                title={t('landing.teamDashboard')}
+                description={t('landing.teamDashboardDesc')}
+                mockUI={<DashboardMockUI label={t('landing.mockTeamDashboard')} />}
               />
               <FeatureCard
                 icon={<Sparkles className="w-6 h-6 text-white" />}
-                title="AI 주간 요약"
-                description="AI가 생성하는 주간 요약과 자동 인사이트로 업무 현황을 파악합니다."
-                mockUI={<AISummaryMockUI />}
+                title={t('landing.aiWeeklySummary')}
+                description={t('landing.aiWeeklySummaryDesc')}
+                mockUI={<AISummaryMockUI label={t('landing.mockAiSummary')} />}
               />
             </div>
           </div>
@@ -332,26 +333,26 @@ export function LandingPage() {
         <section className="py-20 px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-slate-800 mb-4">
-              사용 방법
+              {t('landing.howToUseTitle')}
             </h2>
             <p className="text-center text-slate-600 mb-12 max-w-2xl mx-auto">
-              간단한 3단계로 리소스 관리를 시작하세요.
+              {t('landing.howToUseSubtitle')}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <Step
                 number={1}
-                title="업무 기록"
-                description="프로젝트별로 일일 업무 시간을 기록합니다."
+                title={t('landing.step1Title')}
+                description={t('landing.step1Desc')}
               />
               <Step
                 number={2}
-                title="리소스 계획"
-                description="월별 FTE 목표를 설정하고 배분합니다."
+                title={t('landing.step2Title')}
+                description={t('landing.step2Desc')}
               />
               <Step
                 number={3}
-                title="추적 & 분석"
-                description="대시보드와 리포트로 진행 상황을 모니터링합니다."
+                title={t('landing.step3Title')}
+                description={t('landing.step3Desc')}
               />
             </div>
           </div>
@@ -363,17 +364,16 @@ export function LandingPage() {
         <section className="py-16 px-4 bg-slate-800">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-2xl font-bold text-white mb-6">
-              지금 바로 시작하세요
+              {t('landing.ctaTitle')}
             </h2>
             <Link to="/login">
               <Button className="h-12 px-6 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium rounded-xl shadow-lg transition-all duration-200">
-                로그인
+                {t('landing.login')}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <p className="text-slate-400 text-sm mt-8">
-              &copy; {new Date().getFullYear()} Edwards Korea Engineering. All rights
-              reserved.
+              {t('common:footer.copyright', { year: new Date().getFullYear() })}
             </p>
           </div>
         </section>

@@ -5,6 +5,8 @@
  */
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { useApiError } from '@/hooks/useApiError';
 import { useJobPositionsList } from '@/hooks/useJobPositionsCrud';
 import { UserEditModal } from '@/components/organization/ResourcesTab';
 import {
@@ -56,6 +58,8 @@ interface OrgItem {
 export const TeamsTab: React.FC = () => {
     const queryClient = useQueryClient();
     const { canManageOrganization } = usePermissions();
+    const { t } = useTranslation('organization');
+    const getErrorMessage = useApiError();
     const [expandedL0, setExpandedL0] = useState<Set<string>>(new Set());
     const [expandedL1, setExpandedL1] = useState<Set<string>>(new Set());
 
@@ -100,8 +104,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create Division');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -111,8 +115,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['divisions'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update Division');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -123,8 +127,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || '삭제 실패');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -142,8 +146,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create Department');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -154,8 +158,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['departments'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update Department');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -166,8 +170,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || '삭제 실패');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -179,8 +183,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to create SubTeam');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -190,8 +194,8 @@ export const TeamsTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['sub-teams'] });
             closeModal();
         },
-        onError: (error: any) => {
-            setModalError(error.response?.data?.detail || 'Failed to update SubTeam');
+        onError: (error: unknown) => {
+            setModalError(getErrorMessage(error));
         }
     });
 
@@ -202,8 +206,8 @@ export const TeamsTab: React.FC = () => {
             setDeleteConfirm(null);
             setDeleteError(null);
         },
-        onError: (error: any) => {
-            setDeleteError(error.response?.data?.detail || '삭제 실패');
+        onError: (error: unknown) => {
+            setDeleteError(getErrorMessage(error));
         },
     });
 
@@ -279,7 +283,7 @@ export const TeamsTab: React.FC = () => {
         else if (deleteConfirm.type === 'level2') deleteL2.mutate(deleteConfirm.id);
     };
 
-    if (loadingL0) return <div className="text-center py-8">Loading...</div>;
+    if (loadingL0) return <div className="text-center py-8">{t('common:status.loading')}</div>;
 
     // Filter "Orphaned" Departments (No Division)
     const orphanedDepartments = allDepartments.filter(d => !d.division_id);
@@ -290,7 +294,7 @@ export const TeamsTab: React.FC = () => {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Organization Hierarchy (Division &gt; Dept &gt; SubTeam)</CardTitle>
                     {canManageOrganization && (
-                        <Button onClick={() => openCreateModal('level0')}>+ Division 추가</Button>
+                        <Button onClick={() => openCreateModal('level0')}>{t('teams.addDivision')}</Button>
                     )}
                 </CardHeader>
                 <CardContent>
@@ -326,7 +330,7 @@ export const TeamsTab: React.FC = () => {
                         {/* Orphaned Departments */}
                         {orphanedDepartments.length > 0 && (
                             <div className="border rounded-lg bg-gray-50 border-dashed border-gray-300">
-                                <div className="p-3 font-medium text-gray-500">Unassigned Departments (No Division)</div>
+                                <div className="p-3 font-medium text-gray-500">{t('teams.unassignedDepts')}</div>
                                 <div className="p-3 pt-0 space-y-2">
                                     {orphanedDepartments.map(dept => (
                                         <DepartmentRow
@@ -356,9 +360,9 @@ export const TeamsTab: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {modalMode === 'create' ? '조직 추가' : '조직 수정'}
+                            {modalMode === 'create' ? t('teams.addOrg') : t('teams.editOrg')}
                         </DialogTitle>
-                        <DialogDescription>조직 정보를 입력하세요.</DialogDescription>
+                        <DialogDescription>{t('teams.orgFormDesc')}</DialogDescription>
                     </DialogHeader>
 
                     {modalError && (
@@ -370,7 +374,7 @@ export const TeamsTab: React.FC = () => {
                     <div className="space-y-4 py-4">
                         {/* Level Selection (readonly) */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">수준</label>
+                            <label className="block text-sm font-medium mb-1">{t('teams.level')}</label>
                             <div className="text-sm font-medium px-3 py-2 rounded bg-slate-100">
                                 {formData.targetLevel === 'level0' ? 'Level 0 (Division)' :
                                     formData.targetLevel === 'level1' ? 'Level 1 (Department)' : 'Level 2 (SubTeam)'}
@@ -379,26 +383,26 @@ export const TeamsTab: React.FC = () => {
 
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">이름 *</label>
+                            <label className="block text-sm font-medium mb-1">{t('teams.nameRequired')}</label>
                             <input
                                 type="text"
                                 className="w-full border rounded px-3 py-2"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="조직 이름"
+                                placeholder={t('teams.orgNamePlaceholder')}
                             />
                         </div>
 
                         {/* Division Selection (For Level 1) */}
                         {formData.targetLevel === 'level1' && (
                             <div>
-                                <label className="block text-sm font-medium mb-1">상위 조직 (Division)</label>
+                                <label className="block text-sm font-medium mb-1">{t('teams.parentDivision')}</label>
                                 <select
                                     className="w-full border rounded px-3 py-2"
                                     value={formData.parentId}
                                     onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
                                 >
-                                    <option value="">(선택 안함 / 소속 없음)</option>
+                                    <option value="">{t('teams.noParent')}</option>
                                     {level0Items.map(div => (
                                         <option key={div.id} value={div.id}>
                                             {div.name}
@@ -411,21 +415,21 @@ export const TeamsTab: React.FC = () => {
                         {/* Code (create only) */}
                         {modalMode === 'create' && (
                             <div>
-                                <label className="block text-sm font-medium mb-1">코드</label>
+                                <label className="block text-sm font-medium mb-1">{t('teams.code')}</label>
                                 <input
                                     type="text"
                                     className="w-full border rounded px-3 py-2"
                                     value={formData.code}
                                     onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                    placeholder="자동 생성됨"
+                                    placeholder={t('teams.codeAutoGenerated')}
                                 />
                             </div>
                         )}
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={closeModal}>취소</Button>
+                        <Button variant="outline" onClick={closeModal}>{t('common:buttons.cancel')}</Button>
                         <Button onClick={handleSave} disabled={!formData.name.trim()}>
-                            {modalMode === 'create' ? '추가' : '저장'}
+                            {modalMode === 'create' ? t('common:buttons.add') : t('common:buttons.save')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -435,9 +439,9 @@ export const TeamsTab: React.FC = () => {
             <Dialog open={!!deleteConfirm} onOpenChange={() => { setDeleteConfirm(null); setDeleteError(null); }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>삭제 확인</DialogTitle>
+                        <DialogTitle>{t('teams.deleteConfirmTitle')}</DialogTitle>
                         <DialogDescription>
-                            "{deleteConfirm?.name}"을(를) 삭제하시겠습니까?
+                            {t('teams.deleteConfirmMessage', { name: deleteConfirm?.name })}
                         </DialogDescription>
                     </DialogHeader>
                     {deleteError && (
@@ -446,8 +450,8 @@ export const TeamsTab: React.FC = () => {
                         </div>
                     )}
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>취소</Button>
-                        <Button variant="destructive" onClick={handleDelete}>삭제</Button>
+                        <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteError(null); }}>{t('common:buttons.cancel')}</Button>
+                        <Button variant="destructive" onClick={handleDelete}>{t('common:buttons.delete')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

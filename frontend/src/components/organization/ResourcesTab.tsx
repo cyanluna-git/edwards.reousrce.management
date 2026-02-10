@@ -6,6 +6,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useJobPositionsList } from '@/hooks/useJobPositionsCrud';
 import { Search, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
     Card,
     CardContent,
@@ -41,6 +42,7 @@ type SortDirection = 'asc' | 'desc';
 export const ResourcesTab: React.FC = () => {
     const queryClient = useQueryClient();
     const { canManageUsers } = usePermissions();
+    const { t } = useTranslation('organization');
     const [selectedDeptId, setSelectedDeptId] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
@@ -206,11 +208,11 @@ export const ResourcesTab: React.FC = () => {
         <Card>
             <CardHeader className="flex flex-col gap-4">
                 <div className="flex flex-row items-center justify-between">
-                    <CardTitle>Resources ({filteredUsers.length}명)</CardTitle>
+                    <CardTitle>{t('resources.titleWithCount', { count: filteredUsers.length })}</CardTitle>
                     <div className="flex gap-2">
                         {canManageUsers && (
                             <Button onClick={() => setEditingUser({} as UserDetails)}>
-                                + 사용자 추가
+                                {t('resources.addUser')}
                             </Button>
                         )}
                         <select
@@ -230,7 +232,7 @@ export const ResourcesTab: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                         type="text"
-                        placeholder="이름 검색 (한글/영어/이메일)..."
+                        placeholder={t('resources.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-9 pr-9 py-2 text-sm border rounded-md"
@@ -250,7 +252,7 @@ export const ResourcesTab: React.FC = () => {
                     <div className="text-center py-4">Loading...</div>
                 ) : filteredUsers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                        {searchTerm ? `"${searchTerm}" 검색 결과가 없습니다.` : '등록된 사용자가 없습니다.'}
+                        {searchTerm ? t('resources.searchNoResults', { term: searchTerm }) : t('resources.noUsers')}
                     </div>
                 ) : (
                     <table className="w-full text-sm">
@@ -335,6 +337,7 @@ export const UserEditModal: React.FC<{
 }> = ({ user, positions, onClose, onSuccess }) => {
     const _queryClient = useQueryClient();
     void _queryClient; // Reserved for cache invalidation
+    const { t } = useTranslation('organization');
     const { data: businessUnits = [] } = useQuery({
         queryKey: ['business-units'],
         queryFn: () => getBusinessUnits(),
@@ -403,21 +406,21 @@ export const UserEditModal: React.FC<{
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>{isNewUser ? '신규 사용자 추가' : `Edit Member: ${user.name}`}</DialogTitle>
+                    <DialogTitle>{isNewUser ? t('resources.addUserTitle') : t('resources.editUserTitle', { name: user.name })}</DialogTitle>
                     <DialogDescription>
-                        {isNewUser ? '신규 사용자를 생성합니다. 기본 패스워드는 "edwards@!" 입니다.' : '사용자 정보를 수정합니다.'}
+                        {isNewUser ? t('resources.addUserDescription') : t('resources.editUserDescription')}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
-                            {error.message || '오류가 발생했습니다.'}
+                            {error.message || t('resources.errorOccurred')}
                         </div>
                     )}
                     {/* Name Fields */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">영어 이름 *</label>
+                            <label className="block text-sm font-medium mb-1">{t('resources.englishName')}</label>
                             <input
                                 type="text"
                                 className="w-full border rounded px-3 py-2"
@@ -427,7 +430,7 @@ export const UserEditModal: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">한글 이름</label>
+                            <label className="block text-sm font-medium mb-1">{t('resources.koreanName')}</label>
                             <input
                                 type="text"
                                 className="w-full border rounded px-3 py-2"
@@ -449,7 +452,7 @@ export const UserEditModal: React.FC<{
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">조직 *</label>
+                        <label className="block text-sm font-medium mb-1">{t('resources.organization')}</label>
                         <OrganizationSelect
                             divisionId={formData.division_id}
                             departmentId={formData.department_id}
@@ -462,7 +465,7 @@ export const UserEditModal: React.FC<{
                                     sub_team_id: stId || ''
                                 });
                             }}
-                            placeholder="조직 선택..."
+                            placeholder={t('resources.orgPlaceholder')}
                             className="w-full"
                         />
                     </div>
@@ -485,7 +488,7 @@ export const UserEditModal: React.FC<{
                             value={formData.primary_business_unit_id}
                             onChange={(e) => setFormData({ ...formData, primary_business_unit_id: e.target.value })}
                         >
-                            <option value="">- 선택 -</option>
+                            <option value="">{t('resources.selectNone')}</option>
                             {businessUnits.map((bu) => (
                                 <option key={bu.id} value={bu.id}>{bu.name}</option>
                             ))}
@@ -515,13 +518,13 @@ export const UserEditModal: React.FC<{
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>취소</Button>
+                    <Button variant="outline" onClick={onClose}>{t('common:buttons.cancel')}</Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={isPending}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                        {isPending ? '처리 중...' : (isNewUser ? '생성' : '저장')}
+                        {isPending ? t('resources.processing') : (isNewUser ? t('common:buttons.create') : t('common:buttons.save'))}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -534,13 +537,14 @@ const UserHistoryModal: React.FC<{ user: UserDetails; onClose: () => void }> = (
         queryKey: ['user-history', user.id],
         queryFn: () => getUserHistory(user.id),
     });
+    const { t } = useTranslation('organization');
 
     return (
         <Dialog open onOpenChange={onClose}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
                     <DialogTitle>{user.name} - History</DialogTitle>
-                    <DialogDescription>사용자의 변경 이력을 확인합니다.</DialogDescription>
+                    <DialogDescription>{t('resources.historyDescription')}</DialogDescription>
                 </DialogHeader>
                 <div className="py-4">
                     {isLoading ? (

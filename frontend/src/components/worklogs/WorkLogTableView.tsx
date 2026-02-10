@@ -4,6 +4,7 @@
  * Extracted from WorkLogTablePage for use as a tab
  */
 import { useState, useMemo, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { format, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { getBusinessUnits, getDepartments, getSubTeams, getUsers, getPrograms, B
 import type { Program } from '@/types';
 
 export function WorkLogTableView() {
+    const { t } = useTranslation('worklogs');
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
@@ -129,22 +131,22 @@ export function WorkLogTableView() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
-                    {!isAdmin && <span>(My Logs Only) · </span>}
-                    Total: <span className="font-bold text-primary">{totalHours.toFixed(1)}h</span>
+                    {!isAdmin && <span>({t('table.myLogsOnly')}) · </span>}
+                    {t('table.total')}: <span className="font-bold text-primary">{totalHours.toFixed(1)}h</span>
                     {' · '}
-                    {worklogs.length} records
+                    {t('table.records', { count: worklogs.length })}
                 </div>
             </div>
 
             {/* Filters */}
             <Card>
                 <CardHeader className="py-2">
-                    <CardTitle className="text-base">Filters</CardTitle>
+                    <CardTitle className="text-base">{t('table.filters')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 py-2">
                     {/* Row 1: Date Range */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground w-16">Date:</span>
+                        <span className="text-sm text-muted-foreground w-16">{t('table.date')}:</span>
                         <Input
                             type="date"
                             value={startDate}
@@ -159,15 +161,15 @@ export function WorkLogTableView() {
                             className="w-36 h-8"
                         />
                         <div className="flex gap-1">
-                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(7)}>7일</Button>
-                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(14)}>14일</Button>
-                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(30)}>30일</Button>
+                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(7)}>{t('table.nDays', { count: 7 })}</Button>
+                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(14)}>{t('table.nDays', { count: 14 })}</Button>
+                            <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => setDateRange(30)}>{t('table.nDays', { count: 30 })}</Button>
                         </div>
                     </div>
 
                     {/* Row 2: 프로젝트 기반 필터 */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground w-16">Project:</span>
+                        <span className="text-sm text-muted-foreground w-16">{t('table.project')}:</span>
                         <select
                             className="px-2 py-1 border rounded-md text-sm h-8"
                             value={businessUnitFilter}
@@ -177,7 +179,7 @@ export function WorkLogTableView() {
                                 setProjectFilter('');
                             }}
                         >
-                            <option value="">All Business Areas</option>
+                            <option value="">{t('table.allBusinessAreas')}</option>
                             {businessUnits.map(bu => (
                                 <option key={bu.id} value={bu.id}>{bu.name}</option>
                             ))}
@@ -190,7 +192,7 @@ export function WorkLogTableView() {
                                 setProjectFilter('');
                             }}
                         >
-                            <option value="">All Programs</option>
+                            <option value="">{t('table.allPrograms')}</option>
                             {filteredPrograms.map(p => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
@@ -200,7 +202,7 @@ export function WorkLogTableView() {
                             value={projectFilter}
                             onChange={(e) => setProjectFilter(e.target.value)}
                         >
-                            <option value="">All Projects</option>
+                            <option value="">{t('table.allProjects')}</option>
                             {filteredProjects.map(p => (
                                 <option key={p.id} value={p.id}>{p.internal_io?.io_number || p.id.slice(0, 8)} - {p.name}</option>
                             ))}
@@ -210,7 +212,7 @@ export function WorkLogTableView() {
                     {/* Row 3: 조직 기반 필터 (Admin Only) */}
                     {isAdmin && (
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-muted-foreground w-16">Org:</span>
+                            <span className="text-sm text-muted-foreground w-16">{t('table.org')}:</span>
                             <select
                                 className="px-2 py-1 border rounded-md text-sm h-8"
                                 value={departmentFilter}
@@ -220,7 +222,7 @@ export function WorkLogTableView() {
                                     setUserFilter('');
                                 }}
                             >
-                                <option value="">All Departments</option>
+                                <option value="">{t('table.allDepartments')}</option>
                                 {departments.map(d => (
                                     <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
@@ -234,7 +236,7 @@ export function WorkLogTableView() {
                                 }}
                                 disabled={!departmentFilter}
                             >
-                                <option value="">All Sub-Teams</option>
+                                <option value="">{t('table.allSubTeams')}</option>
                                 {subTeams.map(st => (
                                     <option key={st.id} value={st.id}>{st.name}</option>
                                 ))}
@@ -244,7 +246,7 @@ export function WorkLogTableView() {
                                 value={userFilter}
                                 onChange={(e) => setUserFilter(e.target.value)}
                             >
-                                <option value="">All Users</option>
+                                <option value="">{t('table.allUsers')}</option>
                                 {filteredUsers.map(u => (
                                     <option key={u.id} value={u.id}>{u.korean_name || u.name}</option>
                                 ))}
@@ -254,20 +256,20 @@ export function WorkLogTableView() {
 
                     {/* Row 4: Work Type & Actions */}
                     <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm text-muted-foreground w-16">Type:</span>
+                        <span className="text-sm text-muted-foreground w-16">{t('table.type')}:</span>
                         <select
                             className="px-2 py-1 border rounded-md text-sm h-8"
                             value={workTypeFilter}
                             onChange={(e) => setWorkTypeFilter(e.target.value)}
                         >
-                            <option value="">All Work Types</option>
+                            <option value="">{t('table.allWorkTypes')}</option>
                             {workTypes.map(wt => (
                                 <option key={wt} value={wt}>{wt}</option>
                             ))}
                         </select>
                         <div className="flex-1" />
-                        <Button variant="outline" size="sm" className="h-8" onClick={resetFilters}>Clear All</Button>
-                        <Button variant="outline" size="sm" className="h-8" onClick={() => refetch()}>🔄 Refresh</Button>
+                        <Button variant="outline" size="sm" className="h-8" onClick={resetFilters}>{t('table.clearAll')}</Button>
+                        <Button variant="outline" size="sm" className="h-8" onClick={() => refetch()}>{t('table.refresh')}</Button>
                     </div>
                 </CardContent>
             </Card>
@@ -276,21 +278,21 @@ export function WorkLogTableView() {
             <Card>
                 <CardContent className="p-0">
                     {isLoading ? (
-                        <div className="text-center py-8">Loading worklogs...</div>
+                        <div className="text-center py-8">{t('status.loading')}</div>
                     ) : worklogs.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">No worklogs found</div>
+                        <div className="text-center py-8 text-muted-foreground">{t('table.noData')}</div>
                     ) : (
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                                 <thead className="bg-muted/50 sticky top-0">
                                     <tr>
-                                        <th className="text-left p-2 whitespace-nowrap">Date</th>
-                                        {isAdmin && <th className="text-left p-2 whitespace-nowrap">User</th>}
-                                        <th className="text-left p-2">Project</th>
-                                        <th className="text-left p-2 whitespace-nowrap">Work Type</th>
-                                        <th className="text-right p-2 whitespace-nowrap">Hours</th>
-                                        <th className="text-left p-2">Description</th>
-                                        <th className="text-center p-2 whitespace-nowrap">Flags</th>
+                                        <th className="text-left p-2 whitespace-nowrap">{t('table.date')}</th>
+                                        {isAdmin && <th className="text-left p-2 whitespace-nowrap">{t('table.user')}</th>}
+                                        <th className="text-left p-2">{t('table.project')}</th>
+                                        <th className="text-left p-2 whitespace-nowrap">{t('table.workType')}</th>
+                                        <th className="text-right p-2 whitespace-nowrap">{t('table.hours')}</th>
+                                        <th className="text-left p-2">{t('table.description')}</th>
+                                        <th className="text-center p-2 whitespace-nowrap">{t('table.flags')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="virtualized">
@@ -320,15 +322,15 @@ export function WorkLogTableView() {
                                                 </div>
                                             </td>
                                             <td className="p-2 text-center whitespace-nowrap">
-                                                {wl.is_sudden_work && <span title="Sudden Work">⚡</span>}
-                                                {wl.is_business_trip && <span title="Business Trip">✈️</span>}
+                                                {wl.is_sudden_work && <span title={t('table.suddenWork')}>⚡</span>}
+                                                {wl.is_business_trip && <span title={t('table.businessTrip')}>✈️</span>}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                                 <tfoot className="bg-muted/50 font-medium">
                                     <tr>
-                                        <td colSpan={isAdmin ? 4 : 3} className="p-2 text-right">Total:</td>
+                                        <td colSpan={isAdmin ? 4 : 3} className="p-2 text-right">{t('table.total')}:</td>
                                         <td className="p-2 text-right">{totalHours.toFixed(1)}h</td>
                                         <td colSpan={2}></td>
                                     </tr>

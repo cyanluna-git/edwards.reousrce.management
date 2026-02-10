@@ -4,6 +4,7 @@
  * Now uses hierarchical work type categories and project/product line selection
  */
 import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
@@ -54,6 +55,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
     isEditing = false,
     isLoading = false,
 }) => {
+    const { t } = useTranslation('worklogs');
 
     const { register, handleSubmit, watch, reset, control, setValue, formState: { errors } } = useForm<WorkLogFormData>({
         defaultValues: {
@@ -129,18 +131,18 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
             <DialogContent className="sm:max-w-[550px] bg-background border shadow-lg">
                 <DialogHeader>
                     <DialogTitle>
-                        {isEditing ? 'Edit WorkLog' : 'Add WorkLog'} - {date}
+                        {isEditing ? t('entryModal.editTitle') : t('entryModal.addTitle')} - {date}
                     </DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
                     {/* Step 1: Work Type Selection (Always First) */}
                     <div className="space-y-2">
-                        <Label>Work Type *</Label>
+                        <Label>{t('entryModal.workType')} *</Label>
                         <Controller
                             name="work_type_category_id"
                             control={control}
-                            rules={{ required: 'Work type is required' }}
+                            rules={{ required: t('entryModal.workTypeRequired') }}
                             render={({ field }) => (
                                 <WorkTypeCategorySelect
                                     value={field.value}
@@ -148,7 +150,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                                         field.onChange(categoryId);
                                         handleWorkTypeCategoryChange(categoryId, category);
                                     }}
-                                    placeholder="업무 유형 선택..."
+                                    placeholder={t('entryModal.selectWorkType')}
                                     className="w-full"
                                 />
                             )}
@@ -162,7 +164,7 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label>
-                                프로젝트
+                                {t('entryModal.project')}
                             </Label>
                         </div>
                         <Controller
@@ -175,20 +177,20 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                                     onProjectChange={handleProjectChange}
                                     onProductLineChange={handleProductLineChange}
                                     projectRequired={false}
-                                    placeholder="프로젝트 선택..."
+                                    placeholder={t('entryModal.selectProject')}
                                     className="w-full"
                                 />
                             )}
                         />
                         <p className="text-xs text-muted-foreground">
-                            💡 전사/총무/교육 등 비프로젝트 업무는 선택하지 않아도 됩니다
+                            {t('entryModal.projectHint')}
                         </p>
                     </div>
 
 
 
                     <div className="space-y-2">
-                        <Label htmlFor="hours">Hours *</Label>
+                        <Label htmlFor="hours">{t('entryModal.hours')} *</Label>
                         <Input
                             id="hours"
                             type="number"
@@ -196,9 +198,9 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                             min="0.5"
                             max="24"
                             {...register('hours', {
-                                required: 'Hours is required',
-                                min: { value: 0.5, message: 'Minimum 0.5 hours' },
-                                max: { value: 24, message: 'Maximum 24 hours' },
+                                required: t('entryModal.hoursRequired'),
+                                min: { value: 0.5, message: t('entryModal.hoursMin') },
+                                max: { value: 24, message: t('entryModal.hoursMax') },
                                 valueAsNumber: true,
                             })}
                         />
@@ -208,11 +210,11 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description">{t('entryModal.description')}</Label>
                         <textarea
                             id="description"
                             className="w-full p-2 border rounded-md bg-background min-h-[80px]"
-                            placeholder="What did you work on?"
+                            placeholder={t('entryModal.descriptionPlaceholder')}
                             {...register('description')}
                         />
                     </div>
@@ -220,20 +222,20 @@ export const WorkLogEntryModal: React.FC<WorkLogEntryModalProps> = ({
                     <div className="flex gap-4">
                         <label className="flex items-center gap-2">
                             <input type="checkbox" {...register('is_sudden_work')} />
-                            <span className="text-sm">Sudden/Urgent Work</span>
+                            <span className="text-sm">{t('entryModal.suddenWork')}</span>
                         </label>
                         <label className="flex items-center gap-2">
                             <input type="checkbox" {...register('is_business_trip')} />
-                            <span className="text-sm">Business Trip</span>
+                            <span className="text-sm">{t('entryModal.businessTrip')}</span>
                         </label>
                     </div>
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose}>
-                            Cancel
+                            {t('entryModal.cancel')}
                         </Button>
                         <Button type="submit" disabled={isLoading}>
-                            {isLoading ? 'Saving...' : isEditing ? 'Update' : 'Add'}
+                            {isLoading ? t('entryModal.saving') : isEditing ? t('entryModal.update') : t('entryModal.add')}
                         </Button>
                     </DialogFooter>
                 </form>

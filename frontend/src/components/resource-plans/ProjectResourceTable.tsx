@@ -1,4 +1,5 @@
 import React, { useMemo, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useResourcePlans } from '@/hooks/useResourcePlans';
 import { Button } from '@/components/ui';
 
@@ -28,6 +29,8 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
     onEditRow,
     onDeleteRow,
 }) => {
+    const { t } = useTranslation('resource-plans');
+
     // Lazy Load: Fetch only when this component is mounted
     const { data: plans = [], isLoading, error } = useResourcePlans({ project_id: projectId });
 
@@ -71,13 +74,13 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
     }, [plans]);
 
     if (isLoading) {
-        return <div className="p-4 text-center text-sm text-gray-500">데이터를 불러오는 중...</div>;
+        return <div className="p-4 text-center text-sm text-gray-500">{t('resourceTable.loading')}</div>;
     }
 
     if (error) {
         return (
             <div className="p-4 text-center text-sm text-red-500">
-                데이터 로딩 실패: {(error as Error).message}
+                {t('resourceTable.loadError', { message: (error as Error).message })}
             </div>
         );
     }
@@ -85,9 +88,9 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
     if (rows.length === 0) {
         return (
             <div className="p-4 text-center text-sm text-gray-500 flex flex-col items-center gap-2">
-                <span>등록된 인원이 없습니다.</span>
+                <span>{t('resourceTable.noMembers')}</span>
                 <Button size="sm" variant="outline" onClick={onAddMember}>
-                    + 팀원 추가
+                    {t('actions.addRow')}
                 </Button>
             </div>
         );
@@ -97,21 +100,21 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
         <div className="px-3 pb-3 overflow-x-auto">
             <div className="flex justify-end p-2">
                 <Button size="sm" variant="outline" onClick={onAddMember}>
-                    + 팀원 추가
+                    {t('actions.addRow')}
                 </Button>
             </div>
             <table className="w-full text-sm border-collapse">
                 <thead>
                     <tr className="bg-slate-100">
                         <th className="text-left py-2 px-2 border-b sticky left-0 bg-slate-100 min-w-[160px] z-10">
-                            팀원/포지션
+                            {t('resourceTable.memberPosition')}
                         </th>
                         {months.map(m => (
                             <th key={m.label} className="text-center py-2 px-1 border-b min-w-[50px] text-xs">
                                 {m.label}
                             </th>
                         ))}
-                        <th className="text-center py-2 px-2 border-b min-w-[80px]">액션</th>
+                        <th className="text-center py-2 px-2 border-b min-w-[80px]">{t('resourceTable.action')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -138,13 +141,13 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
                                         className="text-xs text-blue-600 hover:underline px-1"
                                         onClick={() => onEditRow(row)}
                                     >
-                                        수정
+                                        {t('actions.editRow')}
                                     </button>
                                     <button
                                         className="text-xs text-red-600 hover:underline px-1"
                                         onClick={() => onDeleteRow(row)}
                                     >
-                                        삭제
+                                        {t('actions.deleteRow')}
                                     </button>
                                 </div>
                             </td>
@@ -153,7 +156,7 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
                     {/* Totals Row */}
                     <tr className="bg-slate-50 font-semibold text-xs border-t-2">
                         <td className="py-2 px-2 sticky left-0 bg-slate-50 z-10 text-right">
-                            합계
+                            {t('table.total')}
                         </td>
                         {months.map(m => {
                             const key = `${m.year}-${m.month}`;

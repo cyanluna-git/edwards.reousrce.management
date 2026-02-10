@@ -9,6 +9,7 @@
  */
 import React, { memo, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
     getResourcePivotMatrix,
     type PivotMatrixResponse,
@@ -33,6 +34,8 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     programId,
     onCellClick,
 }) => {
+    const { t } = useTranslation('resource-plans');
+
     // ✅ OPTIMIZED: Longer staleTime for reference data (resource matrix changes infrequently)
     const { data, isLoading, error } = useQuery<PivotMatrixResponse>({
         queryKey: ['resource-pivot', startMonth, endMonth, departmentId, programId],
@@ -114,7 +117,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-lg text-muted-foreground">Loading pivot matrix...</div>
+                <div className="text-lg text-muted-foreground">{t('pivot.loading')}</div>
             </div>
         );
     }
@@ -123,7 +126,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-lg text-red-600">
-                    Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
+                    {t('pivot.errorLoading', { message: error instanceof Error ? error.message : t('pivot.unknownError') })}
                 </div>
             </div>
         );
@@ -133,7 +136,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-lg text-muted-foreground">
-                    No resource allocations found for the selected period.
+                    {t('pivot.noData')}
                 </div>
             </div>
         );
@@ -148,8 +151,8 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                         {/* User Column (Sticky Left) */}
                         <th className="sticky left-0 bg-slate-100 border border-slate-300 p-3 min-w-[200px] text-left font-bold z-30 shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
                             <div className="flex flex-col">
-                                <span className="text-slate-800">Resource</span>
-                                <span className="text-xs text-slate-500 font-normal">Name / Position</span>
+                                <span className="text-slate-800">{t('pivot.resource')}</span>
+                                <span className="text-xs text-slate-500 font-normal">{t('pivot.namePosition')}</span>
                             </div>
                         </th>
 
@@ -184,7 +187,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                         {/* Total Column */}
                         <th className="sticky right-0 bg-blue-50 border border-slate-300 p-2 min-w-[80px] font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-20 align-top">
                             <div className="flex flex-col h-full justify-between">
-                                <span>Total</span>
+                                <span>{t('pivot.total')}</span>
                                 <span className="text-xs mt-auto pt-2">{data.grand_total.toFixed(1)}</span>
                             </div>
                         </th>
@@ -211,7 +214,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                                         <div className="flex items-center gap-2">
                                             {isDeptCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                                             <Building2 size={16} className="text-slate-500" />
-                                            <span>{deptName}</span>
+                                            <span>{deptName === 'Unassigned' ? t('pivot.unassigned') : deptName}</span>
                                             <Badge variant="outline" className="ml-2 text-xs font-normal text-slate-500 bg-white">
                                                 {group.totalFte.toFixed(1)} FTE
                                             </Badge>
@@ -271,7 +274,7 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
                                                 {Object.keys(group.subTeams).length > 0 && (
                                                     <tr className="bg-slate-50/50 border-b border-slate-200">
                                                         <td colSpan={data.columns.length + 2} className="p-1 pl-10 text-xs font-medium text-slate-400 sticky left-0 z-10">
-                                                            General / Direct Reports
+                                                            {t('pivot.directReports')}
                                                         </td>
                                                     </tr>
                                                 )}

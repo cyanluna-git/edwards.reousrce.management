@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { useApiError } from '@/hooks/useApiError';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,6 +38,8 @@ export function RegisterPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const { login } = useAuth();
+  const { t } = useTranslation('auth');
+  const getErrorMessage = useApiError();
 
   const [tokenPayload, setTokenPayload] = useState<TokenPayload | null>(null);
   const [name, setName] = useState('');
@@ -71,13 +75,13 @@ export function RegisterPage() {
         setDepartments(depts.filter((d) => d.is_active));
         setPositions(pos.filter((p) => p.is_active));
       } catch {
-        setError('Failed to load form data. Please try again.');
+        setError(t('ssoErrors.loadFormFailed'));
       } finally {
         setIsLoadingData(false);
       }
     };
     fetchData();
-  }, []);
+  }, [t]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -95,19 +99,8 @@ export function RegisterPage() {
         position_id: positionId,
       });
       login(response.access_token, response.refresh_token);
-    } catch (err: any) {
-      const status = err.response?.status;
-      const detail = err.response?.data?.detail;
-
-      if (status === 401) {
-        setError('Registration token has expired. Please sign in with SSO again.');
-      } else if (status === 409) {
-        setError('An account with this email already exists. Please sign in instead.');
-      } else if (status === 400 && typeof detail === 'string') {
-        setError(detail);
-      } else {
-        setError('Registration failed. Please try again.');
-      }
+    } catch (err: unknown) {
+      setError(getErrorMessage(err));
     } finally {
       setIsSubmitting(false);
     }
@@ -125,15 +118,15 @@ export function RegisterPage() {
                   <BarChart3 className="w-8 h-8 text-white" strokeWidth={2.5} />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-800 mb-4">
-                  Account Registration
+                  {t('register.title')}
                 </h1>
                 <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-left">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div className="text-sm">
-                      <p className="font-semibold text-amber-800 mb-1">SSO Login Required</p>
+                      <p className="font-semibold text-amber-800 mb-1">{t('ssoErrors.ssoLoginRequired')}</p>
                       <p className="text-amber-700">
-                        To register, please sign in with Microsoft SSO first. You will be redirected here to complete your registration.
+                        {t('ssoErrors.ssoLoginRequiredMessage')}
                       </p>
                     </div>
                   </div>
@@ -142,7 +135,7 @@ export function RegisterPage() {
               <div className="px-8 pb-8">
                 <Link to="/login">
                   <Button className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg shadow-lg shadow-blue-500/25">
-                    Go to Login
+                    {t('register.goToLogin')}
                   </Button>
                 </Link>
               </div>
@@ -164,10 +157,10 @@ export function RegisterPage() {
                 <UserPlus className="w-8 h-8 text-white" strokeWidth={2.5} />
               </div>
               <h1 className="text-2xl font-bold text-slate-800 mb-2">
-                Complete Registration
+                {t('register.subtitle')}
               </h1>
               <p className="text-sm text-slate-500">
-                Fill in the details below to create your account
+                {t('register.description')}
               </p>
             </div>
 
@@ -177,7 +170,7 @@ export function RegisterPage() {
                 {/* Email (read-only) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Email
+                    {t('common:form.email')}
                   </label>
                   <Input
                     type="email"
@@ -185,20 +178,20 @@ export function RegisterPage() {
                     disabled
                     className="h-12 bg-slate-100 border-slate-200 text-slate-600"
                   />
-                  <p className="text-xs text-slate-400">Verified via SSO - cannot be changed</p>
+                  <p className="text-xs text-slate-400">{t('register.emailVerified')}</p>
                 </div>
 
                 {/* Name (English) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Name (English)
+                    {t('register.nameEnglish')}
                   </label>
                   <Input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                    placeholder="e.g. John Doe"
+                    placeholder={t('register.namePlaceholder')}
                     className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500 transition-colors"
                   />
                 </div>
@@ -206,14 +199,14 @@ export function RegisterPage() {
                 {/* Korean Name */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Korean Name <span className="text-red-500">*</span>
+                    {t('register.koreanName')} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="text"
                     value={koreanName}
                     onChange={(e) => setKoreanName(e.target.value)}
                     required
-                    placeholder="e.g. 홍길동"
+                    placeholder={t('register.koreanNamePlaceholder')}
                     className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500 transition-colors"
                   />
                 </div>
@@ -221,17 +214,17 @@ export function RegisterPage() {
                 {/* Department */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Department <span className="text-red-500">*</span>
+                    {t('register.department')} <span className="text-red-500">*</span>
                   </label>
                   {isLoadingData ? (
                     <div className="h-12 bg-slate-100 rounded-md border border-slate-200 flex items-center px-3">
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                      <span className="ml-2 text-sm text-slate-400">Loading...</span>
+                      <span className="ml-2 text-sm text-slate-400">{t('common:status.loading')}</span>
                     </div>
                   ) : (
                     <Select value={departmentId} onValueChange={setDepartmentId} required>
                       <SelectTrigger className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select department" />
+                        <SelectValue placeholder={t('register.departmentPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {departments.map((dept) => (
@@ -247,17 +240,17 @@ export function RegisterPage() {
                 {/* Position */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-700">
-                    Position <span className="text-red-500">*</span>
+                    {t('register.position')} <span className="text-red-500">*</span>
                   </label>
                   {isLoadingData ? (
                     <div className="h-12 bg-slate-100 rounded-md border border-slate-200 flex items-center px-3">
                       <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
-                      <span className="ml-2 text-sm text-slate-400">Loading...</span>
+                      <span className="ml-2 text-sm text-slate-400">{t('common:status.loading')}</span>
                     </div>
                   ) : (
                     <Select value={positionId} onValueChange={setPositionId} required>
                       <SelectTrigger className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select position" />
+                        <SelectValue placeholder={t('register.positionPlaceholder')} />
                       </SelectTrigger>
                       <SelectContent>
                         {positions.map((pos) => (
@@ -289,10 +282,10 @@ export function RegisterPage() {
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Creating account...
+                      {t('register.creatingAccount')}
                     </span>
                   ) : (
-                    'Create Account'
+                    t('register.createAccount')
                   )}
                 </Button>
               </form>
@@ -302,7 +295,7 @@ export function RegisterPage() {
                   to="/login"
                   className="text-sm text-blue-600 hover:text-blue-700 transition-colors"
                 >
-                  Already have an account? Sign in
+                  {t('register.alreadyHaveAccount')}
                 </Link>
               </div>
             </div>
@@ -311,7 +304,7 @@ export function RegisterPage() {
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-xs text-slate-500">
-              &copy; {new Date().getFullYear()} Edwards Korea Engineering. All rights reserved.
+              {t('common:footer.copyright', { year: new Date().getFullYear() })}
             </p>
           </div>
         </div>

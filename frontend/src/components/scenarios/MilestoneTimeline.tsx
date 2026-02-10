@@ -2,6 +2,7 @@
  * Milestone Timeline Component
  * Simple visual timeline for milestones in a scenario
  */
+import { useTranslation } from 'react-i18next';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ export function MilestoneTimeline({
     onMilestoneClick,
     onAddMilestone,
 }: MilestoneTimelineProps) {
+    const { t } = useTranslation('projects');
     const sortedMilestones = [...milestones].sort(
         (a, b) => new Date(a.target_date).getTime() - new Date(b.target_date).getTime()
     );
@@ -39,17 +41,17 @@ export function MilestoneTimeline({
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">마일스톤 타임라인</CardTitle>
+                <CardTitle className="text-lg">{t('milestones.title')}</CardTitle>
                 {onAddMilestone && (
                     <Button variant="outline" size="sm" onClick={onAddMilestone}>
-                        + 추가
+                        {t('actions.addMilestone')}
                     </Button>
                 )}
             </CardHeader>
             <CardContent>
                 {sortedMilestones.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                        마일스톤이 없습니다.
+                        {t('milestones.noData')}
                     </div>
                 ) : (
                     <div className="relative">
@@ -80,12 +82,12 @@ export function MilestoneTimeline({
                                                     <span className="font-medium">{ms.name}</span>
                                                     {ms.is_key_gate && (
                                                         <span className="ml-2 text-xs bg-primary/10 text-primary px-1 rounded">
-                                                            Key Gate
+                                                            {t('milestones.keyGate')}
                                                         </span>
                                                     )}
                                                 </div>
                                                 <span className="text-xs">
-                                                    {ms.type === 'STD_GATE' ? '🚪' : '📌'}
+                                                    {ms.type === 'STD_GATE' ? '\uD83D\uDEAA' : '\uD83D\uDCCC'}
                                                 </span>
                                             </div>
 
@@ -95,7 +97,7 @@ export function MilestoneTimeline({
                                                 </span>
                                                 {ms.actual_date && (
                                                     <span className="ml-2 text-muted-foreground">
-                                                        (실적: {format(parseISO(ms.actual_date), 'yyyy-MM-dd')})
+                                                        ({t('milestones.actual')} {format(parseISO(ms.actual_date), 'yyyy-MM-dd')})
                                                     </span>
                                                 )}
                                             </div>
@@ -103,14 +105,14 @@ export function MilestoneTimeline({
                                             {/* Days indicator */}
                                             <div className="mt-1 text-xs">
                                                 {daysFromNow > 0 && status === 'Pending' && (
-                                                    <span className="text-blue-600">D-{daysFromNow}</span>
+                                                    <span className="text-blue-600">{t('milestones.dDay', { count: daysFromNow })}</span>
                                                 )}
                                                 {daysFromNow === 0 && (
-                                                    <span className="text-orange-600 font-bold">Today!</span>
+                                                    <span className="text-orange-600 font-bold">{t('milestones.today')}</span>
                                                 )}
                                                 {daysFromNow < 0 && status === 'Pending' && (
                                                     <span className="text-red-600 font-bold">
-                                                        {Math.abs(daysFromNow)}일 지연
+                                                        {t('milestones.daysDelayed', { count: Math.abs(daysFromNow) })}
                                                     </span>
                                                 )}
                                             </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useProjectDashboard } from '@/hooks/useProject';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui';
 import {
@@ -17,16 +18,17 @@ interface ProjectDashboardProps {
 }
 
 export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId }) => {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading, error } = useProjectDashboard(projectId);
 
   if (isLoading) {
-    return <div className="text-center py-12">Loading dashboard...</div>;
+    return <div className="text-center py-12">{t('project.loading')}</div>;
   }
 
   if (error || !data) {
     return (
       <div className="text-center py-12 text-red-500">
-        Failed to load project dashboard.
+        {t('project.loadFailed')}
       </div>
     );
   }
@@ -48,7 +50,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
               </p>
               <h2 className="text-2xl font-bold mt-1">{project.name}</h2>
               <p className="text-blue-100 text-sm mt-1">
-                {project.code} | {project.category === 'PRODUCT' ? 'Product Project' : 'Functional Project'}
+                {project.code} | {project.category === 'PRODUCT' ? t('project.productProject') : t('project.functionalProject')}
               </p>
             </div>
             <div className="text-right">
@@ -81,11 +83,11 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5 text-blue-500" />
-              <span className="text-sm text-muted-foreground">Milestones</span>
+              <span className="text-sm text-muted-foreground">{t('project.milestones')}</span>
             </div>
             <div className="mt-2">
               <span className="text-2xl font-bold">{milestone_stats.total}</span>
-              <span className="text-sm text-muted-foreground ml-1">total</span>
+              <span className="text-sm text-muted-foreground ml-1">{t('project.total')}</span>
             </div>
           </CardContent>
         </Card>
@@ -94,7 +96,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-500" />
-              <span className="text-sm text-muted-foreground">Completed</span>
+              <span className="text-sm text-muted-foreground">{t('project.completed')}</span>
             </div>
             <div className="mt-2">
               <span className="text-2xl font-bold text-green-600">
@@ -108,11 +110,11 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-500" />
-              <span className="text-sm text-muted-foreground">Team Members</span>
+              <span className="text-sm text-muted-foreground">{t('project.teamMembers')}</span>
             </div>
             <div className="mt-2">
               <span className="text-2xl font-bold">{team_members.length}</span>
-              <span className="text-sm text-muted-foreground ml-1">active</span>
+              <span className="text-sm text-muted-foreground ml-1">{t('project.active')}</span>
             </div>
           </CardContent>
         </Card>
@@ -121,11 +123,11 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-teal-500" />
-              <span className="text-sm text-muted-foreground">Total Hours</span>
+              <span className="text-sm text-muted-foreground">{t('project.totalHours')}</span>
             </div>
             <div className="mt-2">
               <span className="text-2xl font-bold">{totalTeamHours.toFixed(0)}</span>
-              <span className="text-sm text-muted-foreground ml-1">h (90d)</span>
+              <span className="text-sm text-muted-foreground ml-1">{t('project.hours90d')}</span>
             </div>
           </CardContent>
         </Card>
@@ -138,14 +140,14 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Target className="w-4 h-4" />
-              Milestone Progress
+              {t('project.milestoneProgress')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {/* Progress Bar */}
             <div className="mb-4">
               <div className="flex justify-between text-sm mb-1">
-                <span>Completion</span>
+                <span>{t('project.completion')}</span>
                 <span className="font-medium">{milestone_stats.completion_rate}%</span>
               </div>
               <div className="h-3 bg-slate-100 rounded-full overflow-hidden flex">
@@ -165,15 +167,15 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
               <div className="flex justify-between text-xs text-muted-foreground mt-1">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-500" />
-                  Completed ({milestone_stats.completed})
+                  {t('project.completedCount', { count: milestone_stats.completed })}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  Delayed ({milestone_stats.delayed})
+                  {t('project.delayedCount', { count: milestone_stats.delayed })}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  Pending ({milestone_stats.pending})
+                  {t('project.pendingCount', { count: milestone_stats.pending })}
                 </span>
               </div>
             </div>
@@ -183,7 +185,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <h4 className="text-sm font-medium text-red-700 flex items-center gap-1 mb-2">
                   <AlertCircle className="w-4 h-4" />
-                  Overdue ({milestone_stats.overdue.length})
+                  {t('project.overdue', { count: milestone_stats.overdue.length })}
                 </h4>
                 <div className="space-y-1">
                   {milestone_stats.overdue.slice(0, 3).map((m) => (
@@ -204,7 +206,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
               <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <h4 className="text-sm font-medium text-amber-700 flex items-center gap-1 mb-2">
                   <Clock className="w-4 h-4" />
-                  Upcoming ({milestone_stats.upcoming.length})
+                  {t('project.upcoming', { count: milestone_stats.upcoming.length })}
                 </h4>
                 <div className="space-y-1">
                   {milestone_stats.upcoming.slice(0, 3).map((m) => (
@@ -227,12 +229,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Resource Allocation (Next 4 Months)
+              {t('project.resourceAllocation')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {resource_summary.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No resource plans</div>
+              <div className="text-center py-4 text-muted-foreground">{t('project.noResourcePlans')}</div>
             ) : (
               <div className="space-y-3">
                 {resource_summary.map((rs) => (
@@ -240,7 +242,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
                     <div className="flex justify-between text-sm mb-1">
                       <span className="font-medium">{rs.month}</span>
                       <span className="text-muted-foreground">
-                        {rs.total_hours.toFixed(0)}h ({rs.assigned_count + rs.tbd_count} people)
+                        {rs.total_hours.toFixed(0)}h ({t('project.people', { count: rs.assigned_count + rs.tbd_count })})
                       </span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden flex">
@@ -258,7 +260,7 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
                       />
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
-                      <span>Assigned: {rs.assigned_count}</span>
+                      <span>{t('project.assigned')}: {rs.assigned_count}</span>
                       {rs.tbd_count > 0 && (
                         <span className="text-amber-600 flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3" />
@@ -281,12 +283,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
-              Weekly Activity (Last 4 Weeks)
+              {t('project.weeklyActivity')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {worklog_trends.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No activity data</div>
+              <div className="text-center py-4 text-muted-foreground">{t('project.noActivityData')}</div>
             ) : (
               <div className="space-y-2">
                 {worklog_trends.map((wt, index) => {
@@ -327,12 +329,12 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({ projectId })
           <CardHeader>
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Top Contributors (Last 90 Days)
+              {t('project.topContributors')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {team_members.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">No team activity</div>
+              <div className="text-center py-4 text-muted-foreground">{t('project.noTeamActivity')}</div>
             ) : (
               <div className="space-y-2">
                 {team_members.slice(0, 8).map((member) => {

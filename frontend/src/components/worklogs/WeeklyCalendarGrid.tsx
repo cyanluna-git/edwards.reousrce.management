@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { format, addDays, isToday } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { WorkLog } from '@/types';
@@ -17,7 +18,7 @@ interface WeeklyCalendarGridProps {
     onAIInputClick?: (date: string) => void;
 }
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
 
 export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
     weekStart,
@@ -27,6 +28,11 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
     onWorklogDelete,
     onAIInputClick,
 }) => {
+    const { t } = useTranslation('worklogs');
+    const DAYS = [
+        t('calendar.dayMon'), t('calendar.dayTue'), t('calendar.dayWed'),
+        t('calendar.dayThu'), t('calendar.dayFri'), t('calendar.daySat'), t('calendar.daySun'),
+    ];
     // Generate dates for the week (Monday to Sunday)
     const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -111,7 +117,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                     className="flex-1 text-xs h-7"
                                     onClick={() => onCellClick(dateStr)}
                                 >
-                                    + Add
+                                    {t('calendar.addEntry')}
                                 </Button>
                                 {onAIInputClick && (
                                     <Button
@@ -131,7 +137,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                             total > 0 ? 'bg-green-50 text-green-700' :
                                 'bg-muted text-muted-foreground'
                             }`}>
-                            Total: {total}h {total > 8 && '⚠️'}
+                            {t('calendar.total')}: {total}h {total > 8 && '⚠️'}
                         </div>
                     </Card>
                 );

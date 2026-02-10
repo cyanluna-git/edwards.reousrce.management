@@ -24,10 +24,12 @@ import {
     deleteHiringPlan,
     type Department,
 } from '@/api/client';
+import { useTranslation } from 'react-i18next';
 
 export const HiringPlansTab: React.FC = () => {
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const { t } = useTranslation('organization');
 
     const { data: hiringPlans = [], isLoading } = useQuery({
         queryKey: ['hiring-plans'],
@@ -63,15 +65,15 @@ export const HiringPlansTab: React.FC = () => {
         <>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Hiring Plans ({hiringPlans.length})</CardTitle>
-                    <Button onClick={() => setIsModalOpen(true)}>+ 새 채용 계획</Button>
+                    <CardTitle>{t('hiring.titleWithCount', { count: hiringPlans.length })}</CardTitle>
+                    <Button onClick={() => setIsModalOpen(true)}>{t('hiring.addPlan')}</Button>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <div className="text-center py-4">Loading...</div>
                     ) : hiringPlans.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
-                            등록된 채용 계획이 없습니다.
+                            {t('hiring.noPlans')}
                         </div>
                     ) : (
                         <table className="w-full text-sm">
@@ -101,12 +103,12 @@ export const HiringPlansTab: React.FC = () => {
                                             <button
                                                 className="text-red-600 hover:underline text-xs"
                                                 onClick={() => {
-                                                    if (confirm('삭제하시겠습니까?')) {
+                                                    if (confirm(t('hiring.confirmDelete'))) {
                                                         deleteMutation.mutate(plan.id);
                                                     }
                                                 }}
                                             >
-                                                삭제
+                                                {t('common:buttons.delete')}
                                             </button>
                                         </td>
                                     </tr>
@@ -143,6 +145,7 @@ const HiringPlanModal: React.FC<{
         status: 'PLANNED',
         remarks: '',
     });
+    const { t } = useTranslation('organization');
 
     const createMutation = useMutation({
         mutationFn: createHiringPlan,
@@ -165,8 +168,8 @@ const HiringPlanModal: React.FC<{
         <Dialog open onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>새 채용 계획</DialogTitle>
-                    <DialogDescription>새로운 채용 계획을 등록합니다.</DialogDescription>
+                    <DialogTitle>{t('hiring.addPlanTitle')}</DialogTitle>
+                    <DialogDescription>{t('hiring.addPlanDesc')}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div>
@@ -224,12 +227,12 @@ const HiringPlanModal: React.FC<{
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>취소</Button>
+                    <Button variant="outline" onClick={onClose}>{t('common:buttons.cancel')}</Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={!formData.department_id || !formData.target_date || createMutation.isPending}
                     >
-                        {createMutation.isPending ? '저장 중...' : '저장'}
+                        {createMutation.isPending ? t('hiring.saving') : t('common:buttons.save')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

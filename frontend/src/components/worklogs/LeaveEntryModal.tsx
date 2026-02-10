@@ -3,6 +3,7 @@
  * 휴가 등록 전용 모달 - 반휴/일휴/연속휴가 지원
  */
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -33,6 +34,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
     userId,
     isLoading = false,
 }) => {
+    const { t } = useTranslation('worklogs');
     const [leaveType, setLeaveType] = useState<LeaveType>('full');
     const [singleDate, setSingleDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [startDate, setStartDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
@@ -73,7 +75,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                 // project_id: defaultProjectId, // Removed: Leave entries should not have a project
                 work_type_category_id: 38, // ABS-LVE (휴가)
                 hours: leaveType === 'half' ? 4 : 8,
-                description: leaveType === 'half' ? '반휴' : '휴가',
+                description: leaveType === 'half' ? t('leave.halfDay') : t('leave.fullDay'),
                 is_sudden_work: false,
                 is_business_trip: false,
             });
@@ -86,7 +88,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                     // project_id: defaultProjectId, // Removed: Leave entries should not have a project
                     work_type_category_id: 38, // ABS-LVE (휴가)
                     hours: 8,
-                    description: '연속휴가',
+                    description: t('leave.consecutive'),
                     is_sudden_work: false,
                     is_business_trip: false,
                 });
@@ -108,14 +110,14 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
             <DialogContent className="sm:max-w-[450px] bg-white border shadow-lg">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        🏖️ 휴가 등록
+                        {t('leave.title')}
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="space-y-5 py-4">
                     {/* Leave Type Selection */}
                     <div className="space-y-2">
-                        <Label>휴가 유형</Label>
+                        <Label>{t('leave.leaveType')}</Label>
                         <div className="grid grid-cols-3 gap-2">
                             <button
                                 type="button"
@@ -126,8 +128,8 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                                     }`}
                             >
                                 <div className="text-2xl mb-1">🌓</div>
-                                <div className="font-medium">반휴</div>
-                                <div className="text-xs text-slate-500">4시간</div>
+                                <div className="font-medium">{t('leave.halfDay')}</div>
+                                <div className="text-xs text-slate-500">{t('leave.nHours', { count: 4 })}</div>
                             </button>
                             <button
                                 type="button"
@@ -138,8 +140,8 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                                     }`}
                             >
                                 <div className="text-2xl mb-1">🌅</div>
-                                <div className="font-medium">일일휴가</div>
-                                <div className="text-xs text-slate-500">8시간</div>
+                                <div className="font-medium">{t('leave.fullDay')}</div>
+                                <div className="text-xs text-slate-500">{t('leave.nHours', { count: 8 })}</div>
                             </button>
                             <button
                                 type="button"
@@ -150,8 +152,8 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                                     }`}
                             >
                                 <div className="text-2xl mb-1">🏝️</div>
-                                <div className="font-medium">연속휴가</div>
-                                <div className="text-xs text-slate-500">기간 선택</div>
+                                <div className="font-medium">{t('leave.consecutive')}</div>
+                                <div className="text-xs text-slate-500">{t('leave.selectPeriod')}</div>
                             </button>
                         </div>
                     </div>
@@ -161,7 +163,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <Label htmlFor="startDate">시작일</Label>
+                                    <Label htmlFor="startDate">{t('leave.startDate')}</Label>
                                     <Input
                                         id="startDate"
                                         type="date"
@@ -170,7 +172,7 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="endDate">종료일</Label>
+                                    <Label htmlFor="endDate">{t('leave.endDate')}</Label>
                                     <Input
                                         id="endDate"
                                         type="date"
@@ -188,25 +190,25 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
                                     onChange={(e) => setExcludeWeekends(e.target.checked)}
                                     className="w-4 h-4"
                                 />
-                                <span className="text-sm">주말 제외</span>
+                                <span className="text-sm">{t('leave.excludeWeekends')}</span>
                             </label>
 
                             {/* Preview */}
                             {leaveDays.length > 0 && (
                                 <div className="p-3 bg-blue-50 rounded-lg text-sm">
                                     <div className="font-medium text-blue-700">
-                                        📅 {leaveDays.length}일 휴가 ({totalHours}시간)
+                                        {t('leave.leaveSummary', { days: leaveDays.length, hours: totalHours })}
                                     </div>
                                     <div className="text-blue-600 mt-1">
                                         {leaveDays.slice(0, 5).map(d => format(d, 'M/d(E)')).join(', ')}
-                                        {leaveDays.length > 5 && ` 외 ${leaveDays.length - 5}일`}
+                                        {leaveDays.length > 5 && ` ${t('leave.andMoreDays', { count: leaveDays.length - 5 })}`}
                                     </div>
                                 </div>
                             )}
                         </div>
                     ) : (
                         <div className="space-y-1">
-                            <Label htmlFor="singleDate">날짜</Label>
+                            <Label htmlFor="singleDate">{t('leave.date')}</Label>
                             <Input
                                 id="singleDate"
                                 type="date"
@@ -218,23 +220,23 @@ export const LeaveEntryModal: React.FC<LeaveEntryModalProps> = ({
 
                     {/* Summary */}
                     <div className="p-3 bg-slate-50 rounded-lg flex justify-between items-center">
-                        <span className="text-sm text-slate-600">등록될 WorkLog</span>
+                        <span className="text-sm text-slate-600">{t('leave.worklogsToRegister')}</span>
                         <span className="font-bold text-lg">
-                            {leaveType === 'consecutive' ? leaveDays.length : 1}건 / {totalHours}h
+                            {t('leave.entrySummary', { count: leaveType === 'consecutive' ? leaveDays.length : 1, hours: totalHours })}
                         </span>
                     </div>
                 </div>
 
                 <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => { resetForm(); onClose(); }}>
-                        취소
+                        {t('leave.cancel')}
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={isLoading || (leaveType === 'consecutive' && leaveDays.length === 0)}
                         className="bg-blue-600 hover:bg-blue-700"
                     >
-                        {isLoading ? '등록 중...' : '휴가 등록'}
+                        {isLoading ? t('leave.submitting') : t('leave.submit')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { format, addMonths, startOfMonth } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { type JobPosition } from '@/types';
 import {
     useResourcePlans,
@@ -48,6 +49,7 @@ const generate12Months = (offsetMonths: number = -2) => {
 };
 
 export const ResourcePlansPage: React.FC = () => {
+    const { t } = useTranslation('resource-plans');
     // Calendar offset state (default: -2 = start from 2 months ago)
     const [calendarOffset, setCalendarOffset] = useState(-2);
     const months = useMemo(() => generate12Months(calendarOffset), [calendarOffset]);
@@ -341,7 +343,7 @@ export const ResourcePlansPage: React.FC = () => {
 
     // Handle delete row
     const handleDeleteRow = async (row: ResourceRow) => {
-        if (!confirm(`"${row.positionName}" 행을 삭제하시겠습니까?`)) return;
+        if (!confirm(t('confirm.deleteRow', { name: row.positionName }))) return;
 
         for (const data of Object.values(row.monthlyData)) {
             await deletePlan.mutateAsync(data.planId);
@@ -352,13 +354,13 @@ export const ResourcePlansPage: React.FC = () => {
         <div className="container mx-auto p-4 space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">리소스 계획</h1>
+                <h1 className="text-2xl font-bold">{t('title')}</h1>
                 <Button
                     onClick={() => setIsTbdModalOpen(true)}
                     variant="outline"
-                    title="TBD(미할당) 포지션에 실제 담당자를 배정합니다"
+                    title={t('actions.tbdAssignmentTooltip')}
                 >
-                    TBD 할당
+                    {t('actions.tbdAssignment')}
                 </Button>
             </div>
 
@@ -371,19 +373,19 @@ export const ResourcePlansPage: React.FC = () => {
                             className={`px-4 py-2 -mb-px ${activeTab === 'detail' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
                             onClick={() => setActiveTab('detail')}
                         >
-                            프로젝트 상세
+                            {t('tabs.detail')}
                         </button>
                         <button
                             className={`px-4 py-2 -mb-px ${activeTab === 'project-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
                             onClick={() => setActiveTab('project-summary')}
                         >
-                            프로젝트별 집계
+                            {t('tabs.projectSummary')}
                         </button>
                         <button
                             className={`px-4 py-2 -mb-px ${activeTab === 'role-summary' ? 'border-b-2 border-blue-600 text-blue-600 font-medium' : 'text-muted-foreground'}`}
                             onClick={() => setActiveTab('role-summary')}
                         >
-                            롤별 집계
+                            {t('tabs.roleSummary')}
                         </button>
                     </div>
                     {/* Filter Toggle */}
@@ -394,7 +396,7 @@ export const ResourcePlansPage: React.FC = () => {
                             onChange={(e) => setShowCompleted(e.target.checked)}
                             className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                         />
-                        Completed/Cancelled 포함
+                        {t('actions.includeCompleted')}
                     </label>
                 </div>
 
@@ -403,35 +405,35 @@ export const ResourcePlansPage: React.FC = () => {
                     <button
                         onClick={() => moveCalendar(-3)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title="3개월 이전"
+                        title={t('calendar.prev3Months')}
                     >
                         ◀◀
                     </button>
                     <button
                         onClick={() => moveCalendar(-1)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title="1개월 이전"
+                        title={t('calendar.prev1Month')}
                     >
                         ◀
                     </button>
                     <button
                         onClick={resetCalendar}
                         className={`px-3 py-1 rounded ${calendarOffset === -2 ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}
-                        title="기본 뷰 (오늘 기준)"
+                        title={t('calendar.defaultView')}
                     >
-                        📍 오늘
+                        📍 {t('calendar.today')}
                     </button>
                     <button
                         onClick={() => moveCalendar(1)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title="1개월 이후"
+                        title={t('calendar.next1Month')}
                     >
                         ▶
                     </button>
                     <button
                         onClick={() => moveCalendar(3)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title="3개월 이후"
+                        title={t('calendar.next3Months')}
                     >
                         ▶▶
                     </button>
@@ -447,7 +449,7 @@ export const ResourcePlansPage: React.FC = () => {
                     {/* Tree View - Using same hierarchy as Projects page */}
                     {filteredHierarchy.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
-                            등록된 프로젝트가 없습니다.
+                            {t('hierarchy.noProjects')}
                         </div>
                     ) : (
                         <div className="space-y-2">
@@ -462,7 +464,7 @@ export const ResourcePlansPage: React.FC = () => {
                                         <span className="font-semibold text-base">{bu.name}</span>
                                         <span className="text-xs text-muted-foreground">({bu.code})</span>
                                         <span className="text-sm text-muted-foreground ml-2">
-                                            ({countProjects(bu)} 프로젝트)
+                                            ({t('hierarchy.nProjects', { count: countProjects(bu) })})
                                         </span>
                                     </div>
 
@@ -487,7 +489,7 @@ export const ResourcePlansPage: React.FC = () => {
                                                             </span>
                                                         )}
                                                         <span className="text-xs text-slate-600 bg-slate-200 px-1.5 py-0.5 rounded">
-                                                            {countProjects(pl)} 프로젝트
+                                                            {t('hierarchy.nProjects', { count: countProjects(pl) })}
                                                         </span>
                                                     </div>
 
@@ -515,7 +517,7 @@ export const ResourcePlansPage: React.FC = () => {
                                                                                 handleAddRow(project.id);
                                                                             }}
                                                                         >
-                                                                            + 팀원 추가
+                                                                            {t('actions.addRow')}
                                                                         </Button>
                                                                     </div>
 
@@ -547,7 +549,7 @@ export const ResourcePlansPage: React.FC = () => {
                         <DialogContent className="max-w-4xl">
                             <DialogHeader>
                                 <DialogTitle>
-                                    {editingRow ? `${editingRow.positionName} 수정` : '팀원/포지션 추가'}
+                                    {editingRow ? t('form.editTitle', { name: editingRow.positionName }) : t('form.addTitle')}
                                 </DialogTitle>
                             </DialogHeader>
                             {/* Role Selectors */}
@@ -556,37 +558,37 @@ export const ResourcePlansPage: React.FC = () => {
                                     {/* Functional Role Auto-mapped */}
 
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium">Project Role (프로젝트 역할)</label>
+                                        <label className="text-sm font-medium">{t('form.projectRole')}</label>
                                         <select
                                             className="w-full px-3 py-2 border rounded-md"
                                             value={newProjectRoleId}
                                             onChange={(e) => setNewProjectRoleId(e.target.value)}
                                         >
-                                            <option value="">선택하세요 (옵션)</option>
+                                            <option value="">{t('form.selectOption')}</option>
                                             {positions.map(p => (
                                                 <option key={p.id} value={p.id}>{p.name}</option>
                                             ))}
                                         </select>
-                                        <p className="text-xs text-muted-foreground">프로젝트 내 수행 역할을 선택해주세요.</p>
+                                        <p className="text-xs text-muted-foreground">{t('form.projectRoleHelp')}</p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">담당자 (선택사항)</label>
+                                    <label className="text-sm font-medium">{t('form.user')}</label>
                                     <UserHierarchySelect
                                         users={users}
                                         value={newUserId}
                                         onChange={(userId) => setNewUserId(userId)}
-                                        placeholder="TBD (미할당)"
+                                        placeholder={t('form.userPlaceholder')}
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        담당자를 선택하지 않으면 TBD(미할당) 포지션으로 생성됩니다.
+                                        {t('form.userHelp')}
                                     </p>
                                 </div>
 
                                 {/* Monthly FTE inputs */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">월별 FTE 배분 (0.1 ~ 1.0)</label>
+                                    <label className="text-sm font-medium">{t('form.monthlyFte')}</label>
                                     <div className="grid grid-cols-6 gap-2">
                                         {months.map(m => {
                                             const key = `${m.year}-${m.month}`;
@@ -614,13 +616,13 @@ export const ResourcePlansPage: React.FC = () => {
                             </div>
 
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>취소</Button>
+                                <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>{t('actions.cancel')}</Button>
                                 <Button
                                     onClick={handleSave}
                                     disabled={!editingRow && !newJobPositionId}
                                     className="bg-blue-600 hover:bg-blue-700 text-white"
                                 >
-                                    저장
+                                    {t('actions.save')}
                                 </Button>
                             </DialogFooter>
                         </DialogContent>

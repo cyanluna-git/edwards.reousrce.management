@@ -1,7 +1,9 @@
 import React from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import {
     LayoutDashboard,
     FolderKanban,
@@ -20,27 +22,34 @@ import {
     ChevronRight,
 } from 'lucide-react'
 
+// Nav item definition with i18n key
+interface NavItem {
+    nameKey: string;
+    href: string;
+    icon: any;
+}
+
 // Monitoring - View/Analysis
-const monitoringNavigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Resource Matrix', href: '/resource-matrix', icon: Grid3x3 },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
+const monitoringNavigation: NavItem[] = [
+    { nameKey: 'main.dashboard', href: '/', icon: LayoutDashboard },
+    { nameKey: 'main.resourceMatrix', href: '/resource-matrix', icon: Grid3x3 },
+    { nameKey: 'main.reports', href: '/reports', icon: BarChart3 },
 ]
 
 // Entry - Data Input
-const entryNavigation = [
-    { name: 'WorkLogs', href: '/worklogs', icon: Clock },
-    { name: 'Resource Plans', href: '/resource-plans', icon: Calendar },
+const entryNavigation: NavItem[] = [
+    { nameKey: 'main.worklogs', href: '/worklogs', icon: Clock },
+    { nameKey: 'main.resourcePlans', href: '/resource-plans', icon: Calendar },
 ]
 
 // Admin settings (requires special permissions)
-const adminNavigation = [
-    { name: 'Projects', href: '/projects', icon: FolderKanban },
-    { name: 'Organization', href: '/organization', icon: Building2 },
-    { name: 'Settings', href: '/settings', icon: Settings },
+const adminNavigation: NavItem[] = [
+    { nameKey: 'main.projects', href: '/projects', icon: FolderKanban },
+    { nameKey: 'main.organization', href: '/organization', icon: Building2 },
+    { nameKey: 'main.settings', href: '/settings', icon: Settings },
 ]
 
-const requestBoardLink = { name: '요청 게시판', href: '/requests', icon: MessageSquare }
+const requestBoardLink: NavItem = { nameKey: 'main.requestBoard', href: '/requests', icon: MessageSquare }
 
 interface SidebarProps {
     isCollapsed: boolean;
@@ -51,19 +60,21 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const location = useLocation()
     const navigate = useNavigate()
     const { user, logout } = useAuth()
+    const { t } = useTranslation('navigation')
 
     const handleLogout = () => {
         logout()
         window.location.href = '/login'
     }
 
-    const renderNavItem = (item: { name: string; href: string; icon: any }) => {
+    const renderNavItem = (item: NavItem) => {
         const isActive = location.pathname === item.href
+        const name = t(item.nameKey)
         return (
             <Link
-                key={item.name}
+                key={item.nameKey}
                 to={item.href}
-                title={isCollapsed ? item.name : undefined}
+                title={isCollapsed ? name : undefined}
                 className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
@@ -73,7 +84,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 )}
             >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && <span>{name}</span>}
             </Link>
         )
     }
@@ -81,7 +92,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const renderSection = (
         title: string,
         icon: React.ElementType,
-        items: typeof monitoringNavigation,
+        items: NavItem[],
         showDivider = false
     ) => (
         <div className={showDivider ? 'pt-3' : ''}>
@@ -119,14 +130,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         <span className="text-sm font-bold text-white">E</span>
                     </div>
                     {!isCollapsed && (
-                        <span className="text-lg font-semibold text-white">Edwards POB</span>
+                        <span className="text-lg font-semibold text-white">{t('sidebar.appName')}</span>
                     )}
                 </div>
                 {!isCollapsed && (
                     <button
                         onClick={onToggle}
                         className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                        title="사이드바 접기"
+                        title={t('sidebar.collapse')}
                     >
                         <ChevronLeft className="h-5 w-5" />
                     </button>
@@ -145,10 +156,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 ) : (
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-3">
                         <p className="text-sm font-medium text-white/90 flex items-center gap-1">
-                            <span>👋</span> Welcome,
+                            <span>👋</span> {t('sidebar.welcome')}
                         </p>
                         <p className="text-base font-bold text-white truncate">
-                            {user?.name || user?.korean_name || 'Guest'}!
+                            {user?.name || user?.korean_name || t('sidebar.guest')}!
                         </p>
                     </div>
                 )}
@@ -160,7 +171,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     <button
                         onClick={onToggle}
                         className="w-full p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors flex justify-center"
-                        title="사이드바 열기"
+                        title={t('sidebar.expand')}
                     >
                         <ChevronRight className="h-5 w-5" />
                     </button>
@@ -170,13 +181,13 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             {/* Navigation */}
             <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
                 {/* Monitoring Section */}
-                {renderSection('Monitoring', Eye, monitoringNavigation)}
+                {renderSection(t('sections.monitoring'), Eye, monitoringNavigation)}
 
                 {/* Entry Section */}
-                {renderSection('Entry', PenSquare, entryNavigation, true)}
+                {renderSection(t('sections.entry'), PenSquare, entryNavigation, true)}
 
                 {/* Admin Settings Section */}
-                {renderSection('Admin Settings', Shield, adminNavigation, true)}
+                {renderSection(t('sections.adminSettings'), Shield, adminNavigation, true)}
             </nav>
 
             {/* Request board quick access */}
@@ -184,7 +195,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 <div className="px-2 pb-4">
                     <div className="rounded-lg bg-slate-800/60 p-3 shadow-inner">
                         {renderNavItem(requestBoardLink)}
-                        <p className="mt-2 text-xs text-slate-400">피드백/개선/의견을 남겨주세요.</p>
+                        <p className="mt-2 text-xs text-slate-400">{t('sidebar.requestFeedback')}</p>
                     </div>
                 </div>
             )}
@@ -193,6 +204,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     {renderNavItem(requestBoardLink)}
                 </div>
             )}
+
+            {/* Language Toggle */}
+            <div className={cn(
+                "border-t border-slate-700 px-3 py-2",
+                isCollapsed && "px-2"
+            )}>
+                <LanguageToggle variant={isCollapsed ? 'collapsed' : 'default'} />
+            </div>
 
             {/* User info & Logout */}
             <div className={cn(
@@ -210,7 +229,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         </div>
                         <button
                             onClick={handleLogout}
-                            title="Logout"
+                            title={t('sidebar.logout')}
                             className="flex w-full items-center justify-center gap-2 rounded-lg p-2 text-sm font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
                         >
                             <LogOut className="h-4 w-4" />
@@ -241,7 +260,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-red-400 hover:bg-slate-800 hover:text-red-300 transition-colors"
                         >
                             <LogOut className="h-4 w-4" />
-                            Logout
+                            {t('sidebar.logout')}
                         </button>
                     </>
                 )}

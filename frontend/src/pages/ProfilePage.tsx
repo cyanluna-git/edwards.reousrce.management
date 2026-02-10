@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/api/client';
+import { useApiError } from '@/hooks/useApiError';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +13,8 @@ import type { User as UserType } from '@/types';
 
 export function ProfilePage() {
   const { user: authUser } = useAuth();
+  const { t } = useTranslation('auth');
+  const getErrorMessage = useApiError();
   const [user, setUser] = useState<UserType | null>(authUser);
   const [isLoadingUser, setIsLoadingUser] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -43,12 +47,12 @@ export function ProfilePage() {
     setMessage(null);
 
     if (passwordData.new_password !== passwordData.confirm_password) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setMessage({ type: 'error', text: t('errors.passwordMismatch') });
       return;
     }
 
     if (passwordData.new_password.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
+      setMessage({ type: 'error', text: t('errors.passwordTooShort') });
       return;
     }
 
@@ -60,7 +64,7 @@ export function ProfilePage() {
       });
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Password changed successfully' });
+        setMessage({ type: 'success', text: t('errors.passwordChanged') });
         setPasswordData({
           current_password: '',
           new_password: '',
@@ -71,10 +75,10 @@ export function ProfilePage() {
           setMessage(null);
         }, 2000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({
         type: 'error',
-        text: error.response?.data?.detail || 'Failed to change password',
+        text: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -86,7 +90,7 @@ export function ProfilePage() {
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="pt-6">
-            <p>Loading user information...</p>
+            <p>{t('profile.loadingUser')}</p>
           </CardContent>
         </Card>
       </div>
@@ -118,8 +122,8 @@ export function ProfilePage() {
         {/* Profile Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Your account details and organization information</CardDescription>
+            <CardTitle>{t('profile.title')}</CardTitle>
+            <CardDescription>{t('profile.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -127,7 +131,7 @@ export function ProfilePage() {
               <div className="flex items-start gap-3">
                 <Mail className="h-5 w-5 text-slate-500 mt-0.5" />
                 <div className="flex-1">
-                  <Label className="text-sm text-slate-500">Email</Label>
+                  <Label className="text-sm text-slate-500">{t('common:form.email')}</Label>
                   <p className="text-sm font-medium">{user.email}</p>
                 </div>
               </div>
@@ -136,7 +140,7 @@ export function ProfilePage() {
               <div className="flex items-start gap-3">
                 <Briefcase className="h-5 w-5 text-slate-500 mt-0.5" />
                 <div className="flex-1">
-                  <Label className="text-sm text-slate-500">Role</Label>
+                  <Label className="text-sm text-slate-500">{t('profile.role')}</Label>
                   <p className="text-sm font-medium">{user.role}</p>
                 </div>
               </div>
@@ -146,7 +150,7 @@ export function ProfilePage() {
                 <div className="flex items-start gap-3">
                   <Building2 className="h-5 w-5 text-slate-500 mt-0.5" />
                   <div className="flex-1">
-                    <Label className="text-sm text-slate-500">Department</Label>
+                    <Label className="text-sm text-slate-500">{t('profile.department')}</Label>
                     <p className="text-sm font-medium">{user.department.name}</p>
                   </div>
                 </div>
@@ -157,7 +161,7 @@ export function ProfilePage() {
                 <div className="flex items-start gap-3">
                   <Users className="h-5 w-5 text-slate-500 mt-0.5" />
                   <div className="flex-1">
-                    <Label className="text-sm text-slate-500">Sub Team</Label>
+                    <Label className="text-sm text-slate-500">{t('profile.subTeam')}</Label>
                     <p className="text-sm font-medium">{user.sub_team.name}</p>
                   </div>
                 </div>
@@ -168,7 +172,7 @@ export function ProfilePage() {
                 <div className="flex items-start gap-3">
                   <User className="h-5 w-5 text-slate-500 mt-0.5" />
                   <div className="flex-1">
-                    <Label className="text-sm text-slate-500">Position</Label>
+                    <Label className="text-sm text-slate-500">{t('profile.position')}</Label>
                     <p className="text-sm font-medium">
                       {user.position.name}
                     </p>
@@ -181,7 +185,7 @@ export function ProfilePage() {
                 <div className="flex items-start gap-3">
                   <Building2 className="h-5 w-5 text-slate-500 mt-0.5" />
                   <div className="flex-1">
-                    <Label className="text-sm text-slate-500">Primary Business Unit</Label>
+                    <Label className="text-sm text-slate-500">{t('profile.primaryBusinessUnit')}</Label>
                     <p className="text-sm font-medium">{user.primary_business_unit.name}</p>
                   </div>
                 </div>
@@ -193,8 +197,8 @@ export function ProfilePage() {
         {/* Password Change */}
         <Card>
           <CardHeader>
-            <CardTitle>Change Password</CardTitle>
-            <CardDescription>Update your account password</CardDescription>
+            <CardTitle>{t('profile.changePassword')}</CardTitle>
+            <CardDescription>{t('profile.changePasswordSubtitle')}</CardDescription>
           </CardHeader>
           <CardContent>
             {message && (
@@ -207,7 +211,7 @@ export function ProfilePage() {
                 ) : (
                   <XCircle className="h-4 w-4" />
                 )}
-                <AlertTitle>{message.type === 'success' ? 'Success' : 'Error'}</AlertTitle>
+                <AlertTitle>{message.type === 'success' ? t('common:status.success') : t('common:status.error')}</AlertTitle>
                 <AlertDescription>{message.text}</AlertDescription>
               </Alert>
             )}
@@ -221,12 +225,12 @@ export function ProfilePage() {
                 className="w-full"
               >
                 <Lock className="h-4 w-4 mr-2" />
-                Change Password
+                {t('profile.changePassword')}
               </Button>
             ) : (
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current_password">Current Password</Label>
+                  <Label htmlFor="current_password">{t('profile.currentPassword')}</Label>
                   <Input
                     id="current_password"
                     type="password"
@@ -238,7 +242,7 @@ export function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new_password">New Password</Label>
+                  <Label htmlFor="new_password">{t('profile.newPassword')}</Label>
                   <Input
                     id="new_password"
                     type="password"
@@ -251,7 +255,7 @@ export function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm_password">Confirm New Password</Label>
+                  <Label htmlFor="confirm_password">{t('profile.confirmNewPassword')}</Label>
                   <Input
                     id="confirm_password"
                     type="password"
@@ -265,7 +269,7 @@ export function ProfilePage() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Changing...' : 'Change Password'}
+                    {isLoading ? t('profile.changingPassword') : t('profile.changePassword')}
                   </Button>
                   <Button
                     type="button"
@@ -279,7 +283,7 @@ export function ProfilePage() {
                       });
                     }}
                   >
-                    Cancel
+                    {t('common:buttons.cancel')}
                   </Button>
                 </div>
               </form>
