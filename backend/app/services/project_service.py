@@ -419,7 +419,6 @@ class ProjectService:
             )
             .filter(
                 Project.category == "FUNCTIONAL",
-                Project.project_type_id != "SUSTAINING",
                 Project.status.in_(ACTIVE_STATUSES),
             )
         )
