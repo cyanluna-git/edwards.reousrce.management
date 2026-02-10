@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import require_role
+from app.models.user import User
 from app.schemas.project import (
     Project,
     ProjectCreate,
@@ -81,7 +83,9 @@ async def get_product_line_hierarchy(db: Session = Depends(get_db)):
     "/product-lines", response_model=ProductLine, status_code=status.HTTP_201_CREATED
 )
 async def create_product_line(
-    product_line_in: ProductLineCreate, db: Session = Depends(get_db)
+    product_line_in: ProductLineCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Create a new product line
@@ -99,6 +103,7 @@ async def update_product_line(
     product_line_id: str,
     product_line_in: ProductLineUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Update a product line
@@ -115,7 +120,11 @@ async def update_product_line(
 @router.delete(
     "/product-lines/{product_line_id}", status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_product_line(product_line_id: str, db: Session = Depends(get_db)):
+async def delete_product_line(
+    product_line_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
+):
     """
     Delete a product line
     """
@@ -153,7 +162,11 @@ async def list_projects(
 
 
 @router.post("", response_model=Project, status_code=status.HTTP_201_CREATED)
-async def create_project(project_create: ProjectCreate, db: Session = Depends(get_db)):
+async def create_project(
+    project_create: ProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
+):
     """
     Create a new project
     """
@@ -181,7 +194,10 @@ async def get_project(project_id: str, db: Session = Depends(get_db)):
 
 @router.put("/{project_id}", response_model=Project)
 async def update_project(
-    project_id: str, project_update: ProjectUpdate, db: Session = Depends(get_db)
+    project_id: str,
+    project_update: ProjectUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Update project
@@ -201,7 +217,11 @@ async def update_project(
 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: str, db: Session = Depends(get_db)):
+async def delete_project(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
+):
     """
     Delete a project
     """
@@ -274,7 +294,10 @@ async def get_project_milestones(project_id: str, db: Session = Depends(get_db))
     status_code=status.HTTP_201_CREATED,
 )
 async def create_project_milestone(
-    project_id: str, milestone_in: MilestoneCreate, db: Session = Depends(get_db)
+    project_id: str,
+    milestone_in: MilestoneCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Create a milestone for a project
@@ -293,6 +316,7 @@ async def update_project_milestone(
     milestone_id: int,
     milestone_in: MilestoneUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Update a project milestone
@@ -319,7 +343,10 @@ async def update_project_milestone(
     "/{project_id}/milestones/{milestone_id}", status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_project_milestone(
-    project_id: str, milestone_id: int, db: Session = Depends(get_db)
+    project_id: str,
+    milestone_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN", "PM")),
 ):
     """
     Delete a project milestone

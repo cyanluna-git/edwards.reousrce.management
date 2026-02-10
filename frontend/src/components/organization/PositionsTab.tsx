@@ -10,6 +10,7 @@ import {
     useUpdateJobPosition,
     useDeleteJobPosition,
 } from '@/hooks/useJobPositionsCrud';
+import { usePermissions } from '@/hooks/usePermissions';
 import {
     Card,
     CardContent,
@@ -76,6 +77,7 @@ const FunctionalRolesSection: React.FC = () => {
     const updatePosition = useUpdateJobPosition();
     const deletePosition = useDeleteJobPosition();
     const { t } = useTranslation('organization');
+    const { canManageOrganization } = usePermissions();
 
     const openAddModal = () => {
         setEditingPosition(null);
@@ -117,7 +119,9 @@ const FunctionalRolesSection: React.FC = () => {
                             {t('positions.functionalDesc')}
                         </p>
                     </div>
-                    <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
+                    {canManageOrganization && (
+                        <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -135,12 +139,16 @@ const FunctionalRolesSection: React.FC = () => {
                                     <tr key={position.id} className="border-b hover:bg-slate-50">
                                         <td className="py-3 px-4 font-medium">{position.name}</td>
                                         <td className="py-3 px-4 text-right">
-                                            <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(position)}>
-                                                {t('common:buttons.edit')}
-                                            </button>
-                                            <button className="text-red-600 hover:underline" onClick={() => handleDelete(position)}>
-                                                {t('common:buttons.delete')}
-                                            </button>
+                                            {canManageOrganization && (
+                                                <>
+                                                    <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(position)}>
+                                                        {t('common:buttons.edit')}
+                                                    </button>
+                                                    <button className="text-red-600 hover:underline" onClick={() => handleDelete(position)}>
+                                                        {t('common:buttons.delete')}
+                                                    </button>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -186,6 +194,7 @@ const ProjectRolesSection: React.FC = () => {
     const [formName, setFormName] = useState('');
     const [formCategory, setFormCategory] = useState('');
     const { t } = useTranslation('organization');
+    const { canManageOrganization } = usePermissions();
 
     const { data: roles = [], isLoading } = useQuery({
         queryKey: ['project-roles'],
@@ -257,7 +266,9 @@ const ProjectRolesSection: React.FC = () => {
                             {t('positions.projectDesc')}
                         </p>
                     </div>
-                    <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
+                    {canManageOrganization && (
+                        <Button onClick={openAddModal}>{t('common:buttons.add')}</Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -293,12 +304,16 @@ const ProjectRolesSection: React.FC = () => {
                                             <span className="text-green-600 font-medium">{role.project_count || 0}</span>
                                         </td>
                                         <td className="py-3 px-4 text-right">
-                                            <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(role)}>
-                                                {t('common:buttons.edit')}
-                                            </button>
-                                            <button className="text-red-600 hover:underline" onClick={() => handleDelete(role)}>
-                                                {t('common:buttons.delete')}
-                                            </button>
+                                            {canManageOrganization && (
+                                                <>
+                                                    <button className="text-blue-600 hover:underline mr-3" onClick={() => openEditModal(role)}>
+                                                        {t('common:buttons.edit')}
+                                                    </button>
+                                                    <button className="text-red-600 hover:underline" onClick={() => handleDelete(role)}>
+                                                        {t('common:buttons.delete')}
+                                                    </button>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

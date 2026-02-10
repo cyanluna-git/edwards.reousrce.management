@@ -25,11 +25,13 @@ import {
     type Department,
 } from '@/api/client';
 import { useTranslation } from 'react-i18next';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export const HiringPlansTab: React.FC = () => {
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { t } = useTranslation('organization');
+    const { canManageHiringPlans } = usePermissions();
 
     const { data: hiringPlans = [], isLoading } = useQuery({
         queryKey: ['hiring-plans'],
@@ -66,7 +68,9 @@ export const HiringPlansTab: React.FC = () => {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>{t('hiring.titleWithCount', { count: hiringPlans.length })}</CardTitle>
-                    <Button onClick={() => setIsModalOpen(true)}>{t('hiring.addPlan')}</Button>
+                    {canManageHiringPlans && (
+                        <Button onClick={() => setIsModalOpen(true)}>{t('hiring.addPlan')}</Button>
+                    )}
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -100,16 +104,18 @@ export const HiringPlansTab: React.FC = () => {
                                         </td>
                                         <td className="py-2 px-3 text-muted-foreground">{plan.remarks || '-'}</td>
                                         <td className="py-2 px-3 text-right">
-                                            <button
-                                                className="text-red-600 hover:underline text-xs"
-                                                onClick={() => {
-                                                    if (confirm(t('hiring.confirmDelete'))) {
-                                                        deleteMutation.mutate(plan.id);
-                                                    }
-                                                }}
-                                            >
-                                                {t('common:buttons.delete')}
-                                            </button>
+                                            {canManageHiringPlans && (
+                                                <button
+                                                    className="text-red-600 hover:underline text-xs"
+                                                    onClick={() => {
+                                                        if (confirm(t('hiring.confirmDelete'))) {
+                                                            deleteMutation.mutate(plan.id);
+                                                        }
+                                                    }}
+                                                >
+                                                    {t('common:buttons.delete')}
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

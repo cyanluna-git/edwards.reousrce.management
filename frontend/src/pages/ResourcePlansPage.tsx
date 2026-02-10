@@ -10,6 +10,7 @@ import {
     useDeleteResourcePlan,
     useSummaryByProject,
 } from '@/hooks/useResourcePlans';
+import { usePermissions } from '@/hooks/usePermissions';
 import { getWorklogSummaryByProject, getWorklogSummaryByRole, getProjectRoles, getJobPositionsList, type ProjectRole, WorklogProjectSummary, WorklogRoleSummary } from '@/api/client';
 import { useProjects } from '@/hooks/useProjects';
 import { useUsers } from '@/hooks/useUsers';
@@ -50,6 +51,7 @@ const generate12Months = (offsetMonths: number = -2) => {
 
 export const ResourcePlansPage: React.FC = () => {
     const { t } = useTranslation('resource-plans');
+    const { canManageResources } = usePermissions();
     // Calendar offset state (default: -2 = start from 2 months ago)
     const [calendarOffset, setCalendarOffset] = useState(-2);
     const months = useMemo(() => generate12Months(calendarOffset), [calendarOffset]);
@@ -526,9 +528,9 @@ export const ResourcePlansPage: React.FC = () => {
                                                                         <ProjectResourceTable
                                                                             projectId={project.id}
                                                                             months={months}
-                                                                            onAddMember={() => handleAddRow(project.id)}
-                                                                            onEditRow={(row) => handleEditRow(row, project.id)}
-                                                                            onDeleteRow={(row) => handleDeleteRow(row)}
+                                                                            onAddMember={canManageResources ? () => handleAddRow(project.id) : undefined}
+                                                                            onEditRow={canManageResources ? (row) => handleEditRow(row, project.id) : undefined}
+                                                                            onDeleteRow={canManageResources ? (row) => handleDeleteRow(row) : undefined}
                                                                         />
                                                                     )}
                                                                 </div>

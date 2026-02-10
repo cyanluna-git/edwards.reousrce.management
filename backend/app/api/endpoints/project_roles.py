@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_role
 from app.models.user import User
 from app.models.organization import ProjectRole
 
@@ -110,8 +110,8 @@ async def get_project_role(
 )
 async def create_project_role(
     data: ProjectRoleCreate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new project role"""
     import uuid
@@ -141,8 +141,8 @@ async def create_project_role(
 async def update_project_role(
     role_id: str,
     data: ProjectRoleUpdate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a project role"""
     from sqlalchemy import func, distinct
@@ -196,8 +196,8 @@ async def update_project_role(
 @router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project_role(
     role_id: str,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete (soft-delete by setting inactive) a project role"""
     role = db.query(ProjectRole).filter(ProjectRole.id == role_id).first()

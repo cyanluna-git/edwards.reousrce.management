@@ -10,6 +10,7 @@ from sqlalchemy import func
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.security import require_role
 from app.models.hiring_plan import HiringPlan
 from app.models.organization import Department, SubTeam
 from app.models.user import User
@@ -91,6 +92,7 @@ async def list_hiring_plans(
 async def create_hiring_plan(
     plan_in: HiringPlanCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Create a new hiring plan"""
     import uuid
@@ -132,6 +134,7 @@ async def update_hiring_plan(
     plan_id: str,
     plan_in: HiringPlanUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Update a hiring plan"""
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()
@@ -162,6 +165,7 @@ async def update_hiring_plan(
 async def delete_hiring_plan(
     plan_id: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """Delete a hiring plan"""
     plan = db.query(HiringPlan).filter(HiringPlan.id == plan_id).first()

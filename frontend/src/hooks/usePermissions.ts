@@ -11,13 +11,14 @@ export function usePermissions() {
   const isFM = user?.role === 'FM';
   const isUser = user?.role === 'USER';
 
-  // ADMIN permissions
-  const canManageProjects = isAdmin;
-  const canManageOrganization = isAdmin;
-  const canManageUsers = isAdmin;
-  const canManageHiringPlans = isAdmin;
-  const canViewReports = isAdmin || isPM || isFM;
-  
+  // Role-based permissions
+  const canManageProjects = isAdmin || isPM;      // ADMIN + PM
+  const canManageResources = isAdmin || isFM;     // ADMIN + FM
+  const canManageOrganization = isAdmin;          // ADMIN only
+  const canManageUsers = isAdmin;                 // ADMIN only
+  const canManageHiringPlans = isAdmin;           // ADMIN only
+  const canViewReports = isAdmin || isPM || isFM; // ADMIN + PM + FM
+
   // All users can manage worklogs
   const canManageWorklogs = true;
 
@@ -27,6 +28,7 @@ export function usePermissions() {
     isFM,
     isUser,
     canManageProjects,
+    canManageResources,
     canManageOrganization,
     canManageUsers,
     canManageHiringPlans,
