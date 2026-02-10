@@ -177,5 +177,10 @@
   },
   "footer": {
     "copyright": "© {{year}} Edwards Korea Engineering. All rights reserved."
+  },
+  "language": {
+    "switchLanguage": "Switch Language",
+    "english": "English",
+    "korean": "Korean"
   }
 }

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import {
     LayoutDashboard,
     FolderKanban,
@@ -203,6 +204,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     {renderNavItem(requestBoardLink)}
                 </div>
             )}
+
+            {/* Language Toggle */}
+            <div className={cn(
+                "border-t border-slate-700 px-3 py-2",
+                isCollapsed && "px-2"
+            )}>
+                <LanguageToggle variant={isCollapsed ? 'collapsed' : 'default'} />
+            </div>
 
             {/* User info & Logout */}
             <div className={cn(

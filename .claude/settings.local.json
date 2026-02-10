@@ -15,7 +15,12 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:password@localhost:5434/edwards\" /Users/cyanluna-pro16/dev/edwards/engineering.management/edwards.reousrce.management/.venv/bin/python:*)",
       "Bash(pnpm run build:*)",
       "Bash(python:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(ssh:*)",
+      "Bash(python3:*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx vite build:*)",
+      "Bash(git add:*)"
     ]
   }
 }

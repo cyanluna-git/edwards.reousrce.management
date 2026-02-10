@@ -635,8 +635,9 @@ def run_local_frontend():
 
     # Run pnpm dev
     if sys.platform == "win32":
+        pnpm_path = str(frontend_dir / "node_modules" / ".bin" / "pnpm")
         subprocess.run(
-            ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            [pnpm_path, "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
             cwd=frontend_dir,
             shell=True,
         )
