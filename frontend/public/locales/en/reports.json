@@ -1,0 +1,35 @@
+{
+  "title": "Reports",
+  "tabs": {
+    "capacity": "Capacity (Resource Allocation)",
+    "worklog": "WorkLog (Actuals)"
+  },
+  "yearSelector": "{{year}}",
+  "capacity": {
+    "monthlyFte": "Monthly Resource Allocation (FTE)",
+    "byPosition": "Allocation by Position",
+    "byProjectTop10": "Allocation by Project Top 10",
+    "project": "Project",
+    "fte": "FTE",
+    "noDataYear": "No data for {{year}}.",
+    "noData": "No data available."
+  },
+  "worklog": {
+    "monthlyHours": "Monthly WorkLog (Hours)",
+    "byType": "By Work Type",
+    "byProjectTop10": "By Project Top 10",
+    "project": "Project",
+    "hours": "Hours",
+    "noDataYear": "No data for {{year}}.",
+    "noData": "No data available."
+  },
+  "chart": {
+    "month": "Month",
+    "fte": "FTE",
+    "count": "Count",
+    "hours": "Hours"
+  },
+  "status": {
+    "loading": "Loading..."
+  }
+}

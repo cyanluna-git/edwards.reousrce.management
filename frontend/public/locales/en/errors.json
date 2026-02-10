@@ -1,0 +1,73 @@
+{
+  "network": {
+    "connectionFailed": "Network connection failed. Please check your internet.",
+    "timeout": "Request timed out. Please try again.",
+    "serverError": "Server error occurred. Please try again later."
+  },
+  "auth": {
+    "unauthorized": "You are not authorized. Please log in again.",
+    "forbidden": "You do not have permission to perform this action.",
+    "sessionExpired": "Your session has expired. Please log in again."
+  },
+  "data": {
+    "notFound": "The requested data was not found.",
+    "loadFailed": "Failed to load data. Please try again.",
+    "saveFailed": "Failed to save data. Please try again.",
+    "deleteFailed": "Failed to delete. Please try again."
+  },
+  "generic": {
+    "unknown": "An unknown error occurred.",
+    "tryAgain": "Please try again.",
+    "contactAdmin": "If the problem persists, please contact the administrator."
+  },
+  "code": {
+    "AUTH_INVALID_CREDENTIALS": "Incorrect email or password.",
+    "AUTH_INACTIVE_USER": "This account is inactive.",
+    "AUTH_INSUFFICIENT_PERMISSIONS": "Insufficient permissions.",
+    "AUTH_READ_ONLY": "Read-only access. You cannot modify data.",
+    "AUTH_INVALID_TOKEN": "Invalid or expired token. Please log in again.",
+    "AUTH_EXPIRED_TOKEN": "Your session has expired. Please log in again.",
+    "AUTH_INVALID_REFRESH_TOKEN": "Session expired. Please log in again.",
+    "AUTH_SSO_DISABLED": "SSO is not enabled.",
+    "AUTH_SAML_FAILED": "SSO authentication failed.",
+    "AUTH_REGISTRATION_TOKEN_INVALID": "Registration link is invalid or expired. Please sign in with SSO again.",
+    "AUTH_DUPLICATE_EMAIL": "An account with this email already exists.",
+    "AUTH_WRONG_PASSWORD": "Current password is incorrect.",
+    "AUTH_PASSWORD_TOO_SHORT": "Password must be at least 6 characters.",
+    "AUTH_PASSWORD_PERSIST_FAILED": "Password change failed. Please try again.",
+    "NOT_FOUND_USER": "User not found.",
+    "NOT_FOUND_PROJECT": "Project not found.",
+    "NOT_FOUND_WORKLOG": "Worklog not found.",
+    "NOT_FOUND_RESOURCE_PLAN": "Resource plan not found.",
+    "NOT_FOUND_DEPARTMENT": "Department not found.",
+    "NOT_FOUND_DIVISION": "Division not found.",
+    "NOT_FOUND_BUSINESS_UNIT": "Business unit not found.",
+    "NOT_FOUND_SUB_TEAM": "Sub-team not found.",
+    "NOT_FOUND_JOB_POSITION": "Job position not found.",
+    "NOT_FOUND_PROJECT_ROLE": "Project role not found.",
+    "NOT_FOUND_MILESTONE": "Milestone not found.",
+    "NOT_FOUND_SCENARIO": "Scenario not found.",
+    "NOT_FOUND_HIRING_PLAN": "Hiring plan not found.",
+    "NOT_FOUND_INTERNAL_IO": "Internal IO not found.",
+    "NOT_FOUND_RECHARGE_IO": "Recharge IO not found.",
+    "NOT_FOUND_WORK_TYPE": "Work type category not found.",
+    "NOT_FOUND_PRODUCT_LINE": "Product line not found.",
+    "NOT_FOUND_HISTORY": "History entry not found.",
+    "DUPLICATE_EMAIL": "A user with this email already exists.",
+    "DUPLICATE_CODE": "An item with this code already exists.",
+    "DUPLICATE_NAME": "An item with this name already exists.",
+    "DUPLICATE_IO": "This IO number already exists.",
+    "VALIDATION_HOURS_EXCEED": "Total hours cannot exceed 24 per day.",
+    "VALIDATION_INVALID_DEPARTMENT": "Invalid department selected.",
+    "VALIDATION_INVALID_POSITION": "Invalid position selected.",
+    "VALIDATION_FAILED": "Validation failed.",
+    "VALIDATION_MILESTONE_MISMATCH": "Milestone does not belong to this project.",
+    "DEPENDENCY_HAS_USERS": "Cannot delete: users are associated with this item.",
+    "DEPENDENCY_HAS_DEPARTMENTS": "Cannot delete: departments are associated with this item.",
+    "DEPENDENCY_HAS_SUB_TEAMS": "Cannot delete: sub-teams are associated with this item.",
+    "DEPENDENCY_HAS_PROJECTS": "Cannot delete: projects are using this item.",
+    "SERVER_INTERNAL_ERROR": "Internal server error. Please try again later.",
+    "SERVER_AI_PARSE_ERROR": "AI parsing failed. Please try again.",
+    "UNKNOWN": "An unknown error occurred."
+  }
+}

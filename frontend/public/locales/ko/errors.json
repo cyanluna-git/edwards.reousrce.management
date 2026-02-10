@@ -1,0 +1,73 @@
+{
+  "network": {
+    "connectionFailed": "네트워크 연결에 실패했습니다. 인터넷 연결을 확인해주세요.",
+    "timeout": "요청 시간이 초과되었습니다. 다시 시도해주세요.",
+    "serverError": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+  },
+  "auth": {
+    "unauthorized": "인증되지 않았습니다. 다시 로그인해주세요.",
+    "forbidden": "이 작업을 수행할 권한이 없습니다.",
+    "sessionExpired": "세션이 만료되었습니다. 다시 로그인해주세요."
+  },
+  "data": {
+    "notFound": "요청한 데이터를 찾을 수 없습니다.",
+    "loadFailed": "데이터 로딩에 실패했습니다. 다시 시도해주세요.",
+    "saveFailed": "데이터 저장에 실패했습니다. 다시 시도해주세요.",
+    "deleteFailed": "삭제에 실패했습니다. 다시 시도해주세요."
+  },
+  "generic": {
+    "unknown": "알 수 없는 오류가 발생했습니다.",
+    "tryAgain": "다시 시도해주세요.",
+    "contactAdmin": "문제가 계속되면 관리자에게 문의해주세요."
+  },
+  "code": {
+    "AUTH_INVALID_CREDENTIALS": "이메일 또는 비밀번호가 올바르지 않습니다.",
+    "AUTH_INACTIVE_USER": "비활성화된 계정입니다.",
+    "AUTH_INSUFFICIENT_PERMISSIONS": "권한이 부족합니다.",
+    "AUTH_READ_ONLY": "읽기 전용 접근입니다. 데이터를 수정할 수 없습니다.",
+    "AUTH_INVALID_TOKEN": "유효하지 않거나 만료된 토큰입니다. 다시 로그인해주세요.",
+    "AUTH_EXPIRED_TOKEN": "세션이 만료되었습니다. 다시 로그인해주세요.",
+    "AUTH_INVALID_REFRESH_TOKEN": "세션이 만료되었습니다. 다시 로그인해주세요.",
+    "AUTH_SSO_DISABLED": "SSO가 활성화되어 있지 않습니다.",
+    "AUTH_SAML_FAILED": "SSO 인증에 실패했습니다.",
+    "AUTH_REGISTRATION_TOKEN_INVALID": "등록 링크가 유효하지 않거나 만료되었습니다. SSO로 다시 로그인해주세요.",
+    "AUTH_DUPLICATE_EMAIL": "이미 등록된 이메일 주소입니다.",
+    "AUTH_WRONG_PASSWORD": "현재 비밀번호가 올바르지 않습니다.",
+    "AUTH_PASSWORD_TOO_SHORT": "비밀번호는 최소 6자 이상이어야 합니다.",
+    "AUTH_PASSWORD_PERSIST_FAILED": "비밀번호 변경에 실패했습니다. 다시 시도해주세요.",
+    "NOT_FOUND_USER": "사용자를 찾을 수 없습니다.",
+    "NOT_FOUND_PROJECT": "프로젝트를 찾을 수 없습니다.",
+    "NOT_FOUND_WORKLOG": "작업 로그를 찾을 수 없습니다.",
+    "NOT_FOUND_RESOURCE_PLAN": "리소스 계획을 찾을 수 없습니다.",
+    "NOT_FOUND_DEPARTMENT": "부서를 찾을 수 없습니다.",
+    "NOT_FOUND_DIVISION": "본부를 찾을 수 없습니다.",
+    "NOT_FOUND_BUSINESS_UNIT": "사업부를 찾을 수 없습니다.",
+    "NOT_FOUND_SUB_TEAM": "소그룹을 찾을 수 없습니다.",
+    "NOT_FOUND_JOB_POSITION": "직급을 찾을 수 없습니다.",
+    "NOT_FOUND_PROJECT_ROLE": "프로젝트 역할을 찾을 수 없습니다.",
+    "NOT_FOUND_MILESTONE": "마일스톤을 찾을 수 없습니다.",
+    "NOT_FOUND_SCENARIO": "시나리오를 찾을 수 없습니다.",
+    "NOT_FOUND_HIRING_PLAN": "채용 계획을 찾을 수 없습니다.",
+    "NOT_FOUND_INTERNAL_IO": "Internal IO를 찾을 수 없습니다.",
+    "NOT_FOUND_RECHARGE_IO": "Recharge IO를 찾을 수 없습니다.",
+    "NOT_FOUND_WORK_TYPE": "업무 유형 카테고리를 찾을 수 없습니다.",
+    "NOT_FOUND_PRODUCT_LINE": "제품군을 찾을 수 없습니다.",
+    "NOT_FOUND_HISTORY": "이력 항목을 찾을 수 없습니다.",
+    "DUPLICATE_EMAIL": "이미 등록된 이메일 주소입니다.",
+    "DUPLICATE_CODE": "이미 존재하는 코드입니다.",
+    "DUPLICATE_NAME": "이미 존재하는 이름입니다.",
+    "DUPLICATE_IO": "이미 존재하는 IO 번호입니다.",
+    "VALIDATION_HOURS_EXCEED": "하루 총 시간은 24시간을 초과할 수 없습니다.",
+    "VALIDATION_INVALID_DEPARTMENT": "유효하지 않은 부서입니다.",
+    "VALIDATION_INVALID_POSITION": "유효하지 않은 직급입니다.",
+    "VALIDATION_FAILED": "유효성 검사에 실패했습니다.",
+    "VALIDATION_MILESTONE_MISMATCH": "마일스톤이 해당 프로젝트에 속하지 않습니다.",
+    "DEPENDENCY_HAS_USERS": "삭제할 수 없습니다: 사용자가 연결되어 있습니다.",
+    "DEPENDENCY_HAS_DEPARTMENTS": "삭제할 수 없습니다: 부서가 연결되어 있습니다.",
+    "DEPENDENCY_HAS_SUB_TEAMS": "삭제할 수 없습니다: 소그룹이 연결되어 있습니다.",
+    "DEPENDENCY_HAS_PROJECTS": "삭제할 수 없습니다: 프로젝트가 사용 중입니다.",
+    "SERVER_INTERNAL_ERROR": "서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+    "SERVER_AI_PARSE_ERROR": "AI 파싱에 실패했습니다. 다시 시도해주세요.",
+    "UNKNOWN": "알 수 없는 오류가 발생했습니다."
+  }
+}

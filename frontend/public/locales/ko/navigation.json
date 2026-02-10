@@ -1,0 +1,28 @@
+{
+  "main": {
+    "dashboard": "대시보드",
+    "worklogs": "WorkLog",
+    "resourcePlans": "리소스 계획",
+    "resourceMatrix": "리소스 매트릭스",
+    "reports": "리포트",
+    "projects": "프로젝트",
+    "organization": "조직 관리",
+    "settings": "설정",
+    "profile": "프로필",
+    "requestBoard": "요청 게시판"
+  },
+  "sections": {
+    "monitoring": "모니터링",
+    "entry": "입력",
+    "adminSettings": "관리 설정"
+  },
+  "sidebar": {
+    "welcome": "환영합니다,",
+    "guest": "게스트",
+    "logout": "로그아웃",
+    "collapse": "사이드바 접기",
+    "expand": "사이드바 열기",
+    "appName": "Edwards POB",
+    "requestFeedback": "피드백/개선/의견을 남겨주세요."
+  }
+}
