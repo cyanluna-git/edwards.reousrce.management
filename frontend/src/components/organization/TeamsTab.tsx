@@ -139,6 +139,7 @@ export const TeamsTab: React.FC = () => {
                 name: data.name,
                 code: data.code,
                 division_id: data.parentId,
+                business_unit_id: null, // Required field, nullable
                 is_active: true
             }),
         onSuccess: () => {

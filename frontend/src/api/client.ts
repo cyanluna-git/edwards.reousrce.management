@@ -199,10 +199,7 @@ export const deleteMilestone = async (projectId: string, milestoneId: number): P
 
 // ============ Meta API ============
 
-export const getPrograms = async (): Promise<Program[]> => {
-  const response = await apiClient.get('/projects/meta/programs');
-  return response.data;
-};
+// getPrograms removed - Program entity no longer exists
 
 import type { ProductLine } from '@/types';
 
@@ -957,9 +954,9 @@ export interface ProjectAllocationRow {
   allocations: Record<string, MonthlyAllocation>;
 }
 
-export interface ProgramGroup {
-  program_id: string;
-  program_name: string;
+export interface ProductLineGroup {
+  product_line_id: string;
+  product_line_name: string;
   projects: ProjectAllocationRow[];
   total_by_month: Record<string, number>;
 }
@@ -968,7 +965,7 @@ export interface ResourceAllocationMatrix {
   start_month: string;
   end_month: string;
   months: string[];
-  programs: ProgramGroup[];
+  product_lines: ProductLineGroup[];
   grand_total_by_month: Record<string, number>;
 }
 

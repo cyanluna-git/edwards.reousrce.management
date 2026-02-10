@@ -21,19 +21,18 @@ interface ResourceAllocationGridProps {
     startMonth: string;
     endMonth: string;
     departmentId?: string;
-    programId?: string;
+    // programId removed - no longer supported in API
 }
 
 export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
     startMonth,
     endMonth,
     departmentId,
-    programId,
 }) => {
     const { t } = useTranslation('resource-plans');
     const { data, isLoading, error } = useQuery<ResourceAllocationMatrix>({
-        queryKey: ['resource-matrix', startMonth, endMonth, departmentId, programId],
-        queryFn: () => getResourceAllocationMatrix(startMonth, endMonth, departmentId, programId),
+        queryKey: ['resource-matrix', startMonth, endMonth, departmentId],
+        queryFn: () => getResourceAllocationMatrix(startMonth, endMonth, departmentId),
         enabled: !!startMonth && !!endMonth,
     });
 
@@ -61,7 +60,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
         );
     }
 
-    if (!data || data.programs.length === 0) {
+    if (!data || data.product_lines.length === 0) {
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-lg text-muted-foreground">
@@ -95,14 +94,14 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {data.programs.map((program) => (
-                            <React.Fragment key={program.program_id}>
-                                {/* Program Header Row */}
+                        {data.product_lines.map((productLine) => (
+                            <React.Fragment key={productLine.product_line_id}>
+                                {/* Product Line Header Row */}
                                 <tr className="bg-slate-100 font-bold hover:bg-slate-150">
                                     <td className="sticky left-0 bg-slate-100 border border-slate-300 p-3 z-10">
                                         <div className="flex items-center gap-2">
                                             <span className="text-blue-700">▼</span>
-                                            <span className="text-slate-800">{program.program_name}</span>
+                                            <span className="text-slate-800">{productLine.product_line_name}</span>
                                         </div>
                                     </td>
                                     {data.months.map((month) => (
@@ -110,18 +109,18 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                                             key={month}
                                             className="border border-slate-300 p-2 text-right font-semibold"
                                         >
-                                            {program.total_by_month[month]?.toFixed(1) || '0.0'}
+                                            {productLine.total_by_month[month]?.toFixed(1) || '0.0'}
                                         </td>
                                     ))}
                                     <td className="border border-slate-300 p-2 text-right bg-blue-50 font-semibold">
-                                        {Object.values(program.total_by_month)
+                                        {(Object.values(productLine.total_by_month) as number[])
                                             .reduce((a, b) => a + b, 0)
                                             .toFixed(1)}
                                     </td>
                                 </tr>
 
                                 {/* Project Rows */}
-                                {program.projects.map((project) => (
+                                {productLine.projects.map((project) => (
                                     <tr
                                         key={project.project_id}
                                         className="hover:bg-slate-50 transition-colors"
@@ -180,7 +179,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                                             );
                                         })}
                                         <td className="border border-slate-300 p-2 text-right bg-slate-50 font-medium">
-                                            {Object.values(project.allocations)
+                                            {(Object.values(project.allocations) as any[])
                                                 .reduce((sum, a) => sum + a.total_fte, 0)
                                                 .toFixed(1)}
                                         </td>
@@ -203,7 +202,7 @@ export const ResourceAllocationGrid: React.FC<ResourceAllocationGridProps> = ({
                                 </td>
                             ))}
                             <td className="border border-slate-300 p-2 text-right bg-blue-200 text-blue-900">
-                                {Object.values(data.grand_total_by_month)
+                                {(Object.values(data.grand_total_by_month) as number[])
                                     .reduce((a, b) => a + b, 0)
                                     .toFixed(1)}
                             </td>

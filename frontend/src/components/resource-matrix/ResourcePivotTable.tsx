@@ -23,7 +23,7 @@ interface ResourcePivotTableProps {
     startMonth: string;
     endMonth: string;
     departmentId?: string;
-    programId?: string;
+    // programId removed - no longer supported in API
     onCellClick?: (userId: string, userName: string, ioId: string, ioName: string) => void;
 }
 
@@ -31,15 +31,14 @@ export const ResourcePivotTable: React.FC<ResourcePivotTableProps> = ({
     startMonth,
     endMonth,
     departmentId,
-    programId,
     onCellClick,
 }) => {
     const { t } = useTranslation('resource-plans');
 
     // ✅ OPTIMIZED: Longer staleTime for reference data (resource matrix changes infrequently)
     const { data, isLoading, error } = useQuery<PivotMatrixResponse>({
-        queryKey: ['resource-pivot', startMonth, endMonth, departmentId, programId],
-        queryFn: () => getResourcePivotMatrix(startMonth, endMonth, departmentId, programId),
+        queryKey: ['resource-pivot', startMonth, endMonth, departmentId],
+        queryFn: () => getResourcePivotMatrix(startMonth, endMonth, departmentId),
         enabled: !!startMonth && !!endMonth,
         staleTime: 10 * 60 * 1000, // 10 minutes (longer than default 5min)
         gcTime: 60 * 60 * 1000, // 1 hour cache

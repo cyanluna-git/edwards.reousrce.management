@@ -28,7 +28,6 @@ import { ProjectDashboard } from '@/components/dashboard/ProjectDashboard';
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
 import {
   Briefcase,
-  Tag,
   Activity,
   Signal,
   Building2,
@@ -345,11 +344,7 @@ export const ProjectDetailPage: React.FC = () => {
               </span>
             </PropertyRow>
 
-            <PropertyRow icon={Tag} label={t('detail.projectType')}>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
-                {project.project_type?.name || 'N/A'}
-              </span>
-            </PropertyRow>
+            {/* ProjectType removed - no longer in data model */}
 
             <PropertyRow icon={Activity} label={t('detail.status')}>
               <StatusBadge status={project.status} />
