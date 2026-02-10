@@ -107,7 +107,6 @@ export function WorkLogTableView() {
 
     const resetFilters = () => {
         setBusinessUnitFilter('');
-        setProgramFilter('');
         setProjectFilter('');
         setDepartmentFilter('');
         setSubTeamFilter('');
@@ -156,7 +155,7 @@ export function WorkLogTableView() {
                         </div>
                     </div>
 
-                    {/* Row 2: 프로젝트 기반 필터 */}
+                    {/* Row 2: 프로젝트 기반 필터 - BusinessUnit → Product Line → Project */}
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm text-muted-foreground w-16">{t('table.project')}:</span>
                         <select
@@ -164,7 +163,6 @@ export function WorkLogTableView() {
                             value={businessUnitFilter}
                             onChange={(e) => {
                                 setBusinessUnitFilter(e.target.value);
-                                setProgramFilter('');
                                 setProjectFilter('');
                             }}
                         >
