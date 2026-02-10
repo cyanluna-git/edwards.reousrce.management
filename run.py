@@ -626,7 +626,11 @@ def run_local_frontend():
         print_colored("[WARNING] node_modules not found!", Colors.YELLOW)
         print_colored("[INFO] Installing dependencies...", Colors.GREEN)
         print()
-        subprocess.run(["pnpm", "install"], cwd=frontend_dir, check=True)
+        # Use shell=True on Windows for pnpm.cmd
+        if sys.platform == "win32":
+            subprocess.run("pnpm install", cwd=frontend_dir, shell=True, check=True)
+        else:
+            subprocess.run(["pnpm", "install"], cwd=frontend_dir, check=True)
         print()
 
     print_colored("[INFO] Starting frontend with pnpm dev...", Colors.GREEN)
@@ -634,14 +638,16 @@ def run_local_frontend():
     print()
 
     # Run pnpm dev
+    # Use shell=True on Windows to handle pnpm.cmd correctly
     if sys.platform == "win32":
-        pnpm_path = str(frontend_dir / "node_modules" / ".bin" / "pnpm")
+        # On Windows, use shell=True to let cmd.exe handle pnpm.cmd
         subprocess.run(
-            [pnpm_path, "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
+            f"pnpm dev --port {os.getenv('FRONTEND_PORT', '3004')}",
             cwd=frontend_dir,
             shell=True,
         )
     else:
+        # On Unix-like systems, use direct command
         subprocess.run(
             ["pnpm", "dev", "--port", os.getenv("FRONTEND_PORT", "3004")],
             cwd=frontend_dir,
