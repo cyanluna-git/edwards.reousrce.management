@@ -1,49 +1,79 @@
-# CLAUDE.md
+# Edwards Project Operation Board - Claude Code Guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Created**: 2026-02-12 (Thu) 00:35 UTC  
+> **Updated**: 2026-02-12 (Thu) 00:35 UTC
 
-## Project Overview
+Engineering resource management system for EUV Program IS. Replaces SharePoint/Excel with unified web application for worklog tracking, resource forecasting, and milestone management.
 
-Edwards Project Operation Board - Engineering resource management system for EUV Program IS. Replaces SharePoint/Excel workflows with a unified web application for worklog tracking, resource forecasting, and milestone management.
-
-### Port Convention
-
-All services use port suffix **4** (xxx4) to avoid conflicts when running multiple projects: DB 5434, Backend 8004, Frontend 3004.
-
-## Development Commands
-
-### Quick Start
+## Quick Commands
 
 ```bash
-./run.py all              # Start all services (Backend + DB + Frontend) in Docker
-./run.py backend          # Backend + Database only (Docker)
-./run.py frontend         # Frontend only (Docker)
-./run.py status           # Check service status
-./run.py stop             # Stop all services
+./run.py all              # All services (DB + Backend + Frontend) in Docker
+./run.py status           # Check status
+./run.py stop             # Stop all
+
+# Local development
+./run.py dev              # DB in Docker, backend/frontend locally
+./run.py local-backend    # uvicorn --reload --port 8004
+./run.py local-frontend   # pnpm dev --port 3004
 ```
 
-### Local Development Mode
+## Architecture Overview
 
-```bash
-./run.py dev              # Start DB in Docker, then run backend/frontend locally
-./run.py db               # Start database only (Docker)
-./run.py local-backend    # Run backend with uvicorn locally (auto-finds .venv)
-./run.py local-frontend   # Run frontend with pnpm dev locally
+**Tech Stack:**
+- **Backend:** FastAPI + SQLAlchemy + Alembic (PostgreSQL 15)
+- **Frontend:** React 19 + Vite + TanStack Query v5 + Tailwind CSS
+- **Auth:** JWT + SSO/SAML 2.0 (Microsoft Entra ID)
+- **Deployment:** Docker Compose + GitHub Actions
+
+**Port Convention:** Port suffix **4** → DB 5434, Backend 8004, Frontend 3004
+
+**Key URLs:**
+- Frontend: http://localhost:3004
+- Backend API: http://localhost:8004 | Docs: /docs
+- Default login: `admin@edwards.com` / `password`
+
+## Project Structure
+
 ```
+.
+├── CLAUDE.md              # ← You are here
+├── .claude/
+│   ├── rules/            # Code style, testing, API conventions
+│   └── skills/
+├── backend/
+│   ├── app/
+│   │   ├── api/endpoints/
+│   │   ├── core/          # Config, database, security
+│   │   ├── models/        # SQLAlchemy schemas
+│   │   ├── schemas/       # Pydantic validation
+│   │   └── services/      # Business logic
+│   └── tests/
+├── frontend/
+│   └── src/
+│       ├── api/           # Axios client + API functions
+│       ├── components/    # React components
+│       ├── hooks/         # TanStack Query hooks
+│       ├── pages/         # Lazy-loaded pages
+│       └── types/         # TypeScript interfaces
+├── docker-compose.yml
+└── run.py                 # Service orchestration
+```
+
+## Development Workflow
 
 ### Backend (FastAPI)
 
 ```bash
-cd backend
-source .venv/bin/activate
+cd backend && source .venv/bin/activate
 uvicorn app.main:app --reload --port 8004
 
-# Run tests
+# Tests
 pytest
-pytest tests/test_users.py -v           # Single test file
-pytest -k "test_create_user"            # Single test by name
+pytest tests/test_users.py -v
+pytest -k "test_create_user"
 
-# Database migrations
+# Migrations
 alembic upgrade head
 alembic revision --autogenerate -m "description"
 ```
@@ -52,172 +82,87 @@ alembic revision --autogenerate -m "description"
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev --port 3004
-pnpm build            # Production build
-pnpm preview          # Preview production build
+pnpm install && pnpm dev --port 3004
+pnpm build                # Production
 ```
 
 ### Data Sync (CSV to PostgreSQL)
 
 ```bash
 cd backend
-python -m scripts.sync_from_pbi --csv --worklogs -0       # Today's worklogs
-python -m scripts.sync_from_pbi --csv --worklogs -7d      # Last 7 days
+python -m scripts.sync_from_pbi --csv --worklogs -0    # Today
+python -m scripts.sync_from_pbi --csv --worklogs -7d   # Last 7 days
 ```
 
 ### Database Backup/Restore
 
 ```bash
-python3 backup_db.py                                    # Create backup (services must be running)
-python3 restore_db.py edwards_backup_YYYYMMDD_HHMMSS.sql  # Restore from backup
+python3 backup_db.py                                    # Create
+python3 restore_db.py edwards_backup_YYYYMMDD_HHMMSS.sql  # Restore
 ```
 
-## Architecture
+## Key Concepts
 
-### Backend (FastAPI + SQLAlchemy)
+- **FTE:** Monthly allocation per user per project (0.0–1.0)
+- **TBD Position:** ResourcePlan with user_id=null (future hiring)
+- **Org Hierarchy:** Division → Department → SubTeam → JobPosition
+- **Project Hierarchy:** BusinessUnit → Program → Project → Milestone
+- **Project Status:** Prospective, Planned, InProgress, OnHold, Cancelled, Completed
+- **Roles:** ADMIN, PM, FM, USER, GUEST, VIEWER (GUEST/VIEWER are read-only)
+- **PCP Gates:** G3, G5, G6 (product commercialization milestones)
 
+## Configuration
+
+**Key .env variables:**
+- Ports: `DB_PORT=5434`, `BACKEND_PORT=8004`, `FRONTEND_PORT=3004`
+- Database: `DATABASE_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
+- Security: `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
+- AI: `AI_PROVIDER` (groq/gemini/pcas), provider API keys
+- SSO: `SAML_ENABLED`, `SAML_ENTITY_ID`, `SAML_IDP_SSO_URL`, `SAML_IDP_X509_CERT`
+
+**Refer to `.env.example` for full list.**
+
+## Import Rules & Conventions
+
+This project follows the Unify/OQC structure. Rules are documented separately:
+
+```yaml
+Backend Code Style:
+  @../../.claude/rules/code-style.md
+  @../../.claude/rules/api-conventions.md
+  @../../.claude/rules/security.md
+
+Testing:
+  @../../.claude/rules/testing.md
+
+Git Workflow:
+  @../../.claude/rules/commit-workflow.md
 ```
-backend/app/
-├── api/endpoints/    # HTTP handlers only - delegate to services
-├── core/             # Config, database, security (JWT + SSO/SAML)
-├── models/           # SQLAlchemy models - DB structure only
-├── schemas/          # Pydantic schemas - validation only
-├── services/         # Business logic - all complex operations here
-```
 
-**Key Pattern:** Endpoints → Services → Models. Keep endpoints thin, services handle business logic.
+## Key Files Reference
 
-**Service instantiation pattern:**
-```python
-@router.get("/{id}", response_model=UserResponse)
-async def get_item(id: str, db: Session = Depends(get_db)):
-    service = UserService(db)
-    return service.get_by_id(id)
-```
-
-### Frontend (React 19 + TanStack Query v5)
-
-```
-frontend/src/
-├── api/client.ts     # Axios client with auth interceptor + all API functions
-├── components/ui/    # Shadcn/UI primitives (Button, Card, Dialog, etc.)
-├── components/       # Domain components (UserHierarchySelect, WorklogHeatmap, etc.)
-├── hooks/            # TanStack Query hooks + useAuth (AuthContext)
-├── pages/            # Page components - lazy-loaded via React Router 7
-├── types/index.ts    # All TypeScript interfaces (centralized)
-├── lib/              # Utilities (cn(), formatDate, etc.)
-```
-
-**Key Pattern:** Pages use hooks for data fetching. Hooks wrap API calls with TanStack Query. All pages are lazy-loaded except LandingPage and LoginPage.
-
-### Database Schema (PostgreSQL 15)
-
-**Organization hierarchy:**
-Division → Department → SubTeam → JobPosition
-
-**Project hierarchy:**
-BusinessUnit → Program → Project → ProjectMilestone
-
-**Resource tracking:**
-- ResourcePlan: Monthly FTE allocation per user per project (user_id=null for TBD positions)
-- WorkLog: Daily hours per user per project
-- User → UserHistory: Tracks org changes (HIRE, TRANSFER_IN, TRANSFER_OUT, PROMOTION, RESIGN)
-
-**Project categories:** PRODUCT or FUNCTIONAL
-**Project statuses:** Prospective, Planned, InProgress, OnHold, Cancelled, Completed
-
-### Key Business Concepts
-
-- **FTE (Full-Time Equivalent):** 0.0-1.0 monthly allocation per user per project
-- **TBD Position:** ResourcePlan with user_id=null - placeholder for future hiring
-- **WorkType:** Hierarchical work classification (WorkTypeCategory)
-- **PCP Gates:** G3, G5, G6 milestones for product commercialization process
-- **Internal IO / Recharge IO:** Internal order numbers and cost recharge tracking
-
-### Authentication & Authorization
-
-- **JWT:** Access tokens (30 min) + Refresh tokens (7 days) + Registration tokens
-- **SSO/SAML 2.0:** Microsoft Entra ID integration (configurable via SAML_* env vars)
-- **Roles:** ADMIN, PM, FM, USER, GUEST, VIEWER
-- **Read-only roles:** GUEST and VIEWER cannot create/update/delete (enforced via `require_write_permission()`)
-- **Auth flow:** `backend/app/core/security.py` → `require_role()`, `require_write_permission()`
-- **Frontend auth:** `useAuth` hook with localStorage token management, auto-refresh on 401
-
-### AI-Powered Features
-
-- **AI Worklog Parser:** Natural language → structured worklog entries
-- **AI Summaries:** Dashboard summaries with caching (AISummary model)
-- **Providers:** Configured via `AI_PROVIDER` env var - supports Groq (Llama 3.3), Gemini (2.0 Flash), PCAS
-- **Entity resolution:** Fuzzy matching for project/user/worktype via `matching_service.py`
-
-## Service URLs
-
-| Service     | URL                         |
-| ----------- | --------------------------- |
-| Frontend    | http://localhost:3004       |
-| Backend API | http://localhost:8004       |
-| API Docs    | http://localhost:8004/docs  |
-| Database    | localhost:5434 (PostgreSQL) |
-
-Default login: `admin@edwards.com` / `password`
-
-## Environment Variables
-
-Key variables in `.env` (copy from `.env.example`):
-
-- **Ports:** `DB_PORT=5434`, `BACKEND_PORT=8004`, `FRONTEND_PORT=3004`
-- **Database:** `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`
-- **Security:** `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`
-- **AI:** `AI_PROVIDER` (groq/gemini/pcas), `GROQ_API_KEY`, `GEMINI_API_KEY`
-- **SSO:** `SAML_ENABLED`, `SAML_ENTITY_ID`, `SAML_IDP_SSO_URL`, `SAML_IDP_X509_CERT`
-- **Frontend:** `VITE_API_URL=/api`, `VITE_DEV_PROXY_TARGET=http://localhost:8004`
-
-## Code Style
-
-### Backend (Python)
-
-- Type hints everywhere: `def get_user(user_id: str, db: Session) -> User | None`
-- Service layer pattern: Business logic in `services/`, not endpoints
-- Use `Depends()` for dependency injection
-- Avoid circular imports - use `TYPE_CHECKING`
-- Functions: `snake_case`, Classes: `PascalCase`, Constants: `UPPER_SNAKE_CASE`
-- Use `async def` for I/O operations
-
-### Frontend (TypeScript/React)
-
-- Functional components with TypeScript interfaces
-- TanStack Query for all data fetching
-- Tailwind CSS for styling, `cn()` for conditional classes
-- Path alias: `@/` maps to `src/`
-- Components: `PascalCase.tsx`, Hooks: `use*.ts`, Pages: `*Page.tsx`
-- File order: Imports → Types/Interfaces → Component → Export
-
-### Language
-
-- All code comments and documentation in English
-- Respond to users in Korean
-
-## Key Files to Know
-
-- `backend/app/core/config.py` - All environment variable settings
-- `backend/app/core/database.py` - Database connection, session factory, `get_db()`
-- `backend/app/core/security.py` - JWT auth, role checks, password hashing
-- `backend/app/main.py` - App setup, CORS, startup seed, router registration
-- `frontend/src/api/client.ts` - Axios client, all API functions, token refresh
-- `frontend/src/hooks/useAuth.tsx` - AuthContext provider, login/logout/token management
-- `frontend/src/App.tsx` - Routing config, lazy loading, protected routes
-- `frontend/src/types/index.ts` - All TypeScript interfaces
+| File | Purpose |
+|------|----------|
+| `backend/app/core/config.py` | Environment variables + settings |
+| `backend/app/core/database.py` | DB connection + session factory |
+| `backend/app/core/security.py` | JWT + role checks + password hashing |
+| `backend/app/main.py` | FastAPI setup, CORS, seed, routers |
+| `frontend/src/api/client.ts` | Axios client + all API functions |
+| `frontend/src/hooks/useAuth.tsx` | AuthContext + token management |
+| `frontend/src/App.tsx` | Router config + lazy loading |
+| `frontend/src/types/index.ts` | All TypeScript interfaces |
 
 ## Deployment
 
-- **Docker Compose:** `docker-compose.yml` runs db + backend + frontend
-- **Dev Docker:** `docker-compose.dev.yml` adds hot reload with volume mounts
-- **Build & Package:** `python build_and_compress.py` → builds images and creates .tar.gz
-- **Full Deploy:** `run_full_deploy.ps1` automates build → upload → restart
-- **Server cron:** `server/setup_cron.sh` sets up daily DB backups with 7-day retention
+- **Docker Compose:** `docker-compose.yml` → db + backend + frontend
+- **Build & Package:** `python build_and_compress.py` → .tar.gz
+- **Full Deploy:** `run_full_deploy.ps1` (build → upload → restart)
+- **Server Cron:** `server/setup_cron.sh` (daily DB backups, 7-day retention)
 
-## Testing
+## Documentation
 
-- **Backend:** pytest + pytest-asyncio, test files: `test_{module_name}.py`
-- **Frontend:** Playwright for E2E tests, test files: `{component}.spec.ts`
+- **README.md** — Project overview, features, architecture
+- **DEPLOYMENT.md** — Deployment instructions
+- **Submodule guides:**
+  - `backend/.claude/CLAUDE.md` — FastAPI-specific patterns
+  - `frontend/.claude/CLAUDE.md` — React-specific patterns
