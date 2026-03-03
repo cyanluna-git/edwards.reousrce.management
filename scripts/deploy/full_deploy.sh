@@ -93,14 +93,14 @@ info "  ✓ SSH Connection confirmed."
 # Step 0: Generate .env.remote
 info "[0/8] Generating .env.remote from .env..."
 cd "$PROJECT_ROOT"
-python scripts/deploy/env.py --profile server --domain "$DOMAIN"
+python3 scripts/deploy/env.py --profile server --domain "$DOMAIN"
 info "  ✓ .env.remote generated."
 
 # Step 1: Build
 if [[ "$SKIP_BUILD" == false ]]; then
   echo ""
   info "[1/8] Building project..."
-  python scripts/deploy/build.py
+  python3 scripts/deploy/build.py
   info "  ✓ Build complete."
 else
   warn "[1/8] Skipping build (using existing archive)..."

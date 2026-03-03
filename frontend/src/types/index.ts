@@ -15,7 +15,7 @@ export interface Division {
 
 export interface Department {
     id: string
-    division_id?: string  // Parent division
+    division_id?: string | null  // Parent division
     name: string
     code: string
     is_active: boolean
