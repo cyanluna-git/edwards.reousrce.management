@@ -136,12 +136,17 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({ project, onSuccess, on
     }, [project?.id]); // Only reset when project ID changes
 
     const onSubmit = (data: ProjectFormData) => {
+        // Convert empty strings to undefined for FK fields
+        const sanitized = Object.fromEntries(
+            Object.entries(data).map(([k, v]) => [k, v === '' ? undefined : v])
+        ) as ProjectFormData;
+
         if (isEditMode && project) {
-            (mutate as typeof updateMutation.mutate)({ id: project.id, updatedProject: data }, {
+            (mutate as typeof updateMutation.mutate)({ id: project.id, updatedProject: sanitized }, {
                 onSuccess: () => onSuccess?.(),
             });
         } else {
-            (mutate as typeof createMutation.mutate)(data as ProjectCreate, {
+            (mutate as typeof createMutation.mutate)(sanitized as ProjectCreate, {
                 onSuccess: () => onSuccess?.(),
             });
         }

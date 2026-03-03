@@ -455,7 +455,8 @@ export interface TeamDashboardData {
 export const getTeamDashboard = async (
   scope: TeamDashboardScope = 'department',
   viewMode: DashboardViewMode = 'weekly',
-  dateRange?: { start: string; end: string }
+  dateRange?: { start: string; end: string },
+  orgId?: string,
 ): Promise<TeamDashboardData> => {
   const params = new URLSearchParams({
     scope,
@@ -464,6 +465,9 @@ export const getTeamDashboard = async (
   if (dateRange) {
     params.append('start_date', dateRange.start);
     params.append('end_date', dateRange.end);
+  }
+  if (orgId) {
+    params.append('org_id', orgId);
   }
   const response = await apiClient.get(`/dashboard/team-summary?${params.toString()}`);
   return response.data;

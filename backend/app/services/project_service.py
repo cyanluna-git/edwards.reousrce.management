@@ -108,10 +108,20 @@ class ProjectService:
         """Create a new project."""
         project_data = project_in.model_dump()
 
+        # Convert empty strings to None for FK fields to avoid IntegrityError
+        fk_fields = ("internal_io_id", "recharge_io_id", "product_line_id", "pm_id", "owner_department_id")
+        for field in fk_fields:
+            if project_data.get(field) == "":
+                project_data[field] = None
+
         db_project = Project(id=str(uuid.uuid4()), **project_data)
         self.db.add(db_project)
-        self.db.commit()
-        self.db.refresh(db_project)
+        try:
+            self.db.commit()
+            self.db.refresh(db_project)
+        except IntegrityError:
+            self.db.rollback()
+            raise ValueError("Project creation failed: invalid reference value.")
         return db_project
 
     def update_project(

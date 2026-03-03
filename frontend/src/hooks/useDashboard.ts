@@ -24,11 +24,12 @@ export function useTeamDashboard(
     scope: TeamDashboardScope = 'department',
     viewMode: DashboardViewMode = 'weekly',
     dateRange?: { start: string; end: string },
-    enabled: boolean = true
+    enabled: boolean = true,
+    orgId?: string,
 ) {
     return useQuery<TeamDashboardData, Error>({
-        queryKey: ['dashboard', 'team-summary', scope, viewMode, dateRange?.start, dateRange?.end],
-        queryFn: () => getTeamDashboard(scope, viewMode, dateRange),
+        queryKey: ['dashboard', 'team-summary', scope, viewMode, dateRange?.start, dateRange?.end, orgId],
+        queryFn: () => getTeamDashboard(scope, viewMode, dateRange, orgId),
         enabled,
     });
 }

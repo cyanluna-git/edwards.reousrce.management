@@ -1,9 +1,13 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useTeamDashboard } from '@/hooks/useDashboard';
 import type { TeamDashboardScope, DashboardViewMode } from '@/api/client';
+import { getDepartments, getDivisions } from '@/api/client';
+import type { Department } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, Button } from '@/components/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Building, Building2, Maximize2 } from 'lucide-react';
 import { WeeklySummaryCard } from './WeeklySummaryCard';
 
@@ -13,6 +17,8 @@ interface TeamDashboardContentProps {
     teamViewMode: DashboardViewMode;
     setTeamViewMode: (mode: DashboardViewMode) => void;
     dateRange?: { start: string; end: string };
+    selectedOrgId?: string;
+    onOrgChange?: (orgId: string) => void;
 }
 
 /**
@@ -26,10 +32,24 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     teamViewMode,
     setTeamViewMode: _setTeamViewMode,
     dateRange,
+    selectedOrgId,
+    onOrgChange,
 }) => {
     void _setTeamViewMode; // Reserved for future use
     const { t } = useTranslation('dashboard');
-    const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange);
+    const { data: teamData, isLoading: teamLoading, error: teamError } = useTeamDashboard(teamScope, teamViewMode, dateRange, true, selectedOrgId);
+
+    // Fetch org lists for the picker
+    const { data: departments = [] } = useQuery({
+        queryKey: ['departments'],
+        queryFn: () => getDepartments(undefined, true),
+        enabled: teamScope === 'department',
+    });
+    const { data: divisions = [] } = useQuery({
+        queryKey: ['divisions'],
+        queryFn: getDivisions,
+        enabled: teamScope === 'business_unit',
+    });
 
     // Team Dashboard Scope Labels (inside component to access t())
     const SCOPE_LABELS: Record<TeamDashboardScope, { label: string; icon: React.ReactNode }> = {
@@ -81,10 +101,19 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
     const top5Projects = productFunctionalProjects.slice(0, 5);
     const hasMoreProjects = productFunctionalProjects.length > 5;
 
+    // Determine options for the org picker (department and business_unit scopes only)
+    const orgPickerOptions = teamScope === 'business_unit'
+        ? divisions.map(d => ({ id: d.id, name: d.name }))
+        : teamScope === 'department'
+            ? departments.map((d: Department) => ({ id: d.id, name: d.name }))
+            : [];
+
+    const showOrgPicker = orgPickerOptions.length > 0 && !!onOrgChange;
+
     return (
         <>
-            {/* Scope Selector */}
-            <div className="flex flex-wrap items-center gap-4">
+            {/* Scope Selector + Org Picker */}
+            <div className="flex flex-wrap items-center gap-3">
                 <div className="flex gap-2">
                     {(['sub_team', 'department', 'business_unit', 'all'] as TeamDashboardScope[]).map(scope => (
                         <Button
@@ -99,6 +128,20 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
                         </Button>
                     ))}
                 </div>
+                {showOrgPicker && (
+                    <Select value={selectedOrgId || ''} onValueChange={onOrgChange}>
+                        <SelectTrigger className="h-8 w-52 text-sm">
+                            <SelectValue placeholder={t('team.selectOrg', { defaultValue: '팀 선택' })} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {orgPickerOptions.map(org => (
+                                <SelectItem key={org.id} value={org.id}>
+                                    {org.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
             </div>
 
             {/* Team Info Header */}

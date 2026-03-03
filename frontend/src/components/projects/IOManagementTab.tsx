@@ -68,6 +68,10 @@ export const IOManagementTab: React.FC = () => {
     const [internalFormData, setInternalFormData] = useState<IOFormData>(emptyFormData);
     const [rechargeFormData, setRechargeFormData] = useState<IOFormData>(emptyFormData);
 
+    // Form errors
+    const [internalFormError, setInternalFormError] = useState<string | null>(null);
+    const [rechargeFormError, setRechargeFormError] = useState<string | null>(null);
+
     // Delete confirmation
     const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'internal' | 'recharge'; id: string; io_number: string } | null>(null);
     const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -98,6 +102,10 @@ export const IOManagementTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['internal-ios'] });
             setInternalModalOpen(false);
             setInternalFormData(emptyFormData);
+            setInternalFormError(null);
+        },
+        onError: (error: unknown) => {
+            setInternalFormError(getErrorMessage(error));
         },
     });
 
@@ -107,6 +115,10 @@ export const IOManagementTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['internal-ios'] });
             setInternalModalOpen(false);
             setInternalFormData(emptyFormData);
+            setInternalFormError(null);
+        },
+        onError: (error: unknown) => {
+            setInternalFormError(getErrorMessage(error));
         },
     });
 
@@ -129,6 +141,10 @@ export const IOManagementTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['recharge-ios'] });
             setRechargeModalOpen(false);
             setRechargeFormData(emptyFormData);
+            setRechargeFormError(null);
+        },
+        onError: (error: unknown) => {
+            setRechargeFormError(getErrorMessage(error));
         },
     });
 
@@ -138,6 +154,10 @@ export const IOManagementTab: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['recharge-ios'] });
             setRechargeModalOpen(false);
             setRechargeFormData(emptyFormData);
+            setRechargeFormError(null);
+        },
+        onError: (error: unknown) => {
+            setRechargeFormError(getErrorMessage(error));
         },
     });
 
@@ -156,6 +176,7 @@ export const IOManagementTab: React.FC = () => {
     // Handlers
     const handleAddInternal = () => {
         setInternalFormData(emptyFormData);
+        setInternalFormError(null);
         setInternalModalOpen(true);
     };
 
@@ -166,6 +187,7 @@ export const IOManagementTab: React.FC = () => {
             name: io.name || '',
             description: io.description || '',
         });
+        setInternalFormError(null);
         setInternalModalOpen(true);
     };
 
@@ -190,6 +212,7 @@ export const IOManagementTab: React.FC = () => {
 
     const handleAddRecharge = () => {
         setRechargeFormData(emptyFormData);
+        setRechargeFormError(null);
         setRechargeModalOpen(true);
     };
 
@@ -200,6 +223,7 @@ export const IOManagementTab: React.FC = () => {
             name: io.name || '',
             description: io.description || '',
         });
+        setRechargeFormError(null);
         setRechargeModalOpen(true);
     };
 
@@ -370,13 +394,18 @@ export const IOManagementTab: React.FC = () => {
             </Tabs>
 
             {/* Internal IO Modal */}
-            <Dialog open={internalModalOpen} onOpenChange={setInternalModalOpen}>
+            <Dialog open={internalModalOpen} onOpenChange={(open) => { if (!open) setInternalFormError(null); setInternalModalOpen(open); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
                             {internalFormData.id ? t('io.editInternal') : t('io.addInternal')}
                         </DialogTitle>
                     </DialogHeader>
+                    {internalFormError && (
+                        <div className="px-1 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                            {internalFormError}
+                        </div>
+                    )}
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="internal-io-number" className="text-right">{t('io.ioNumberRequired')}</Label>
@@ -422,13 +451,18 @@ export const IOManagementTab: React.FC = () => {
             </Dialog>
 
             {/* Recharge IO Modal */}
-            <Dialog open={rechargeModalOpen} onOpenChange={setRechargeModalOpen}>
+            <Dialog open={rechargeModalOpen} onOpenChange={(open) => { if (!open) setRechargeFormError(null); setRechargeModalOpen(open); }}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
                             {rechargeFormData.id ? t('io.editRecharge') : t('io.addRecharge')}
                         </DialogTitle>
                     </DialogHeader>
+                    {rechargeFormError && (
+                        <div className="px-1 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                            {rechargeFormError}
+                        </div>
+                    )}
                     <div className="space-y-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="recharge-io-number" className="text-right">{t('io.ioNumberRequired')}</Label>

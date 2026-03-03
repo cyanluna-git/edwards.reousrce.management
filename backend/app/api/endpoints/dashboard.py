@@ -74,6 +74,10 @@ async def get_team_dashboard(
         None,
         description="종료 날짜 (YYYY-MM-DD). 제공되지 않으면 view_mode로 계산",
     ),
+    org_id: Optional[str] = Query(
+        None,
+        description="조회할 조직 ID (제공되지 않으면 현재 사용자 소속 조직)",
+    ),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -92,11 +96,12 @@ async def get_team_dashboard(
         - yearly: 올해
     - **start_date**: 시작 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
     - **end_date**: 종료 날짜 (선택적, 제공되지 않으면 view_mode로 계산)
+    - **org_id**: 조회할 조직 ID (선택적, 제공되지 않으면 현재 사용자 소속)
     """
     try:
         service = DashboardService(db)
         return service.get_team_dashboard(
-            str(current_user.id), scope, view_mode, start_date, end_date
+            str(current_user.id), scope, view_mode, start_date, end_date, org_id
         )
     except Exception as e:
         import traceback

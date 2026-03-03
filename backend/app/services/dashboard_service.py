@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
 
 from app.models.user import User
-from app.models.organization import Department, SubTeam
+from app.models.organization import Department, SubTeam, Division
 from app.models.project import Project, ProjectMilestone
 from app.models.resource import ResourcePlan, WorkLog
 from app.utils import get_io_number
@@ -321,7 +321,8 @@ class DashboardService:
 
     def get_team_dashboard(
         self, user_id: str, scope: str = "department", view_mode: str = "weekly",
-        start_date: Optional[date] = None, end_date: Optional[date] = None
+        start_date: Optional[date] = None, end_date: Optional[date] = None,
+        org_id: Optional[str] = None,
     ) -> dict:
         """
         Get team dashboard data based on user's organization.
@@ -388,39 +389,54 @@ class DashboardService:
         # Determine team members based on scope
         team_query = self.db.query(User).filter(User.is_active == True)
 
-        if scope == "sub_team" and user.sub_team_id:
-            team_query = team_query.filter(User.sub_team_id == user.sub_team_id)
-            team_name = user.sub_team.name if user.sub_team else "Unknown"
-            team_code = user.sub_team.code if user.sub_team else ""
-        elif scope == "department" and user_department_id:
-            # Get all sub_teams in the same department
-            sub_team_ids = [
-                st.id
-                for st in self.db.query(SubTeam)
-                .filter(SubTeam.department_id == user_department_id)
-                .all()
-            ]
-            team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
-            team_name = user_department.name if user_department else "Unknown"
-            team_code = user_department.code if user_department else ""
-        elif scope == "business_unit" and user_department and user_department.division_id:
-            # Get all departments in the same division, then all sub_teams
-            dept_ids = [
-                d.id
-                for d in self.db.query(Department)
-                .filter(Department.division_id == user_department.division_id)
-                .all()
-            ]
-            sub_team_ids = [
-                st.id
-                for st in self.db.query(SubTeam)
-                .filter(SubTeam.department_id.in_(dept_ids))
-                .all()
-            ]
-            team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
-            division = user_department.division if user_department else None
-            team_name = division.name if division else "Unknown"
-            team_code = division.code if division else ""
+        if scope == "sub_team":
+            target_sub_team_id = org_id if org_id else user.sub_team_id
+            if target_sub_team_id:
+                sub_team = self.db.query(SubTeam).filter(SubTeam.id == target_sub_team_id).first()
+                team_query = team_query.filter(User.sub_team_id == target_sub_team_id)
+                team_name = sub_team.name if sub_team else "Unknown"
+                team_code = sub_team.code if sub_team else ""
+            else:
+                team_name = "Unknown"
+                team_code = ""
+        elif scope == "department":
+            target_dept_id = org_id if org_id else user_department_id
+            if target_dept_id:
+                target_dept = self.db.query(Department).filter(Department.id == target_dept_id).first()
+                sub_team_ids = [
+                    st.id
+                    for st in self.db.query(SubTeam)
+                    .filter(SubTeam.department_id == target_dept_id)
+                    .all()
+                ]
+                team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
+                team_name = target_dept.name if target_dept else "Unknown"
+                team_code = target_dept.code if target_dept else ""
+            else:
+                team_name = "Unknown"
+                team_code = ""
+        elif scope == "business_unit":
+            target_division_id = org_id if org_id else (user_department.division_id if user_department else None)
+            if target_division_id:
+                target_division = self.db.query(Division).filter(Division.id == target_division_id).first()
+                dept_ids = [
+                    d.id
+                    for d in self.db.query(Department)
+                    .filter(Department.division_id == target_division_id)
+                    .all()
+                ]
+                sub_team_ids = [
+                    st.id
+                    for st in self.db.query(SubTeam)
+                    .filter(SubTeam.department_id.in_(dept_ids))
+                    .all()
+                ]
+                team_query = team_query.filter(User.sub_team_id.in_(sub_team_ids))
+                team_name = target_division.name if target_division else "Unknown"
+                team_code = target_division.code if target_division else ""
+            else:
+                team_name = "Unknown"
+                team_code = ""
         else:  # all - entire engineering
             team_name = "PCAS Engineering"
             team_code = "ENG"

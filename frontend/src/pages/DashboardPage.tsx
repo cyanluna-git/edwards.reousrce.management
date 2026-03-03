@@ -88,6 +88,16 @@ export const DashboardPage: React.FC = () => {
     const [teamViewMode, setTeamViewMode] = useState<DashboardViewMode>('weekly');
     const [teamScope, setTeamScope] = useState<TeamDashboardScope>('department');
     const [teamCurrentDate, setTeamCurrentDate] = useState<Date>(new Date()); // Track current reference date for team dashboard
+    const [selectedOrgId, setSelectedOrgId] = useState<string | undefined>(user?.department_id);
+
+    const handleTeamScopeChange = (scope: TeamDashboardScope) => {
+        setTeamScope(scope);
+        // Reset to user's own org when switching scope
+        if (scope === 'sub_team') setSelectedOrgId(user?.sub_team_id);
+        else if (scope === 'department') setSelectedOrgId(user?.department_id);
+        else if (scope === 'business_unit') setSelectedOrgId(user?.division_id);
+        else setSelectedOrgId(undefined);
+    };
 
     // Calculate date ranges dynamically based on currentDate and viewMode
     const dateRange = useMemo(() => getDynamicDateRanges(currentDate, viewMode), [currentDate, viewMode]);
@@ -996,10 +1006,12 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <TeamDashboardContent
                         teamScope={teamScope}
-                        setTeamScope={setTeamScope}
+                        setTeamScope={handleTeamScopeChange}
                         teamViewMode={teamViewMode}
                         setTeamViewMode={setTeamViewMode}
                         dateRange={teamDateRange}
+                        selectedOrgId={selectedOrgId}
+                        onOrgChange={setSelectedOrgId}
                     />
                 </TabsContent>
 
