@@ -123,3 +123,22 @@ export const getWorklogsTable = async (params: WorkLogTableParams = {}): Promise
     const response = await apiClient.get('/worklogs/table', { params });
     return response.data;
 };
+
+/**
+ * Download worklogs as CSV with the same filters as the table view
+ */
+export const downloadWorklogsCsv = async (params: WorkLogTableParams = {}): Promise<void> => {
+    const response = await apiClient.get('/worklogs/export/csv', {
+        params,
+        responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    link.setAttribute('download', `worklogs_${today}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};

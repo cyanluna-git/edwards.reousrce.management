@@ -138,7 +138,9 @@
     "description": "Description",
     "flags": "Flags",
     "suddenWork": "Sudden Work",
-    "businessTrip": "Business Trip"
+    "businessTrip": "Business Trip",
+    "downloadCsv": "CSV Download",
+    "downloading": "Downloading..."
   },
   "leave": {
     "title": "Register Leave",

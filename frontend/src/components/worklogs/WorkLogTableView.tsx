@@ -13,6 +13,7 @@ import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
+import { downloadWorklogsCsv } from '@/api/worklogs';
 
 export function WorkLogTableView() {
     const { t } = useTranslation('worklogs');
@@ -41,6 +42,7 @@ export function WorkLogTableView() {
     const [userFilter, setUserFilter] = useState<string>('');
     // 기타 필터
     const [workTypeFilter, setWorkTypeFilter] = useState<string>('');
+    const [isDownloading, setIsDownloading] = useState(false);
 
     // Load data on mount
     useEffect(() => {
@@ -112,6 +114,22 @@ export function WorkLogTableView() {
         setSubTeamFilter('');
         setUserFilter('');
         setWorkTypeFilter('');
+    };
+
+    const handleDownloadCsv = async () => {
+        setIsDownloading(true);
+        try {
+            await downloadWorklogsCsv({
+                start_date: startDate,
+                end_date: endDate,
+                project_id: projectFilter || undefined,
+                department_id: departmentFilter || undefined,
+                sub_team_id: subTeamFilter || undefined,
+                user_id: userFilter || undefined,
+            });
+        } finally {
+            setIsDownloading(false);
+        }
     };
 
     return (
@@ -244,6 +262,9 @@ export function WorkLogTableView() {
                         <div className="flex-1" />
                         <Button variant="outline" size="sm" className="h-8" onClick={resetFilters}>{t('table.clearAll')}</Button>
                         <Button variant="outline" size="sm" className="h-8" onClick={() => refetch()}>{t('table.refresh')}</Button>
+                        <Button variant="outline" size="sm" className="h-8" onClick={handleDownloadCsv} disabled={isDownloading}>
+                            {isDownloading ? t('table.downloading') : t('table.downloadCsv')}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>

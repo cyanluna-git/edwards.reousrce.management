@@ -1,11 +1,13 @@
 {
     "explorer.excludeGitIgnore": false,
-    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
     "python.analysis.extraPaths": [
         "${workspaceFolder}/backend"
     ],
     "python.envFile": "${workspaceFolder}/backend/.env",
     "cursorpyright.analysis.extraPaths": [
         "${workspaceFolder}/backend"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }

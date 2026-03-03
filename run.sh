@@ -433,6 +433,82 @@ cmd_dev() {
   echo
 }
 
+cmd_dev_all() {
+  print_header "Edwards Full Dev Mode (DB + Backend + Frontend)"
+  load_env
+  _init_compose_cmd
+
+  echo
+  cyan "Development Mode Setup:"
+  plain "  • Database: Docker container"
+  plain "  • Backend:  Local uvicorn (hot reload, background)"
+  plain "  • Frontend: Local pnpm dev (HMR, foreground)"
+  echo
+
+  check_docker || exit 1
+
+  # Adjust DATABASE_URL for local execution (docker hostname → localhost)
+  if [[ "${DATABASE_URL:-}" == *"@db:5432"* ]]; then
+    DATABASE_URL="${DATABASE_URL/@db:5432/@localhost:${DB_PORT:-5434}}"
+    export DATABASE_URL
+    warn "[INFO] DATABASE_URL adjusted for local: $DATABASE_URL"
+  fi
+
+  # Find virtual environment
+  local venv_python=""
+  if [[ -d .venv ]]; then
+    venv_python="$(pwd)/.venv/bin/python"
+  elif [[ -d backend/venv ]]; then
+    venv_python="$(pwd)/backend/venv/bin/python"
+  else
+    error "[ERROR] Virtual environment not found!"
+    warn "  python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt"
+    exit 1
+  fi
+
+  # Step 1: Start DB
+  cyan "[1/3] Starting Database..."
+  if check_existing_postgres; then
+    info "  Using existing postgres container"
+  else
+    "${COMPOSE_CMD[@]}" up -d db
+    info "  Waiting for database..."
+    sleep 3
+  fi
+  info "  Database: localhost:${DB_PORT:-5434}"
+
+  # Step 2: Start backend in background
+  echo
+  cyan "[2/3] Starting Backend (background)..."
+  (cd backend && DATABASE_URL="${DATABASE_URL}" "${venv_python}" -m uvicorn app.main:app --reload --port "${BACKEND_PORT:-8004}") &
+  BACKEND_PID=$!
+  info "  Backend PID: $BACKEND_PID  →  http://localhost:${BACKEND_PORT:-8004}"
+  sleep 2
+
+  # Install frontend deps if needed
+  if [[ ! -d frontend/node_modules ]]; then
+    warn "[INFO] Installing frontend dependencies..."
+    pnpm install --dir frontend
+  fi
+
+  echo
+  print_header "All Services Starting"
+  plain "  Database:  localhost:${DB_PORT:-5434}"
+  plain "  Backend:   http://localhost:${BACKEND_PORT:-8004}"
+  plain "  Backend Docs: http://localhost:${BACKEND_PORT:-8004}/docs"
+  plain "  Frontend:  http://localhost:${FRONTEND_PORT:-3004}"
+  echo
+  warn "[INFO] Press Ctrl+C to stop all services"
+  echo
+
+  # Cleanup backend on exit
+  trap "echo; warn 'Stopping backend (PID $BACKEND_PID)...'; kill $BACKEND_PID 2>/dev/null; info 'Done.'" EXIT INT TERM
+
+  # Step 3: Start frontend in foreground
+  cyan "[3/3] Starting Frontend..."
+  pnpm --dir frontend dev --port "${FRONTEND_PORT:-3004}" || true
+}
+
 print_help() {
   print_header "Edwards Service Runner"
   echo
@@ -445,6 +521,7 @@ print_help() {
   plain "  all            Start all services"
   echo
   cyan "Development Mode (Local execution):"
+  plain "  dev-all        Start DB + Backend + Frontend all at once (Ctrl+C stops all)"
   plain "  dev            Start DB only, show instructions for local dev"
   plain "  db             Start database only (Docker)"
   plain "  local-backend  Run backend with uvicorn locally"
@@ -457,6 +534,7 @@ print_help() {
   echo
   cyan "Examples:"
   plain "  ./run.sh all            # Start everything in Docker"
+  plain "  ./run.sh dev-all        # Start everything locally (recommended)"
   plain "  ./run.sh dev            # Setup local dev environment"
   plain "  ./run.sh local-backend  # Run backend locally"
   plain "  ./run.sh local-frontend # Run frontend locally"
@@ -475,6 +553,7 @@ case "${1:-}" in
   backend)        cmd_backend ;;
   frontend)       cmd_frontend ;;
   all)            cmd_all ;;
+  dev-all)        cmd_dev_all ;;
   dev)            cmd_dev ;;
   db)             cmd_db ;;
   local-backend)  cmd_local_backend ;;

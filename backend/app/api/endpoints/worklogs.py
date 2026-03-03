@@ -2,9 +2,12 @@
 WorkLogs endpoints
 """
 
+import csv
+import io
 from typing import Optional, List
 from datetime import date
 from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -150,6 +153,77 @@ async def list_worklogs_table(
         result.append(worklog_dict)
 
     return result
+
+
+@router.get("/export/csv")
+async def export_worklogs_csv(
+    user_id: Optional[str] = Query(None),
+    project_id: Optional[str] = Query(None),
+    department_id: Optional[str] = Query(None),
+    sub_team_id: Optional[str] = Query(None),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    work_type_category_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Export worklogs as CSV with the same filters as the table view.
+    Non-admin users can only export their own worklogs.
+    """
+    service = WorkLogService(db)
+
+    # Role-based filtering: non-admin users can only see their own worklogs
+    if current_user.role != "ADMIN":
+        user_id = current_user.id
+
+    worklogs = service.get_multi_with_user(
+        user_id=user_id,
+        project_id=project_id,
+        department_id=department_id,
+        sub_team_id=sub_team_id,
+        start_date=start_date,
+        end_date=end_date,
+        work_type_category_id=work_type_category_id,
+        skip=0,
+        limit=10000,
+    )
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["date", "user", "team", "project", "work_type", "hours", "description"])
+
+    for wl in worklogs:
+        wl_date = wl.date.date() if hasattr(wl.date, "date") else wl.date
+        user_name = ""
+        team_name = ""
+        if wl.user:
+            user_name = wl.user.korean_name or wl.user.name or ""
+            if wl.user.sub_team and wl.user.sub_team.department:
+                team_name = wl.user.sub_team.department.name or ""
+        project_name = wl.project.name if wl.project else ""
+        work_type_name = wl.work_type_category.name if wl.work_type_category else ""
+        description = wl.description or ""
+
+        writer.writerow([
+            str(wl_date),
+            user_name,
+            team_name,
+            project_name,
+            work_type_name,
+            wl.hours,
+            description,
+        ])
+
+    output.seek(0)
+    today_str = date.today().strftime("%Y%m%d")
+    filename = f"worklogs_{today_str}.csv"
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
 
 
 @router.post("", response_model=WorkLog, status_code=status.HTTP_201_CREATED)
