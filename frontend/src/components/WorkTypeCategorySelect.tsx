@@ -246,16 +246,26 @@ export function WorkTypeCategorySelect({
                                         {/* L2 Items */}
                                         {expandedL1s.has(l1.id) && (
                                             <div className="bg-white">
-                                                {l1.children.map((l2) => (
+                                                {l1.children.map((l2) => {
+                                                    const hasL3Children = l2.children && l2.children.length > 0;
+                                                    return (
                                                     <div key={l2.id}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleSelect(l2)}
-                                                            className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
-                                                                }`}
-                                                        >
-                                                            <span>{getLocalizedName(l2, i18n.language)}</span>
-                                                        </button>
+                                                        {hasL3Children ? (
+                                                            <div
+                                                                className="w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm text-slate-500 cursor-default text-left"
+                                                            >
+                                                                <span>{getLocalizedName(l2, i18n.language)}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSelect(l2)}
+                                                                className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
+                                                                    }`}
+                                                            >
+                                                                <span>{getLocalizedName(l2, i18n.language)}</span>
+                                                            </button>
+                                                        )}
                                                         {/* L3 Children */}
                                                         {l2.children && l2.children.length > 0 && (
                                                             <div className="bg-slate-50/50">
@@ -274,7 +284,8 @@ export function WorkTypeCategorySelect({
                                                             </div>
                                                         )}
                                                     </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         )}
                                     </div>

@@ -95,6 +95,8 @@ class WorkTypeCategoryService:
                 name=l1.name,
                 name_ko=l1.name_ko,
                 level=l1.level,
+                applicable_roles=l1.applicable_roles,
+                project_required=l1.project_required,
                 children=[],
             )
 
@@ -107,6 +109,8 @@ class WorkTypeCategoryService:
                     name=l2.name,
                     name_ko=l2.name_ko,
                     level=l2.level,
+                    applicable_roles=l2.applicable_roles,
+                    project_required=l2.project_required,
                     children=[],
                 )
 
@@ -119,6 +123,8 @@ class WorkTypeCategoryService:
                         name=l3.name,
                         name_ko=l3.name_ko,
                         level=l3.level,
+                        applicable_roles=l3.applicable_roles,
+                        project_required=l3.project_required,
                         children=[],
                     )
                     l2_node.children.append(l3_node)

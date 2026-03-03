@@ -56,6 +56,8 @@ class WorkTypeCategoryTree(BaseModel):
     name: str
     name_ko: Optional[str] = None
     level: int
+    applicable_roles: Optional[str] = None
+    project_required: Optional[bool] = None
     children: List["WorkTypeCategoryTree"] = []
 
     class Config:
