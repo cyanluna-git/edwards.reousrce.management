@@ -14,9 +14,10 @@ import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
 import { downloadWorklogsCsv } from '@/api/worklogs';
+import { getLocalizedName } from '@/lib/utils';
 
 export function WorkLogTableView() {
-    const { t } = useTranslation('worklogs');
+    const { t, i18n } = useTranslation('worklogs');
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
@@ -309,7 +310,7 @@ export function WorkLogTableView() {
                                                     {wl.project_name}
                                                 </div>
                                             </td>
-                                            <td className="p-2 whitespace-nowrap">{wl.work_type_category?.name || 'N/A'}</td>
+                                            <td className="p-2 whitespace-nowrap">{wl.work_type_category ? getLocalizedName(wl.work_type_category, i18n.language) : 'N/A'}</td>
                                             <td className="p-2 text-right font-medium">{wl.hours}h</td>
                                             <td className="p-2">
                                                 <div className="truncate max-w-[350px]" title={wl.description || ''}>

@@ -329,15 +329,17 @@ cmd_local_backend() {
 
   # Find virtual environment
   local venv_dir=""
-  if [[ -d .venv ]]; then
+  if [[ -d backend/.venv ]]; then
+    venv_dir="backend/.venv"
+  elif [[ -d .venv ]]; then
     venv_dir=".venv"
   elif [[ -d backend/venv ]]; then
     venv_dir="backend/venv"
   else
     error "[ERROR] Virtual environment not found!"
     warn "[INFO] Please create venv first:"
-    plain "  python -m venv .venv"
-    plain "  source .venv/bin/activate"
+    plain "  cd backend && python -m venv .venv"
+    plain "  source backend/.venv/bin/activate"
     plain "  pip install -r backend/requirements.txt"
     exit 1
   fi
@@ -456,13 +458,15 @@ cmd_dev_all() {
 
   # Find virtual environment
   local venv_python=""
-  if [[ -d .venv ]]; then
+  if [[ -d backend/.venv ]]; then
+    venv_python="$(pwd)/backend/.venv/bin/python"
+  elif [[ -d .venv ]]; then
     venv_python="$(pwd)/.venv/bin/python"
   elif [[ -d backend/venv ]]; then
     venv_python="$(pwd)/backend/venv/bin/python"
   else
     error "[ERROR] Virtual environment not found!"
-    warn "  python -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt"
+    warn "  cd backend && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt"
     exit 1
   fi
 

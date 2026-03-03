@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFrequentSelections } from '@/hooks/useFrequentSelections';
 import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getLocalizedName } from '@/lib/utils';
 
 interface WorkTypeCategorySelectProps {
     value?: number;
@@ -23,7 +24,7 @@ export function WorkTypeCategorySelect({
     const [isOpen, setIsOpen] = useState(false);
     const [expandedL1s, setExpandedL1s] = useState<Set<number>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
-    const { t } = useTranslation('common');
+    const { t, i18n } = useTranslation('common');
     const { topItems } = useFrequentSelections('worktype', user?.id);
 
     // Expand all L1s when dropdown opens
@@ -158,7 +159,7 @@ export function WorkTypeCategorySelect({
             >
                 <span className={selectedCategory ? 'text-foreground' : 'text-muted-foreground'}>
                     {selectedCategory
-                        ? selectedCategory.name_ko || selectedCategory.name
+                        ? getLocalizedName(selectedCategory, i18n.language)
                         : (placeholder || t('select.selectWorkType'))}
                 </span>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -209,7 +210,10 @@ export function WorkTypeCategorySelect({
                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200'
                                             }`}
                                         >
-                                            {item.label}
+                                            {(() => {
+                                                const cat = findCategoryById(Number(item.id));
+                                                return cat ? getLocalizedName(cat, i18n.language) : item.label;
+                                            })()}
                                         </button>
                                     ))}
                                 </div>
@@ -236,7 +240,7 @@ export function WorkTypeCategorySelect({
                                             ) : (
                                                 <ChevronRight className="h-4 w-4 text-slate-500" />
                                             )}
-                                            <span>{l1.name_ko || l1.name}</span>
+                                            <span>{getLocalizedName(l1, i18n.language)}</span>
                                         </button>
 
                                         {/* L2 Items */}
@@ -250,7 +254,7 @@ export function WorkTypeCategorySelect({
                                                             className={`w-full flex items-center gap-2 pl-8 pr-3 py-2 text-sm hover:bg-blue-50 text-left ${value === l2.id ? 'bg-blue-100 text-blue-700' : ''
                                                                 }`}
                                                         >
-                                                            <span>{l2.name_ko || l2.name}</span>
+                                                            <span>{getLocalizedName(l2, i18n.language)}</span>
                                                         </button>
                                                         {/* L3 Children */}
                                                         {l2.children && l2.children.length > 0 && (
@@ -264,7 +268,7 @@ export function WorkTypeCategorySelect({
                                                                             }`}
                                                                     >
                                                                         <span className="text-slate-400">└</span>
-                                                                        <span>{l3.name_ko || l3.name}</span>
+                                                                        <span>{getLocalizedName(l3, i18n.language)}</span>
                                                                     </button>
                                                                 ))}
                                                             </div>

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, Button, Tabs, TabsContent, Ta
 import { useAuth } from '@/hooks/useAuth';
 import { Construction } from 'lucide-react';
 import { L1_CATEGORY_COLORS, L2_COLORS } from '@/lib/constants';
+import { getLocalizedName } from '@/lib/utils';
 import { TeamDashboardContent } from '@/components/dashboard/TeamDashboardContent';
 import { WeeklySummaryCard } from '@/components/dashboard/WeeklySummaryCard';
 import { MyFTECard } from '@/components/dashboard/MyFTECard';
@@ -78,7 +79,7 @@ const getDynamicDateRanges = (referenceDate: Date, mode: ViewMode) => {
 export const DashboardPage: React.FC = () => {
     const { data, isLoading, error } = useDashboard();
     const { user } = useAuth();
-    const { t } = useTranslation('dashboard');
+    const { t, i18n } = useTranslation('dashboard');
     const { data: categoryTree = [] } = useWorkTypeCategories();
     const [viewMode, setViewMode] = useState<ViewMode>('weekly');
     const [currentDate, setCurrentDate] = useState<Date>(new Date()); // New: Track current reference date
@@ -287,9 +288,9 @@ export const DashboardPage: React.FC = () => {
             let l1 = 'ADM'; // Default if no category
             let l2 = 'ADM-GEN';
             let l3 = 'ADM-GEN-OTH';
-            let l1Name = '행정';
-            let l2Name = '일반';
-            let l3Name = '기타';
+            let l1Name = i18n.language === 'ko' ? '행정' : 'Administration';
+            let l2Name = i18n.language === 'ko' ? '일반' : 'General';
+            let l3Name = i18n.language === 'ko' ? '기타' : 'Other';
 
             // Debug first few worklogs
             if (idx < 3) {
@@ -308,20 +309,20 @@ export const DashboardPage: React.FC = () => {
 
                 if (cat) {
                     if (cat.level === 3) {
-                        l3 = cat.code; l3Name = cat.name_ko || cat.name;
+                        l3 = cat.code; l3Name = getLocalizedName(cat, i18n.language);
                         if (cat.parent) {
-                            l2 = cat.parent.code; l2Name = cat.parent.name_ko || cat.parent.name;
+                            l2 = cat.parent.code; l2Name = getLocalizedName(cat.parent, i18n.language);
                             if (cat.parent.parent) {
-                                l1 = cat.parent.parent.code; l1Name = cat.parent.parent.name_ko || cat.parent.parent.name;
+                                l1 = cat.parent.parent.code; l1Name = getLocalizedName(cat.parent.parent, i18n.language);
                             }
                         }
                     } else if (cat.level === 2) {
-                        l2 = cat.code; l2Name = cat.name_ko || cat.name;
+                        l2 = cat.code; l2Name = getLocalizedName(cat, i18n.language);
                         if (cat.parent) {
-                            l1 = cat.parent.code; l1Name = cat.parent.name_ko || cat.parent.name;
+                            l1 = cat.parent.code; l1Name = getLocalizedName(cat.parent, i18n.language);
                         }
                     } else if (cat.level === 1) {
-                        l1 = cat.code; l1Name = cat.name_ko || cat.name;
+                        l1 = cat.code; l1Name = getLocalizedName(cat, i18n.language);
                     }
 
                     if (idx < 3) {
@@ -397,7 +398,7 @@ export const DashboardPage: React.FC = () => {
                 };
             });
 
-    }, [drillDownPath, currentWorklogs, categoryMap, categoryIdToCode]);
+    }, [drillDownPath, currentWorklogs, categoryMap, categoryIdToCode, i18n.language]);
 
     // Calculate monthly Top-5 project trend data
     const monthlyProjectTrendData = useMemo(() => {
@@ -452,8 +453,8 @@ export const DashboardPage: React.FC = () => {
         if (drillDownPath.length === 0) return null;
         const lastCode = drillDownPath[drillDownPath.length - 1];
         const cat = categoryMap[lastCode];
-        return cat ? (cat.name_ko || cat.name) : lastCode;
-    }, [drillDownPath, categoryMap]);
+        return cat ? getLocalizedName(cat, i18n.language) : lastCode;
+    }, [drillDownPath, categoryMap, i18n.language]);
 
     // Breadcrumb handler
     const handleDrillUp = () => {

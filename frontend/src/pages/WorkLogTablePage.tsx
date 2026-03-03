@@ -10,6 +10,7 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { format, subDays } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,10 @@ import { useWorklogsTable } from '@/hooks/useWorklogs';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
 import { getBusinessUnits, getDepartments, getSubTeams, getUsers, BusinessUnit, Department, SubTeam, UserDetails } from '@/api/client';
+import { getLocalizedName } from '@/lib/utils';
 
 export function WorkLogTablePage() {
+    const { i18n } = useTranslation();
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
@@ -296,7 +299,7 @@ export function WorkLogTablePage() {
                                                     {wl.project_name}
                                                 </div>
                                             </td>
-                                            <td className="p-2 whitespace-nowrap">{wl.work_type_category?.name || 'N/A'}</td>
+                                            <td className="p-2 whitespace-nowrap">{wl.work_type_category ? getLocalizedName(wl.work_type_category, i18n.language) : 'N/A'}</td>
                                             <td className="p-2 text-right font-medium">{wl.hours}h</td>
                                             <td className="p-2">
                                                 <div className="truncate max-w-[350px]" title={wl.description || ''}>

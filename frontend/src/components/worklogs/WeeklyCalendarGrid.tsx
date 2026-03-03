@@ -7,6 +7,7 @@ import { format, addDays, isToday } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getLocalizedName } from '@/lib/utils';
 import type { WorkLog } from '@/types';
 
 interface WeeklyCalendarGridProps {
@@ -28,7 +29,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
     onWorklogDelete,
     onAIInputClick,
 }) => {
-    const { t } = useTranslation('worklogs');
+    const { t, i18n } = useTranslation('worklogs');
     const DAYS = [
         t('calendar.dayMon'), t('calendar.dayTue'), t('calendar.dayWed'),
         t('calendar.dayThu'), t('calendar.dayFri'), t('calendar.daySat'), t('calendar.daySun'),
@@ -90,7 +91,7 @@ export const WeeklyCalendarGrid: React.FC<WeeklyCalendarGridProps> = ({
                                         <span className="font-bold ml-1">{wl.hours}h</span>
                                     </div>
                                     <div className="text-muted-foreground truncate">
-                                        {wl.work_type_category?.name || 'N/A'}
+                                        {wl.work_type_category ? getLocalizedName(wl.work_type_category, i18n.language) : 'N/A'}
                                     </div>
                                     {wl.description && (
                                         <div className="text-muted-foreground/70 text-[11px] mt-1 line-clamp-2">
