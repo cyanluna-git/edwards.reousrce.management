@@ -10,7 +10,7 @@
 #   RETENTION_DAYS=14 ./backup_db.sh  # override retention
 #
 # Crontab (daily 2:00 AM):
-#   0 2 * * * /data/eob/edwards_project/server/backup_db.sh >> /data/eob/edwards_project/backups/backup.log 2>&1
+#   0 2 * * * /data/eob/edwards_project/scripts/server/backup_db.sh >> /data/eob/edwards_project/backups/backup.log 2>&1
 # ============================================================
 
 set -euo pipefail

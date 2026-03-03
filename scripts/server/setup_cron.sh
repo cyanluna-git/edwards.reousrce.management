@@ -13,7 +13,7 @@
 set -euo pipefail
 
 PROJECT_DIR="/data/eob/edwards_project"
-BACKUP_SCRIPT="${PROJECT_DIR}/server/backup_db.sh"
+BACKUP_SCRIPT="${PROJECT_DIR}/scripts/server/backup_db.sh"
 BACKUP_LOG="${PROJECT_DIR}/backups/backup.log"
 CRON_SCHEDULE="0 2 * * *"
 CRON_MARKER="# edwards-eob-db-backup"
