@@ -223,7 +223,7 @@ export function WorkTypeCategorySelect({
                         {/* Category List — resizable by dragging bottom edge */}
                         <div
                             className="overflow-y-auto"
-                            style={{ minHeight: '120px', maxHeight: '50vh', resize: 'vertical' }}
+                            style={{ height: '240px', minHeight: '120px', maxHeight: '60vh', resize: 'vertical' }}
                         >
                             {filteredCategories.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
@@ -294,6 +294,10 @@ export function WorkTypeCategorySelect({
                                     </div>
                                 ))
                             )}
+                        </div>
+                        {/* Resize hint */}
+                        <div className="flex items-center justify-center py-0.5 bg-slate-50 border-t cursor-ns-resize select-none">
+                            <div className="w-8 h-0.5 rounded bg-slate-300" />
                         </div>
                     </div>
                 </>
