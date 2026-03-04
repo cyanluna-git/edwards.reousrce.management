@@ -111,6 +111,7 @@ export interface WorkLogWithUser extends WorkLog {
 }
 
 export interface WorkLogTableParams extends WorkLogListParams {
+    department_id?: string;
     sub_team_id?: string;
 }
 
