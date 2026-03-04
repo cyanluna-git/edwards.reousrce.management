@@ -432,7 +432,7 @@ export function ProjectHierarchySelect({
                     />
 
                     {/* Menu */}
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[400px] overflow-hidden">
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg overflow-hidden">
                         {/* Search Input */}
                         <div className="p-2 border-b bg-white sticky top-0">
                             <input
@@ -477,7 +477,7 @@ export function ProjectHierarchySelect({
                             </div>
                         )}
 
-                        <div className="max-h-[340px] overflow-y-auto">
+                        <div className="overflow-y-auto" style={{ minHeight: '120px', maxHeight: '50vh', resize: 'vertical' }}>
                             {/* Product Projects Section */}
                             {filteredProductProjects.length > 0 && (
                                 <div className="border-b">
