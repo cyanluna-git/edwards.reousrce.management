@@ -82,7 +82,6 @@ class WorkLogService:
     ) -> List[WorkLog]:
         """Retrieve worklogs with user info for table display."""
         from app.models.user import User
-        from app.models.organization import SubTeam
 
         query = (
             self.db.query(WorkLog)
@@ -99,9 +98,7 @@ class WorkLogService:
         if project_id:
             query = query.filter(WorkLog.project_id == project_id)
         if department_id:
-            query = query.join(SubTeam, User.sub_team_id == SubTeam.id).filter(
-                SubTeam.department_id == department_id
-            )
+            query = query.filter(User.department_id == department_id)
         if sub_team_id:
             query = query.filter(User.sub_team_id == sub_team_id)
         if start_date:

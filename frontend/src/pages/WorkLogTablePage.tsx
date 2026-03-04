@@ -93,14 +93,17 @@ export function WorkLogTablePage() {
     }, [allProjects, businessUnitFilter]);
 
     // ============ 조직 기반 필터 로직 ============
-    // Users filtered by subteam
+    // Users filtered by department and subteam
     const filteredUsers = useMemo(() => {
         let result = users;
+        if (departmentFilter) {
+            result = result.filter(u => u.department_id === departmentFilter);
+        }
         if (subTeamFilter) {
             result = result.filter(u => u.sub_team_id === subTeamFilter);
         }
         return result;
-    }, [users, subTeamFilter]);
+    }, [users, departmentFilter, subTeamFilter]);
 
     // Work types
     const workTypes = ['SW Develop', 'Documentation', 'Meeting', 'Review', 'Training', 'Test', 'Leave', 'Support'];
