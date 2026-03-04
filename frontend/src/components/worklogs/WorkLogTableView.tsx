@@ -285,7 +285,7 @@ export function WorkLogTableView() {
                                 <thead className="bg-muted/50 sticky top-0">
                                     <tr>
                                         <th className="text-left p-2 whitespace-nowrap">{t('table.date')}</th>
-                                        {isAdmin && <th className="text-left p-2 whitespace-nowrap">{t('table.user')}</th>}
+                                        <th className="text-left p-2 whitespace-nowrap">{t('table.user')}</th>
                                         <th className="text-left p-2">{t('table.project')}</th>
                                         <th className="text-left p-2 whitespace-nowrap">{t('table.workType')}</th>
                                         <th className="text-right p-2 whitespace-nowrap">{t('table.hours')}</th>
@@ -297,14 +297,12 @@ export function WorkLogTableView() {
                                     {worklogs.map((wl) => (
                                         <tr key={wl.id} className="border-t hover:bg-muted/30">
                                             <td className="p-2 whitespace-nowrap">{String(wl.date)}</td>
-                                            {isAdmin && (
-                                                <td className="p-2 whitespace-nowrap">
-                                                    <div className="font-medium">{wl.user_korean_name || wl.user_name}</div>
-                                                    {wl.department_name && (
-                                                        <div className="text-xs text-muted-foreground">{wl.department_name}</div>
-                                                    )}
-                                                </td>
-                                            )}
+                                            <td className="p-2 whitespace-nowrap">
+                                                <div className="font-medium">{wl.user_korean_name || wl.user_name}</div>
+                                                {wl.department_name && (
+                                                    <div className="text-xs text-muted-foreground">{wl.department_name}</div>
+                                                )}
+                                            </td>
                                             <td className="p-2">
                                                 <div className="truncate max-w-[250px]" title={wl.project_name || ''}>
                                                     <span className="text-muted-foreground">{wl.project_code}</span>
@@ -328,7 +326,7 @@ export function WorkLogTableView() {
                                 </tbody>
                                 <tfoot className="bg-muted/50 font-medium">
                                     <tr>
-                                        <td colSpan={isAdmin ? 4 : 3} className="p-2 text-right">{t('table.total')}:</td>
+                                        <td colSpan={4} className="p-2 text-right">{t('table.total')}:</td>
                                         <td className="p-2 text-right">{totalHours.toFixed(1)}h</td>
                                         <td colSpan={2}></td>
                                     </tr>
