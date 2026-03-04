@@ -91,6 +91,7 @@ async def list_worklogs(
 async def list_worklogs_table(
     user_id: Optional[str] = Query(None),
     project_id: Optional[str] = Query(None),
+    department_id: Optional[str] = Query(None),
     sub_team_id: Optional[str] = Query(None),
     start_date: Optional[date] = Query(None),
     end_date: Optional[date] = Query(None),
@@ -109,6 +110,7 @@ async def list_worklogs_table(
     worklogs = service.get_multi_with_user(
         user_id=user_id,
         project_id=project_id,
+        department_id=department_id,
         sub_team_id=sub_team_id,
         start_date=start_date,
         end_date=end_date,

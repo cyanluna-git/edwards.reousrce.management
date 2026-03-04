@@ -69,6 +69,7 @@ export function WorkLogTablePage() {
         start_date: startDate,
         end_date: endDate,
         project_id: projectFilter || undefined,
+        department_id: departmentFilter || undefined,
         sub_team_id: subTeamFilter || undefined,
         user_id: userFilter || undefined,
         limit: 500,
