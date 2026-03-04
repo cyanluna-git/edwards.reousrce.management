@@ -51,12 +51,17 @@ SUPPORT_PROJECTS = [
 
 # RechargeIO ↔ BusinessUnit mappings
 # io_number -> [bu_code, bu_code, ...]
+# Note: BU codes must match business_units.code column (ABATE, IS, ACM)
 RECHARGE_IO_BU_MAPPINGS = {
-    # ABT/IS 공용
-    "407278": ["ABT", "IS"],  # SUN Operations Support
-    "407279": ["ABT", "IS"],  # SUN Product Improvement
-    "407328": ["ABT", "IS"],  # VSS Product Improvement
-    "407331": ["ABT", "IS"],  # VSS Sales/Service Support
+    # Pre-Gate Support (BU별 별도 IO)
+    "407111": ["ABATE"],  # Pre-Gate Support - ABT
+    "407057": ["IS"],     # Pre-Gate Support - IS
+    "407056": ["ACM"],    # Pre-Gate Support - ACM
+    # ABATE/IS 공용
+    "407278": ["ABATE", "IS"],  # SUN Operations Support
+    "407279": ["ABATE", "IS"],  # SUN Product Improvement
+    "407328": ["ABATE", "IS"],  # VSS Product Improvement
+    "407331": ["ABATE", "IS"],  # VSS Sales/Service Support
     # ACM 전용
     "407327": ["ACM"],  # SUN Operations Support
     "407296": ["ACM"],  # SUN Product Improvement

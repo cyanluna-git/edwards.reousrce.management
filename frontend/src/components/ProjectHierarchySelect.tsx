@@ -274,14 +274,27 @@ export function ProjectHierarchySelect({
         if (!buRechargeIOs || buRechargeIOs.length === 0) return null;
 
         const normalizedName = supportProjectName.toLowerCase().trim();
+        const words = normalizedName.split(' ');
 
-        return buRechargeIOs.find(io => {
+        // Score each IO by how many significant words match, return highest score
+        let bestMatch = null;
+        let bestScore = 0;
+
+        for (const io of buRechargeIOs) {
             const ioName = io.name?.toLowerCase() || '';
-            return ioName.includes(normalizedName) ||
-                normalizedName.split(' ').every(word =>
-                    word.length <= 3 || ioName.includes(word)
-                );
-        });
+            if (ioName.includes(normalizedName)) return io; // exact match, return immediately
+
+            const score = words.filter(word =>
+                word.length <= 2 || ioName.includes(word)
+            ).length;
+
+            if (score === words.length && score > bestScore) {
+                bestScore = score;
+                bestMatch = io;
+            }
+        }
+
+        return bestMatch;
     };
 
     const isLoading = isLoadingProjects || isLoadingProductLines;
