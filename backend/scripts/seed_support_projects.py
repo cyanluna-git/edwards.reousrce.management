@@ -46,6 +46,12 @@ SUPPORT_PROJECTS = [
         "status": "InProgress",
         "description": "Sales/Service 업무 지원. 설계자료 전달, 문서 대응, 현장 이슈 문의 대응.",
     },
+    {
+        "name": "SUN Sales/Service Support",
+        "category": "SUPPORT",
+        "status": "InProgress",
+        "description": "Sales/Service 업무 지원. 설계자료 전달, 문서 대응, 현장 이슈 문의 대응.",
+    },
 ]
 
 
@@ -62,6 +68,7 @@ RECHARGE_IO_BU_MAPPINGS = {
     "407279": ["ABATE", "IS"],  # SUN Product Improvement
     "407328": ["ABATE", "IS"],  # VSS Product Improvement
     "407331": ["ABATE", "IS"],  # VSS Sales/Service Support
+    "407342": ["ABATE", "IS"],  # SUN Sales/Service Support
     # ACM 전용
     "407327": ["ACM"],  # SUN Operations Support
     "407296": ["ACM"],  # SUN Product Improvement
