@@ -102,14 +102,9 @@ async def list_worklogs_table(
 ):
     """
     List worklogs for table view with user info.
-    - Admin: Can view all worklogs
-    - User: Can only view their own worklogs
+    All authenticated users can view all worklogs.
     """
     service = WorkLogService(db)
-
-    # Role-based filtering: non-admin users can only see their own worklogs
-    if current_user.role != "ADMIN":
-        user_id = current_user.id
 
     worklogs = service.get_multi_with_user(
         user_id=user_id,
@@ -169,13 +164,9 @@ async def export_worklogs_csv(
 ):
     """
     Export worklogs as CSV with the same filters as the table view.
-    Non-admin users can only export their own worklogs.
+    All authenticated users can export worklogs.
     """
     service = WorkLogService(db)
-
-    # Role-based filtering: non-admin users can only see their own worklogs
-    if current_user.role != "ADMIN":
-        user_id = current_user.id
 
     worklogs = service.get_multi_with_user(
         user_id=user_id,
