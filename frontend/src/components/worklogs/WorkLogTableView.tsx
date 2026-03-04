@@ -66,6 +66,7 @@ export function WorkLogTableView() {
         start_date: startDate,
         end_date: endDate,
         project_id: projectFilter || undefined,
+        department_id: departmentFilter || undefined,
         sub_team_id: subTeamFilter || undefined,
         user_id: userFilter || undefined,
         limit: 500,
@@ -90,11 +91,14 @@ export function WorkLogTableView() {
     // ============ 조직 기반 필터 로직 ============
     const filteredUsers = useMemo(() => {
         let result = users;
+        if (departmentFilter) {
+            result = result.filter(u => u.department_id === departmentFilter);
+        }
         if (subTeamFilter) {
             result = result.filter(u => u.sub_team_id === subTeamFilter);
         }
         return result;
-    }, [users, subTeamFilter]);
+    }, [users, departmentFilter, subTeamFilter]);
 
     // Work types
     const workTypes = ['SW Develop', 'Documentation', 'Meeting', 'Review', 'Training', 'Test', 'Leave', 'Support'];
