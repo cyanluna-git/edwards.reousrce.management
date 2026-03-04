@@ -206,9 +206,8 @@ export function WorkLogTableView() {
                         </select>
                     </div>
 
-                    {/* Row 3: 조직 기반 필터 (Admin Only) */}
-                    {isAdmin && (
-                        <div className="flex flex-wrap items-center gap-2">
+                    {/* Row 3: 조직 기반 필터 */}
+                    <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm text-muted-foreground w-16">{t('table.org')}:</span>
                             <select
                                 className="px-2 py-1 border rounded-md text-sm h-8"
@@ -248,8 +247,7 @@ export function WorkLogTableView() {
                                     <option key={u.id} value={u.id}>{u.korean_name || u.name}</option>
                                 ))}
                             </select>
-                        </div>
-                    )}
+                    </div>
 
                     {/* Row 4: Work Type & Actions */}
                     <div className="flex flex-wrap items-center gap-2">
