@@ -178,7 +178,7 @@ export function WorkTypeCategorySelect({
                     />
 
                     {/* Menu */}
-                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[320px] overflow-hidden">
+                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg overflow-hidden">
                         {/* Search Input */}
                         <div className="p-2 border-b bg-white">
                             <input
@@ -220,8 +220,11 @@ export function WorkTypeCategorySelect({
                             </div>
                         )}
 
-                        {/* Category List */}
-                        <div className="max-h-[260px] overflow-y-auto">
+                        {/* Category List — resizable by dragging bottom edge */}
+                        <div
+                            className="overflow-y-auto"
+                            style={{ minHeight: '120px', maxHeight: '50vh', resize: 'vertical' }}
+                        >
                             {filteredCategories.length === 0 ? (
                                 <div className="p-4 text-center text-muted-foreground text-sm">
                                     {t('select.searchNoResults')}
