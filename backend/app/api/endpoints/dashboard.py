@@ -185,7 +185,7 @@ async def get_team_ai_summary(
     elif scope == "department":
         team_id = current_user.department_id
     elif scope == "business_unit":
-        team_id = current_user.business_unit_id
+        team_id = current_user.primary_business_unit_id
     else:
         team_id = None  # all
 
@@ -234,7 +234,7 @@ async def get_team_ai_summary_history(
     elif scope == "department":
         team_id = current_user.department_id
     elif scope == "business_unit":
-        team_id = current_user.business_unit_id
+        team_id = current_user.primary_business_unit_id
     else:
         team_id = "all"
 
