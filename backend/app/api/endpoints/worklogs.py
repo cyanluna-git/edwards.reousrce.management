@@ -230,6 +230,12 @@ async def create_worklog(
     Create a new worklog entry
     Validation: Total hours per day must not exceed 24
     """
+    if current_user.role != "ADMIN" and worklog_in.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to create worklogs for other users",
+        )
+
     service = WorkLogService(db)
     try:
         new_worklog = service.create(worklog_in)
@@ -397,6 +403,12 @@ async def copy_last_week_worklogs(
     """
     Copy all worklogs from last week to current week
     """
+    if current_user.role != "ADMIN" and request.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions to copy worklogs for other users",
+        )
+
     service = WorkLogService(db)
     new_worklogs = service.copy_week(request.user_id, request.target_week_start)
 
