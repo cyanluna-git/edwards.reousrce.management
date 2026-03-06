@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import require_role
 from app.schemas.work_type import (
     WorkTypeCategory,
     WorkTypeCategoryCreate,
@@ -88,6 +89,7 @@ async def get_work_type_category(
 async def create_work_type_category(
     category_in: WorkTypeCategoryCreate,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """
     Create a new work type category
@@ -110,6 +112,7 @@ async def update_work_type_category(
     category_id: int,
     category_in: WorkTypeCategoryUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """
     Update a work type category

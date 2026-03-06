@@ -223,6 +223,7 @@ async def fill_hiring_plan(
     plan_id: str,
     user_id: str = Query(..., description="ID of the hired user"),
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("ADMIN")),
 ):
     """
     Mark a hiring plan as FILLED and link to the hired user.

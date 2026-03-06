@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
+from app.core.security import require_role
 from app.models.organization import Division, Department
 
 router = APIRouter()
@@ -65,6 +66,7 @@ async def list_divisions(
 async def create_division(
     div_in: DivisionCreate,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """Create a new division"""
     # Check for duplicate code
@@ -91,6 +93,7 @@ async def update_division(
     division_id: str,
     div_in: DivisionUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """Update a division"""
     division = db.query(Division).filter(Division.id == division_id).first()
@@ -121,6 +124,7 @@ async def update_division(
 async def delete_division(
     division_id: str,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """Delete a division (soft delete)"""
     division = db.query(Division).filter(Division.id == division_id).first()

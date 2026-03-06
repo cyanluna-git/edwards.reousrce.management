@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.services.report_service import ReportService
 
 router = APIRouter()
@@ -18,6 +19,7 @@ async def get_capacity_summary(
         None, description="Year to get summary for (default: current year)"
     ),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get capacity summary report with monthly FTE totals,
@@ -33,6 +35,7 @@ async def get_worklog_summary(
         None, description="Year to get summary for (default: current year)"
     ),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get worklog summary report with monthly hours totals,
@@ -45,6 +48,7 @@ async def get_worklog_summary(
 @router.get("/worklog-summary/by-project")
 async def get_worklog_summary_by_project(
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get monthly worklog summary grouped by project.
@@ -58,6 +62,7 @@ async def get_worklog_summary_by_project(
 @router.get("/worklog-summary/by-role")
 async def get_worklog_summary_by_role(
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get monthly worklog summary grouped by user's position (role).
@@ -74,6 +79,7 @@ async def get_capacity_report(
     year: int = Query(...),
     month: int = Query(...),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get team capacity report
@@ -89,6 +95,7 @@ async def get_department_report(
     year: int = Query(...),
     month: int = Query(...),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get department resource summary
@@ -99,7 +106,11 @@ async def get_department_report(
 
 
 @router.get("/project/{project_id}")
-async def get_project_report(project_id: str, db: Session = Depends(get_db)):
+async def get_project_report(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Get project resource breakdown by department
     """
@@ -113,6 +124,7 @@ async def get_user_report(
     year: int = Query(...),
     month: int = Query(...),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get user worklog summary
@@ -122,7 +134,11 @@ async def get_user_report(
 
 
 @router.get("/holidays")
-async def get_holidays(year: int = Query(...), db: Session = Depends(get_db)):
+async def get_holidays(
+    year: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Get holidays for a year
     """
@@ -132,7 +148,10 @@ async def get_holidays(year: int = Query(...), db: Session = Depends(get_db)):
 
 @router.get("/working-days")
 async def get_working_days(
-    year: int = Query(...), month: int = Query(...), db: Session = Depends(get_db)
+    year: int = Query(...),
+    month: int = Query(...),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Calculate working days for a month (excluding weekends and holidays)

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.recharge_io import RechargeIO
 from app.models.organization import BusinessUnit
 from app.schemas.project import RechargeIO as RechargeIOSchema
@@ -17,12 +18,13 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[RechargeIOSchema])
-def get_recharge_ios(
+async def get_recharge_ios(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = Query(None, description="Search by IO number or name"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Get all Recharge IOs with optional filtering"""
     query = db.query(RechargeIO)
@@ -41,7 +43,11 @@ def get_recharge_ios(
 
 
 @router.get("/{io_id}", response_model=RechargeIOSchema)
-def get_recharge_io(io_id: str, db: Session = Depends(get_db)):
+async def get_recharge_io(
+    io_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Get a specific Recharge IO by ID"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
     if not io:
@@ -50,7 +56,11 @@ def get_recharge_io(io_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/by-number/{io_number}", response_model=RechargeIOSchema)
-def get_recharge_io_by_number(io_number: str, db: Session = Depends(get_db)):
+async def get_recharge_io_by_number(
+    io_number: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Get a specific Recharge IO by IO number"""
     io = db.query(RechargeIO).filter(RechargeIO.io_number == io_number).first()
     if not io:
@@ -59,7 +69,11 @@ def get_recharge_io_by_number(io_number: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=RechargeIOSchema)
-def create_recharge_io(io_data: RechargeIOCreate, db: Session = Depends(get_db)):
+async def create_recharge_io(
+    io_data: RechargeIOCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Create a new Recharge IO"""
     # Check if io_number already exists
     existing = db.query(RechargeIO).filter(RechargeIO.io_number == io_data.io_number).first()
@@ -84,10 +98,11 @@ def create_recharge_io(io_data: RechargeIOCreate, db: Session = Depends(get_db))
 
 
 @router.put("/{io_id}", response_model=RechargeIOSchema)
-def update_recharge_io(
+async def update_recharge_io(
     io_id: str,
     io_data: RechargeIOUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Update a Recharge IO"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
@@ -121,7 +136,11 @@ def update_recharge_io(
 
 
 @router.delete("/{io_id}")
-def delete_recharge_io(io_id: str, db: Session = Depends(get_db)):
+async def delete_recharge_io(
+    io_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Delete a Recharge IO (soft delete by setting is_active=False)"""
     io = db.query(RechargeIO).filter(RechargeIO.id == io_id).first()
     if not io:
@@ -142,7 +161,11 @@ def delete_recharge_io(io_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/find-or-create", response_model=RechargeIOSchema)
-def find_or_create_recharge_io(io_data: RechargeIOCreate, db: Session = Depends(get_db)):
+async def find_or_create_recharge_io(
+    io_data: RechargeIOCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Find an existing Recharge IO by number, or create a new one if not found"""
     existing = db.query(RechargeIO).filter(RechargeIO.io_number == io_data.io_number).first()
     if existing:
@@ -166,9 +189,10 @@ def find_or_create_recharge_io(io_data: RechargeIOCreate, db: Session = Depends(
 
 
 @router.get("/by-business-unit/{bu_id}", response_model=List[RechargeIOSchema])
-def get_recharge_ios_by_business_unit(
+async def get_recharge_ios_by_business_unit(
     bu_id: str,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Get all Recharge IOs associated with a specific Business Unit"""
     bu = db.query(BusinessUnit).filter(BusinessUnit.id == bu_id).first()

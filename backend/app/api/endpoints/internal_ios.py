@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user
 from app.models.internal_io import InternalIO
 from app.schemas.project import InternalIO as InternalIOSchema
 from app.schemas.project import InternalIOCreate, InternalIOUpdate
@@ -16,12 +17,13 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[InternalIOSchema])
-def get_internal_ios(
+async def get_internal_ios(
     skip: int = 0,
     limit: int = 100,
     search: Optional[str] = Query(None, description="Search by IO number or name"),
     is_active: Optional[bool] = Query(None, description="Filter by active status"),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Get all Internal IOs with optional filtering"""
     query = db.query(InternalIO)
@@ -40,7 +42,11 @@ def get_internal_ios(
 
 
 @router.get("/{io_id}", response_model=InternalIOSchema)
-def get_internal_io(io_id: str, db: Session = Depends(get_db)):
+async def get_internal_io(
+    io_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Get a specific Internal IO by ID"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
     if not io:
@@ -49,7 +55,11 @@ def get_internal_io(io_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/by-number/{io_number}", response_model=InternalIOSchema)
-def get_internal_io_by_number(io_number: str, db: Session = Depends(get_db)):
+async def get_internal_io_by_number(
+    io_number: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Get a specific Internal IO by IO number"""
     io = db.query(InternalIO).filter(InternalIO.io_number == io_number).first()
     if not io:
@@ -58,7 +68,11 @@ def get_internal_io_by_number(io_number: str, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=InternalIOSchema)
-def create_internal_io(io_data: InternalIOCreate, db: Session = Depends(get_db)):
+async def create_internal_io(
+    io_data: InternalIOCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Create a new Internal IO"""
     # Check if io_number already exists
     existing = db.query(InternalIO).filter(InternalIO.io_number == io_data.io_number).first()
@@ -73,10 +87,11 @@ def create_internal_io(io_data: InternalIOCreate, db: Session = Depends(get_db))
 
 
 @router.put("/{io_id}", response_model=InternalIOSchema)
-def update_internal_io(
+async def update_internal_io(
     io_id: str,
     io_data: InternalIOUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """Update an Internal IO"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
@@ -99,7 +114,11 @@ def update_internal_io(
 
 
 @router.delete("/{io_id}")
-def delete_internal_io(io_id: str, db: Session = Depends(get_db)):
+async def delete_internal_io(
+    io_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Delete an Internal IO (soft delete by setting is_active=False)"""
     io = db.query(InternalIO).filter(InternalIO.id == io_id).first()
     if not io:
@@ -120,7 +139,11 @@ def delete_internal_io(io_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/find-or-create", response_model=InternalIOSchema)
-def find_or_create_internal_io(io_data: InternalIOCreate, db: Session = Depends(get_db)):
+async def find_or_create_internal_io(
+    io_data: InternalIOCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """Find an existing Internal IO by number, or create a new one if not found"""
     existing = db.query(InternalIO).filter(InternalIO.io_number == io_data.io_number).first()
     if existing:

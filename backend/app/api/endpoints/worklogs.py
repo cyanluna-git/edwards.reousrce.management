@@ -37,6 +37,7 @@ async def list_worklogs(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     List worklogs with optional filters
@@ -220,7 +221,11 @@ async def export_worklogs_csv(
 
 
 @router.post("", response_model=WorkLog, status_code=status.HTTP_201_CREATED)
-async def create_worklog(worklog_in: WorkLogCreate, db: Session = Depends(get_db)):
+async def create_worklog(
+    worklog_in: WorkLogCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Create a new worklog entry
     Validation: Total hours per day must not exceed 24
@@ -275,6 +280,7 @@ async def get_daily_summary(
     user_id: str = Query(...),
     target_date: date = Query(..., alias="date"),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Get daily worklog summary for a user
@@ -285,7 +291,11 @@ async def get_daily_summary(
 
 
 @router.get("/{worklog_id}", response_model=WorkLog)
-async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
+async def get_worklog(
+    worklog_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Get worklog by ID
     """
@@ -316,7 +326,10 @@ async def get_worklog(worklog_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{worklog_id}", response_model=WorkLog)
 async def update_worklog(
-    worklog_id: int, worklog_in: WorkLogUpdate, db: Session = Depends(get_db)
+    worklog_id: int,
+    worklog_in: WorkLogUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Update worklog
@@ -358,7 +371,11 @@ async def update_worklog(
 
 
 @router.delete("/{worklog_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_worklog(worklog_id: int, db: Session = Depends(get_db)):
+async def delete_worklog(
+    worklog_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     Delete worklog
     """
@@ -373,7 +390,9 @@ async def delete_worklog(worklog_id: int, db: Session = Depends(get_db)):
 
 @router.post("/copy-week", response_model=List[WorkLog])
 async def copy_last_week_worklogs(
-    request: CopyWeekRequest, db: Session = Depends(get_db)
+    request: CopyWeekRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     Copy all worklogs from last week to current week

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.security import get_current_user, require_role
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.schemas.user_history import UserHistory
 from app.services.user_service import UserService
@@ -28,6 +29,7 @@ async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     List users with optional filters.
@@ -49,7 +51,11 @@ async def list_users(
 
 
 @router.post("", response_model=User, status_code=status.HTTP_201_CREATED)
-async def create_user(user_in: UserCreate, db: Session = Depends(get_db)):
+async def create_user(
+    user_in: UserCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
+):
     """
     Create a new user.
     """
@@ -83,6 +89,7 @@ async def update_user(
     user_id: str,
     user_in: UserUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
 ):
     """
     Update a user's information.
@@ -98,7 +105,11 @@ async def update_user(
 
 
 @router.delete("/{user_id}", response_model=User)
-async def delete_user(user_id: str, db: Session = Depends(get_db)):
+async def delete_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role("ADMIN")),
+):
     """
     Soft delete a user by setting them as inactive.
     """
