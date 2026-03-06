@@ -27,7 +27,6 @@ from app.api.endpoints import (
     job_positions,
     project_roles,
     hiring_plans,
-    hiring_plans,
     work_types,
     divisions,
     resource_matrix,
