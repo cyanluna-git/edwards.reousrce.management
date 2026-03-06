@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { apiClient } from '@/api/client';
 import type { User } from '@/types';
+import { parseAuthTokensFromHash } from '@/hooks/authTokens';
 
 const AUTH_TOKEN_KEY = 'authToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
@@ -35,17 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // Check for tokens in URL (SSO Callback)
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenParam = urlParams.get('token');
-    const refreshParam = urlParams.get('refresh');
+    // Check for tokens in URL fragment (SSO callback)
+    const parsedTokens = parseAuthTokensFromHash(window.location.hash);
 
-    if (tokenParam && refreshParam) {
-      localStorage.setItem(AUTH_TOKEN_KEY, tokenParam);
-      localStorage.setItem(REFRESH_TOKEN_KEY, refreshParam);
+    if (parsedTokens) {
+      localStorage.setItem(AUTH_TOKEN_KEY, parsedTokens.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, parsedTokens.refreshToken);
       
       // Clean up URL
-      const newUrl = window.location.pathname + window.location.hash;
+      const newUrl = window.location.pathname + window.location.search;
       window.history.replaceState({}, document.title, newUrl);
       
       fetchCurrentUser().finally(() => setIsLoading(false));

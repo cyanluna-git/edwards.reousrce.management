@@ -336,16 +336,21 @@ async def sso_callback(request: Request, db: Session = Depends(get_db)):
     )
     refresh_token = create_refresh_token(data={"sub": user.id, "role": user.role})
     
-    # Redirect to frontend with tokens in URL
+    # Redirect to frontend with tokens in URL fragment
+    # Fragment is not sent to server logs or Referer headers.
     # In production, the frontend is served on the same domain as the API
     # In local development, the frontend usually runs on port 3004
     if settings.DEBUG:
         # Use localhost:3004 for local frontend development
-        frontend_url = f"http://localhost:3004/?token={access_token}&refresh={refresh_token}"
+        frontend_url = (
+            f"http://localhost:3004/#token={access_token}&refresh={refresh_token}"
+        )
     else:
         # In production, use the current host and protocol
         scheme = "https" if request.url.scheme == "https" or not settings.DEBUG else "http"
-        frontend_url = f"{scheme}://{request.url.netloc}/?token={access_token}&refresh={refresh_token}"
+        frontend_url = (
+            f"{scheme}://{request.url.netloc}/#token={access_token}&refresh={refresh_token}"
+        )
     
     logger.info(f"SSO Login successful for {email}, redirecting to frontend")
     return RedirectResponse(url=frontend_url, status_code=status.HTTP_302_FOUND)
