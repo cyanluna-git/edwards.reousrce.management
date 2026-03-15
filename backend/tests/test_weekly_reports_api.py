@@ -221,6 +221,75 @@ def test_sub_team_weekly_report_member_allowed_and_outsider_forbidden(
         _clear_user()
 
 
+def test_department_weekly_report_supports_delegate_updates_within_same_team(
+    client, db_session, sample_position, sample_department
+):
+    owner = _create_user(
+        db_session,
+        user_id="weekly-delegate-owner",
+        email="delegate-owner@example.com",
+        position_id=sample_position.id,
+        department_id=sample_department.id,
+    )
+    delegate = _create_user(
+        db_session,
+        user_id="weekly-delegate-writer",
+        email="delegate-writer@example.com",
+        position_id=sample_position.id,
+        department_id=sample_department.id,
+    )
+
+    _set_user(owner)
+    try:
+        create_resp = client.put(
+            "/api/weekly-reports",
+            json={
+                "scope": "team",
+                "team_scope_type": "department",
+                "scope_id": sample_department.id,
+                "week_start": "2026-03-09",
+                "title": "Software Weekly Report",
+                "markdown_body": "initial owner draft",
+            },
+        )
+        assert create_resp.status_code == 200
+        created = create_resp.json()
+        assert created["created_by_user_id"] == owner.id
+        assert created["updated_by_user_id"] == owner.id
+    finally:
+        _clear_user()
+
+    _set_user(delegate)
+    try:
+        update_resp = client.put(
+            "/api/weekly-reports",
+            json={
+                "scope": "team",
+                "team_scope_type": "department",
+                "scope_id": sample_department.id,
+                "week_start": "2026-03-09",
+                "title": "Software Weekly Report",
+                "markdown_body": "delegate updated draft",
+            },
+        )
+        assert update_resp.status_code == 200
+        updated = update_resp.json()
+        assert updated["id"] == created["id"]
+        assert updated["created_by_user_id"] == owner.id
+        assert updated["updated_by_user_id"] == delegate.id
+        assert updated["markdown_body"] == "delegate updated draft"
+
+        current_resp = client.get(
+            f"/api/weekly-reports/current?scope=team&team_scope_type=department&scope_id={sample_department.id}&reference_date=2026-03-11"
+        )
+        assert current_resp.status_code == 200
+        current = current_resp.json()["report"]
+        assert current["id"] == created["id"]
+        assert current["updated_by_user_id"] == delegate.id
+    finally:
+        _clear_user()
+
+
 def test_read_only_role_cannot_write_weekly_reports(
     client, db_session, sample_position, sample_department
 ):
