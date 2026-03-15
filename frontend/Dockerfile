@@ -38,6 +38,14 @@ RUN pnpm config set node-linker hoisted && \
 
 COPY . .
 
+# Build arguments for Vite (portal service URLs)
+ARG VITE_OQC_URL=
+ARG VITE_JARVIS_URL=
+ARG VITE_TESTRIG_URL=
+ENV VITE_OQC_URL=$VITE_OQC_URL
+ENV VITE_JARVIS_URL=$VITE_JARVIS_URL
+ENV VITE_TESTRIG_URL=$VITE_TESTRIG_URL
+
 # Verify vite is available before build
 RUN test -f node_modules/.bin/vite || { echo "ERROR: vite not found"; exit 1; }
 

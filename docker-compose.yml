@@ -45,6 +45,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: production
+      args:
+        VITE_OQC_URL: ${VITE_OQC_URL:-}
+        VITE_JARVIS_URL: ${VITE_JARVIS_URL:-}
+        VITE_TESTRIG_URL: ${VITE_TESTRIG_URL:-}
     container_name: edwards-web
     restart: unless-stopped
     ports:
