@@ -1015,6 +1015,7 @@ export const DashboardPage: React.FC = () => {
                         setTeamScope={handleTeamScopeChange}
                         teamViewMode={teamViewMode}
                         setTeamViewMode={setTeamViewMode}
+                        referenceDate={teamCurrentDate}
                         dateRange={teamDateRange}
                         selectedOrgId={selectedOrgId}
                         onOrgChange={setSelectedOrgId}
