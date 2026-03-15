@@ -18,6 +18,8 @@ const OrganizationPage = lazy(() => import('./pages/OrganizationPage').then(m =>
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
 const RequestBoardPage = lazy(() => import('./pages/RequestBoardPage').then(m => ({ default: m.RequestBoardPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const UpdatesPage = lazy(() => import('./pages/UpdatesPage').then(m => ({ default: m.UpdatesPage })));
+const PortalPage = lazy(() => import('./pages/PortalPage'));
 
 // Loading fallback for lazy-loaded routes
 const PageLoader = () => (
@@ -53,6 +55,8 @@ function App() {
             <Route path="/reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
             <Route path="/requests" element={<Suspense fallback={<PageLoader />}><RequestBoardPage /></Suspense>} />
             <Route path="/profile" element={<Suspense fallback={<PageLoader />}><ProfilePage /></Suspense>} />
+            <Route path="/updates" element={<Suspense fallback={<PageLoader />}><UpdatesPage /></Suspense>} />
+            <Route path="/portal" element={<Suspense fallback={<PageLoader />}><PortalPage /></Suspense>} />
 
             {/* Add other protected routes here */}
             <Route path="*" element={<Navigate to="/" />} />
