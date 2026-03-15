@@ -22,35 +22,51 @@ class SummaryService:
 
     # English system prompts for token efficiency and language-adaptive output
 
-    USER_SUMMARY_SYSTEM_PROMPT = """You are an engineering work analyst. Analyze the worklog data and produce a structured summary.
+    USER_SUMMARY_SYSTEM_PROMPT = """You are an engineering work analyst preparing a realistic manager-facing brief for one person.
 
 ## Analysis Framework
-1. **Focus areas**: Which projects consumed the most effort and why
-2. **Work pattern**: Balance across Product / Functional / Support / Team categories
-3. **Key activities**: Notable deliverables or milestones from descriptions
-4. **Observations**: Unusual patterns (e.g., overtime, single-project concentration, low utilization)
+1. **Focus areas**: Which projects or work types consumed the most effort
+2. **Workload pattern**: Utilization and category balance across Product / Functional / Support / Team work
+3. **Risk signals**: Concentration, overload, sparse records, unclear descriptions, or other observable concerns
+4. **Record quality**: Mention when the available worklog detail is too thin for stronger conclusions
 
 ## Response Rules
 - Respond in the SAME LANGUAGE as the worklog descriptions (Korean descriptions -> Korean summary, English -> English, mixed -> follow the dominant language)
-- 3-5 concise bullet points, each 1-2 sentences max
-- Be specific: reference project names and hours, not vague statements
-- JSON only: {"summary": ["bullet 1", "bullet 2", ...]}"""
+- Be specific: cite project names, hours, and visible patterns
+- Do NOT claim milestone completion or business outcome unless the input clearly states it
+- Do NOT create action items or assign owners; stay observation-first
+- If evidence is weak, say that directly and keep the statement limited
+- Each list item should be concise: 1-2 sentences max
+- JSON only:
+{
+  "focus_areas": ["..."],
+  "workload_observations": ["..."],
+  "risk_signals": ["..."],
+  "record_quality_notes": ["..."]
+}"""
 
-    TEAM_SUMMARY_SYSTEM_PROMPT = """You are an engineering team work analyst. Analyze the team worklog data from three perspectives.
+    TEAM_SUMMARY_SYSTEM_PROMPT = """You are an engineering team work analyst preparing a realistic manager-facing brief.
 
 ## Analysis Framework
-1. **Project progress** (2-3 items): Top projects by effort, cross-functional involvement, phase indicators from descriptions
-2. **Member contributions** (Top 3): Individual focus areas, workload distribution, potential bottlenecks
-3. **Risks and observations**: Unbalanced workload, missing coverage, overtime patterns, single points of failure
+1. **Analysis**: Where the team's time was concentrated and what that suggests
+2. **Workload observations**: Distribution across members, functions, and organizational slices
+3. **Risk signals**: Imbalance, concentration, single-point dependency, weak coverage, or low-detail reporting
+4. **Coverage / record quality**: Mention when the available records are too sparse or uneven to support stronger conclusions
 
 ## Response Rules
 - Respond in the SAME LANGUAGE as the worklog descriptions (Korean -> Korean, English -> English, mixed -> dominant language)
-- Be specific: cite project names, member names, and hours
+- Be specific: cite project names, member names, hours, percentages, and visible patterns from the input
+- Do NOT claim milestone completion or project health unless the input clearly supports it
+- Do NOT invent follow-up actions; keep the tone analytical and observational
+- If evidence is weak or uneven, say so explicitly
+- Each list item should be concise: 1-2 sentences max
 - JSON only:
 {
-  "project_summary": ["project insight 1", "..."],
-  "member_summary": ["member: insight", "..."],
-  "issues": ["risk or observation 1", "..."]
+  "analysis": ["..."],
+  "workload_observations": ["..."],
+  "risk_signals": ["..."],
+  "coverage_gaps": ["..."],
+  "record_quality_notes": ["..."]
 }"""
 
     def __init__(
@@ -124,6 +140,90 @@ class SummaryService:
         week_start = today - timedelta(days=today.weekday())
         return start_date <= today <= end_date or start_date >= week_start
 
+    def _build_period_metadata(
+        self,
+        start_date: date,
+        end_date: date,
+    ) -> Dict[str, str]:
+        """Return normalized period metadata for current responses and cache."""
+        return {
+            "period_start": start_date.isoformat(),
+            "period_end": end_date.isoformat(),
+        }
+
+    def _normalize_items(self, value: Any, limit: int = 4) -> List[str]:
+        """Normalize arbitrary model output into a short string list."""
+        if not isinstance(value, list):
+            return []
+
+        items: List[str] = []
+        for item in value:
+            if isinstance(item, str):
+                normalized = item.strip()
+                if normalized:
+                    items.append(normalized)
+            if len(items) >= limit:
+                break
+        return items
+
+    def _build_user_response(
+        self,
+        result: Dict[str, Any],
+        start_date: date,
+        end_date: date,
+        from_cache: bool,
+    ) -> Dict[str, Any]:
+        focus_areas = self._normalize_items(result.get("focus_areas"))
+        workload_observations = self._normalize_items(result.get("workload_observations"))
+        risk_signals = self._normalize_items(result.get("risk_signals"))
+        record_quality_notes = self._normalize_items(result.get("record_quality_notes"), limit=2)
+
+        summary = [
+            *focus_areas[:2],
+            *workload_observations[:2],
+            *risk_signals[:1],
+        ]
+        if not summary and record_quality_notes:
+            summary = record_quality_notes[:2]
+
+        return {
+            "summary": summary,
+            "focus_areas": focus_areas,
+            "workload_observations": workload_observations,
+            "risk_signals": risk_signals,
+            "record_quality_notes": record_quality_notes,
+            "generated_at": datetime.utcnow().isoformat(),
+            "from_cache": from_cache,
+            **self._build_period_metadata(start_date, end_date),
+        }
+
+    def _build_team_response(
+        self,
+        result: Dict[str, Any],
+        start_date: date,
+        end_date: date,
+        from_cache: bool,
+    ) -> Dict[str, Any]:
+        analysis = self._normalize_items(result.get("analysis"))
+        workload_observations = self._normalize_items(result.get("workload_observations"))
+        risk_signals = self._normalize_items(result.get("risk_signals"))
+        coverage_gaps = self._normalize_items(result.get("coverage_gaps"))
+        record_quality_notes = self._normalize_items(result.get("record_quality_notes"), limit=2)
+
+        return {
+            "project_summary": analysis,
+            "member_summary": workload_observations,
+            "issues": [*risk_signals, *coverage_gaps, *record_quality_notes][:5],
+            "analysis": analysis,
+            "workload_observations": workload_observations,
+            "risk_signals": risk_signals,
+            "coverage_gaps": coverage_gaps,
+            "record_quality_notes": record_quality_notes,
+            "generated_at": datetime.utcnow().isoformat(),
+            "from_cache": from_cache,
+            **self._build_period_metadata(start_date, end_date),
+        }
+
     async def generate_user_summary(
         self,
         user_id: str,
@@ -157,7 +257,12 @@ class SummaryService:
         if not worklogs:
             return {
                 "summary": ["No worklogs found for this period."],
+                "focus_areas": [],
+                "workload_observations": [],
+                "risk_signals": [],
+                "record_quality_notes": [],
                 "generated_at": date.today().isoformat(),
+                **self._build_period_metadata(start_date, end_date),
             }
 
         # Aggregate data
@@ -169,11 +274,12 @@ class SummaryService:
 
         try:
             result = await self.client.generate_json(prompt, system_prompt)
-            response = {
-                "summary": result.get("summary", []),
-                "generated_at": datetime.utcnow().isoformat(),
-                "from_cache": False,
-            }
+            response = self._build_user_response(
+                result,
+                start_date,
+                end_date,
+                from_cache=False,
+            )
 
             # Save to cache (only for past weeks)
             if not is_current:
@@ -185,8 +291,13 @@ class SummaryService:
         except Exception as e:
             return {
                 "summary": [f"Summary generation failed: {str(e)}"],
+                "focus_areas": [],
+                "workload_observations": [],
+                "risk_signals": [],
+                "record_quality_notes": [],
                 "generated_at": date.today().isoformat(),
                 "error": str(e),
+                **self._build_period_metadata(start_date, end_date),
             }
 
     async def generate_team_summary(
@@ -196,6 +307,7 @@ class SummaryService:
         start_date: date,
         end_date: date,
         force_regenerate: bool = False,
+        dashboard_context: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Generate weekly summary for a team"""
 
@@ -231,25 +343,35 @@ class SummaryService:
                 "project_summary": [],
                 "member_summary": [],
                 "issues": ["No worklogs found for this period."],
+                "analysis": [],
+                "workload_observations": [],
+                "risk_signals": [],
+                "coverage_gaps": [],
+                "record_quality_notes": [],
                 "generated_at": date.today().isoformat(),
+                **self._build_period_metadata(start_date, end_date),
             }
 
         # Aggregate team data
         summary_data = self._aggregate_team_data(worklogs)
 
         # Build prompt and generate summary
-        prompt = self._build_team_prompt(summary_data, start_date, end_date)
+        prompt = self._build_team_prompt(
+            summary_data,
+            start_date,
+            end_date,
+            dashboard_context=dashboard_context,
+        )
         system_prompt = self.TEAM_SUMMARY_SYSTEM_PROMPT
 
         try:
             result = await self.client.generate_json(prompt, system_prompt)
-            response = {
-                "project_summary": result.get("project_summary", []),
-                "member_summary": result.get("member_summary", []),
-                "issues": result.get("issues", []),
-                "generated_at": datetime.utcnow().isoformat(),
-                "from_cache": False,
-            }
+            response = self._build_team_response(
+                result,
+                start_date,
+                end_date,
+                from_cache=False,
+            )
 
             # Save to cache (only for past weeks)
             if not is_current:
@@ -263,8 +385,14 @@ class SummaryService:
                 "project_summary": [],
                 "member_summary": [],
                 "issues": [f"Summary generation failed: {str(e)}"],
+                "analysis": [],
+                "workload_observations": [],
+                "risk_signals": [],
+                "coverage_gaps": [],
+                "record_quality_notes": [],
                 "generated_at": date.today().isoformat(),
                 "error": str(e),
+                **self._build_period_metadata(start_date, end_date),
             }
 
     def _aggregate_worklog_data(self, worklogs: List[WorkLog]) -> Dict[str, Any]:
@@ -280,6 +408,8 @@ class SummaryService:
             "Team": 0,
         }
         descriptions: List[str] = []
+        description_count = 0
+        empty_description_count = 0
 
         for wl in worklogs:
             hours = float(wl.hours)
@@ -301,7 +431,10 @@ class SummaryService:
 
             # Descriptions
             if wl.description:
+                description_count += 1
                 descriptions.append(str(wl.description))
+            else:
+                empty_description_count += 1
 
         # Sort projects by hours
         sorted_projects = sorted(
@@ -313,6 +446,10 @@ class SummaryService:
             "projects": sorted_projects,
             "categories": category_hours,
             "descriptions": descriptions[:20],  # Sample of descriptions
+            "description_count": description_count,
+            "empty_description_count": empty_description_count,
+            "worklog_count": len(worklogs),
+            "project_count": len(project_hours),
         }
 
     def _aggregate_team_data(self, worklogs: List[WorkLog]) -> Dict[str, Any]:
@@ -340,6 +477,7 @@ class SummaryService:
         )[:5]
 
         base_data["members"] = sorted_members
+        base_data["member_count_with_logs"] = len(member_hours)
         return base_data
 
     def _build_utilization_line(
@@ -372,6 +510,9 @@ class SummaryService:
             f"Period: {start_date} ~ {end_date}",
             f"Total hours: {data['total_hours']:.1f}h",
             utilization_line,
+            f"Worklog count: {data['worklog_count']}",
+            f"Descriptions with detail: {data['description_count']}",
+            f"Descriptions missing or empty: {data['empty_description_count']}",
             "",
             "[Hours by Project]",
         ]
@@ -393,16 +534,34 @@ class SummaryService:
         lines.append("")
         lines.append("[Description Samples]")
         lines.append(", ".join(data["descriptions"][:10]))
+        lines.append("")
+        lines.append("[Interpretation Guardrails]")
+        lines.append(
+            "- Use only observable workload patterns from hours, categories, and descriptions."
+        )
+        lines.append(
+            "- If descriptions are sparse, prefer saying the evidence is limited."
+        )
+        lines.append(
+            "- Do not infer milestone completion unless it is explicitly written in the descriptions."
+        )
 
         return "\n".join(lines)
 
     def _build_team_prompt(
-        self, data: Dict[str, Any], start_date: date, end_date: date
+        self,
+        data: Dict[str, Any],
+        start_date: date,
+        end_date: date,
+        dashboard_context: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Build prompt for team summary"""
         lines = [
             f"Period: {start_date} ~ {end_date}",
             f"Total hours: {data['total_hours']:.1f}h",
+            f"Worklog count: {data['worklog_count']}",
+            f"Descriptions with detail: {data['description_count']}",
+            f"Descriptions missing or empty: {data['empty_description_count']}",
             "",
             "[Hours by Project]",
         ]
@@ -436,6 +595,51 @@ class SummaryService:
         lines.append("")
         lines.append("[Description Samples]")
         lines.append(", ".join(data["descriptions"][:15]))
+
+        if dashboard_context:
+            team_info = dashboard_context.get("team_info", {})
+            member_contributions = dashboard_context.get("member_contributions", [])
+            sub_org_contributions = dashboard_context.get("sub_org_contributions", [])
+            org_context = dashboard_context.get("org_context", {})
+
+            lines.append("")
+            lines.append("[Dashboard Context]")
+            if team_info.get("name"):
+                lines.append(
+                    f"- Team: {team_info.get('name')} ({team_info.get('member_count', 0)} members)"
+                )
+            if org_context.get("team_percentage") is not None:
+                lines.append(
+                    f"- Share of wider engineering hours: {org_context.get('team_percentage', 0)}%"
+                )
+
+            if member_contributions:
+                lines.append("[Top Member Load]")
+                for member in member_contributions[:5]:
+                    member_hours = float(member.get("hours") or 0)
+                    lines.append(
+                        f"- {member.get('korean_name') or member.get('name')}: {member_hours:.1f}h ({member.get('percentage', 0)}%)"
+                    )
+
+            if sub_org_contributions:
+                lines.append("[Sub-Organization Split]")
+                for org in sub_org_contributions[:5]:
+                    org_hours = float(org.get("hours") or 0)
+                    lines.append(
+                        f"- {org.get('org_name')}: {org_hours:.1f}h ({org.get('percentage', 0)}%, {org.get('member_count', 0)} members)"
+                    )
+
+        lines.append("")
+        lines.append("[Interpretation Guardrails]")
+        lines.append(
+            "- Use the dashboard context as grounding for workload distribution and concentration only."
+        )
+        lines.append(
+            "- Do not claim milestone completion or project progress unless the descriptions clearly support it."
+        )
+        lines.append(
+            "- If records are sparse or uneven across members, call that out as a record-quality limitation."
+        )
 
         return "\n".join(lines)
 

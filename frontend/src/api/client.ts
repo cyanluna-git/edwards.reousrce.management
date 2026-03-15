@@ -1209,6 +1209,12 @@ export const getRechargeIOsByBusinessUnit = async (buId: string): Promise<Rechar
 
 export interface UserAISummary {
   summary: string[];
+  focus_areas?: string[];
+  workload_observations?: string[];
+  risk_signals?: string[];
+  record_quality_notes?: string[];
+  period_start: string;
+  period_end: string;
   generated_at: string;
   from_cache?: boolean;
   error?: string;
@@ -1218,6 +1224,13 @@ export interface TeamAISummary {
   project_summary: string[];
   member_summary: string[];
   issues: string[];
+  analysis?: string[];
+  workload_observations?: string[];
+  risk_signals?: string[];
+  coverage_gaps?: string[];
+  record_quality_notes?: string[];
+  period_start: string;
+  period_end: string;
   generated_at: string;
   from_cache?: boolean;
   error?: string;

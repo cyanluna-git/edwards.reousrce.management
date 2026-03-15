@@ -147,7 +147,11 @@
     "grandTotal": "총계"
   },
   "summary": {
-    "title": "지난 주 AI 업무 요약",
+    "title": "AI 업무 요약",
+    "weeklyTitle": "지난주 AI 업무 요약",
+    "monthlyTitle": "지난달 AI 업무 요약",
+    "lastWeek": "지난주",
+    "lastMonth": "지난달",
     "pastSummary": "과거 요약",
     "historyBadge": "히스토리",
     "cacheBadge": "캐시",
@@ -160,6 +164,15 @@
     "regenerate": "AI로 다시 생성하기",
     "error": "요약 생성 중 오류가 발생했습니다",
     "noData": "요약할 데이터가 없습니다.",
+    "unsupportedPeriod": "AI 요약은 현재 지난주/지난달 기준으로만 제공됩니다.",
+    "focusAreas": "주요 집중 영역",
+    "analysis": "분석",
+    "workloadObservations": "업무 분포 관찰",
+    "riskSignals": "리스크 신호",
+    "coverageGaps": "커버리지 관찰",
+    "recordQualityNotes": "기록 품질 메모",
+    "showMore": "더보기",
+    "showLess": "접기",
     "byProject": "프로젝트별",
     "byMember": "멤버별",
     "keyIssues": "주요 이슈"

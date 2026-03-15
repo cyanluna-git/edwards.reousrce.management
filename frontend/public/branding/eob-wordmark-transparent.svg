@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+  <title id="title">Engineering Operation Board wordmark</title>
+  <desc id="desc">Transparent text-only wordmark with blue E, O, and B initials and white remaining letters.</desc>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <text x="12" y="90" font-size="100" font-weight="500" fill="#43A2FF" letter-spacing="-0.3em">E</text>
+    <text x="65" y="90" font-size="70" font-weight="100" fill="#f8fafc" letter-spacing="0em">ngineering</text>
+
+    <text x="380" y="90" font-size="100" font-weight="500" fill="#43A2FF" letter-spacing="-0.1em">O</text>
+    <text x="450" y="90" font-size="70" font-weight="100" fill="#f8fafc" letter-spacing="0em">peration</text>
+
+    <text x="700" y="90" font-size="100" font-weight="500" fill="#43A2FF" letter-spacing="-0.1em">B</text>
+    <text x="760" y="90" font-size="70" font-weight="100" fill="#f8fafc" letter-spacing="0em">oard</text>
+  </g>
+</svg>

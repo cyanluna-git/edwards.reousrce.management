@@ -199,7 +199,7 @@ export const TeamDashboardContent: React.FC<TeamDashboardContentProps> = ({
             <WeeklySummaryCard
                 mode="team"
                 scope={teamScope}
-                period={teamViewMode === 'weekly' ? 'weekly' : 'monthly'}
+                period={teamViewMode}
             />
 
             {/* Category Distribution Bar */}

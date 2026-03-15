@@ -32,7 +32,7 @@ interface NavItem {
 
 // Monitoring - View/Analysis
 const monitoringNavigation: NavItem[] = [
-  { nameKey: "main.dashboard", href: "/", icon: LayoutDashboard },
+  { nameKey: "main.dashboard", href: "/dashboard", icon: LayoutDashboard },
   { nameKey: "main.resourceMatrix", href: "/resource-matrix", icon: Grid3x3 },
   { nameKey: "main.reports", href: "/reports", icon: BarChart3 },
 ];
@@ -81,7 +81,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         to={item.href}
         title={isCollapsed ? name : undefined}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+          "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
           isActive
             ? "bg-blue-600 text-white"
             : "text-slate-300 hover:bg-slate-800 hover:text-white",
@@ -100,10 +100,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     items: NavItem[],
     showDivider = false,
   ) => (
-    <div className={showDivider ? "pt-3" : ""}>
-      {showDivider && <div className="border-t border-slate-700 mb-3" />}
+    <div className={showDivider ? "pt-2" : ""}>
+      {showDivider && <div className="mb-2 border-t border-slate-700" />}
       {!isCollapsed && (
-        <div className="mb-2 flex items-center gap-2 px-3">
+        <div className="mb-1.5 flex items-center gap-2 px-3">
           {React.createElement(icon, { className: "h-4 w-4 text-slate-500" })}
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {title}
@@ -111,11 +111,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         </div>
       )}
       {isCollapsed && showDivider && (
-        <div className="flex justify-center mb-2">
+        <div className="mb-2 flex justify-center">
           {React.createElement(icon, { className: "h-4 w-4 text-slate-500" })}
         </div>
       )}
-      <div className="space-y-1">{items.map(renderNavItem)}</div>
+      <div className="space-y-0.5">{items.map(renderNavItem)}</div>
     </div>
   );
 
@@ -127,8 +127,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       )}
     >
       {/* Logo & Toggle */}
-      <div className="flex h-28 items-center justify-between px-3">
-        <div className={cn("flex items-center gap-2", isCollapsed && "justify-center w-full")}>
+      <div className="relative flex min-h-32 items-start justify-between px-3 pt-3">
+        <div className={cn("flex items-start gap-2", isCollapsed && "justify-center w-full")}>
           {isCollapsed && (
             <div className="flex flex-col items-center justify-center text-blue-400">
               <span className="text-base font-black leading-none">E</span>
@@ -137,19 +137,23 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </div>
           )}
           {!isCollapsed && (
-            <div className="min-w-0 flex-1 pr-2">
+            <div className="flex min-w-0 flex-1 flex-col items-start pr-8 text-left">
               <img
-                src="/branding/eob-wordmark-transparent.svg"
-                alt={t("sidebar.appName")}
-                className="h-24 w-full max-w-none translate-y-3 translate-x-2 object-contain object-left"
+                src="/branding/edwards-logo.svg"
+                alt="Edwards"
+                className="h-9 w-auto object-contain"
               />
+              <div className="mt-1 ml-1.5 leading-tight text-[#dbe4ee]">
+                <p className="text-[1.02rem] font-semibold tracking-tight">Engineering</p>
+                <p className="text-[1.02rem] font-semibold tracking-tight">Operation Board</p>
+              </div>
             </div>
           )}
         </div>
         {!isCollapsed && (
           <button
             onClick={onToggle}
-            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="absolute right-3 top-3 rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
             title={t("sidebar.collapse")}
           >
             <ChevronLeft className="h-5 w-5" />
@@ -158,18 +162,18 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Greeting - moved from header */}
-      <div className={cn("px-3 py-3 border-b border-slate-700", isCollapsed && "px-2")}>
+      <div className={cn("border-b border-slate-700 px-3 py-2", isCollapsed && "px-2")}>
         {isCollapsed ? (
           <div className="flex justify-center">
             <span className="text-lg">👋</span>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-3">
-            <p className="text-sm font-medium text-white/90 flex items-center gap-1">
-              <span>👋</span> {t("sidebar.welcome")}
-            </p>
-            <p className="text-base font-bold text-white truncate">
-              {user?.name || user?.korean_name || t("sidebar.guest")}!
+          <div className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-3 py-2">
+            <p className="flex items-center gap-2 truncate text-sm font-semibold text-white">
+              <span className="text-base leading-none">👋</span>
+              <span className="truncate">
+                {t("sidebar.welcome")} {user?.name || user?.korean_name || t("sidebar.guest")}!
+              </span>
             </p>
           </div>
         )}
@@ -189,7 +193,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
+      <nav className="flex-1 space-y-1 px-2 py-3 overflow-y-auto">
         {/* Monitoring Section */}
         {renderSection(t("sections.monitoring"), Eye, monitoringNavigation)}
 
@@ -200,36 +204,76 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         {renderSection(t("sections.adminSettings"), Shield, adminNavigation, true)}
       </nav>
 
-      {/* Request board quick access */}
-      {!isCollapsed && (
-        <div className="px-2 pb-4">
-          <div className="rounded-lg bg-slate-800/60 p-3 shadow-inner">
+      <div className={cn("px-2 pb-3", isCollapsed && "pb-2")}>
+        {isCollapsed ? (
+          <div className="space-y-1">
+            <Link
+              to="/portal"
+              title="Portal"
+              className={cn(
+                "flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
+                location.pathname.startsWith("/portal") && "bg-slate-800 text-white",
+              )}
+            >
+              <Grid3x3 className="h-5 w-5 flex-shrink-0" />
+            </Link>
             {renderNavItem(requestBoardLink)}
-            <p className="mt-2 text-xs text-slate-400">{t("sidebar.requestFeedback")}</p>
+            <Link
+              to="/updates"
+              title={t("sidebar.updateHistory")}
+              className={cn(
+                "flex w-full items-center justify-center rounded-lg px-2 py-1.5 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
+                location.pathname === "/updates" && "bg-slate-800 text-white",
+              )}
+            >
+              <History className="h-5 w-5 flex-shrink-0" />
+            </Link>
           </div>
-        </div>
-      )}
-      {isCollapsed && <div className="px-2 pb-4">{renderNavItem(requestBoardLink)}</div>}
-
-      <div className={cn("px-2 pb-4", isCollapsed && "pb-3")}>
-        <Link
-          to="/updates"
-          title={isCollapsed ? t("sidebar.updateHistory") : undefined}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
-            location.pathname === "/updates" && "bg-slate-800 text-white",
-            isCollapsed && "justify-center px-2",
-          )}
-        >
-          <History className="h-5 w-5 flex-shrink-0" />
-          {!isCollapsed && <span>{t("sidebar.updateHistory")}</span>}
-        </Link>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/portal"
+              title="Portal"
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
+                location.pathname.startsWith("/portal") && "bg-slate-800 text-white",
+              )}
+            >
+              <Grid3x3 className="h-4.5 w-4.5" />
+            </Link>
+            <Link
+              to={requestBoardLink.href}
+              title={t(requestBoardLink.nameKey)}
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
+                location.pathname === requestBoardLink.href && "bg-slate-800 text-white",
+              )}
+            >
+              <MessageSquare className="h-4.5 w-4.5" />
+            </Link>
+            <Link
+              to="/updates"
+              title={t("sidebar.updateHistory")}
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white",
+                location.pathname === "/updates" && "bg-slate-800 text-white",
+              )}
+            >
+              <History className="h-4.5 w-4.5" />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <LanguageToggle variant="collapsed" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Language Toggle */}
-      <div className={cn("border-t border-slate-700 px-3 py-2", isCollapsed && "px-2")}>
-        <LanguageToggle variant={isCollapsed ? "collapsed" : "default"} />
-      </div>
+      {isCollapsed && (
+        <div className="border-t border-slate-700 px-2 py-2">
+          <LanguageToggle variant="collapsed" />
+        </div>
+      )}
 
       {/* User info & Logout */}
       <div className={cn("border-t border-slate-700 p-3 space-y-3", isCollapsed && "p-2")}>

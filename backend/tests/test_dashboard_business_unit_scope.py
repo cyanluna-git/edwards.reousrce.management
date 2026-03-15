@@ -40,10 +40,11 @@ def test_team_ai_summary_uses_primary_business_unit_id(db_session: Session, monk
     captured = {}
 
     async def fake_generate_team_summary(
-        self, team_id, team_type, start_date, end_date, force_regenerate
+        self, team_id, team_type, start_date, end_date, force_regenerate, dashboard_context=None
     ):
         captured["team_id"] = team_id
         captured["team_type"] = team_type
+        captured["dashboard_context"] = dashboard_context
         return {"ok": True}
 
     monkeypatch.setattr(
@@ -60,6 +61,7 @@ def test_team_ai_summary_uses_primary_business_unit_id(db_session: Session, monk
     assert response.status_code == 200
     assert captured["team_id"] == "BU_MAIN"
     assert captured["team_type"] == "business_unit"
+    assert captured["dashboard_context"] is not None
 
 
 def test_team_ai_summary_history_uses_primary_business_unit_id(

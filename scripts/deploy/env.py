@@ -66,11 +66,20 @@ REMOVE_KEYS = {"DATABASE_URL", "VITE_DEV_PROXY_TARGET"}
 
 def build_domain_overrides(domain: str) -> Dict[str, str]:
     """Build overrides that depend on the server domain."""
+    # Derive base domain (e.g. eob.10.182.252.32.sslip.io → 10.182.252.32.sslip.io)
+    base = domain.split(".", 1)[1] if "." in domain else domain
+    cors = ",".join([
+        "http://localhost:3004",
+        f"http://{domain}",
+        f"https://{domain}",
+        f"https://oqc.{base}",
+        f"https://jarvis.{base}",
+    ])
     return {
         "SAML_ENTITY_ID": f"https://{domain}",
         "SAML_ACS_URL": f"https://{domain}/api/auth/sso/callback",
         "SAML_SLO_URL": f"https://{domain}/api/auth/logout",
-        "CORS_ORIGINS": f"http://localhost:3004,http://{domain},https://{domain}",
+        "CORS_ORIGINS": cors,
     }
 
 

@@ -147,7 +147,11 @@
     "grandTotal": "Grand Total"
   },
   "summary": {
-    "title": "AI Weekly Work Summary",
+    "title": "AI Work Summary",
+    "weeklyTitle": "AI Summary for Last Week",
+    "monthlyTitle": "AI Summary for Last Month",
+    "lastWeek": "Last Week",
+    "lastMonth": "Last Month",
     "pastSummary": "Past Summary",
     "historyBadge": "History",
     "cacheBadge": "Cache",
@@ -160,6 +164,15 @@
     "regenerate": "Regenerate with AI",
     "error": "An error occurred while generating the summary",
     "noData": "No data to summarize.",
+    "unsupportedPeriod": "AI summaries are currently available only for last-week and last-month views.",
+    "focusAreas": "Focus Areas",
+    "analysis": "Analysis",
+    "workloadObservations": "Workload Observations",
+    "riskSignals": "Risk Signals",
+    "coverageGaps": "Coverage Notes",
+    "recordQualityNotes": "Record Quality Notes",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "byProject": "By Project",
     "byMember": "By Member",
     "keyIssues": "Key Issues"

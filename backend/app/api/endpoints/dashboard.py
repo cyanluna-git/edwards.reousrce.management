@@ -17,6 +17,22 @@ from app.schemas.dashboard import MyFTEResponse
 router = APIRouter()
 
 
+def _get_last_completed_week_range(today: date) -> tuple[date, date]:
+    """Return the Monday-Sunday range for the last fully completed week."""
+    this_monday = today - timedelta(days=today.weekday())
+    start_date = this_monday - timedelta(days=7)
+    end_date = start_date + timedelta(days=6)
+    return start_date, end_date
+
+
+def _get_last_completed_month_range(today: date) -> tuple[date, date]:
+    """Return the first-last day range for the last fully completed month."""
+    this_month_start = today.replace(day=1)
+    end_date = this_month_start - timedelta(days=1)
+    start_date = end_date.replace(day=1)
+    return start_date, end_date
+
+
 @router.get("/my-fte", response_model=MyFTEResponse)
 async def get_my_fte(
     year: int = Query(..., description="Year (e.g., 2026)"),
@@ -126,16 +142,11 @@ async def get_user_ai_summary(
     Uses Gemini to analyze worklogs and generate bullet-point summary.
     Caches summaries for past weeks to save tokens.
     """
-    # Calculate date range
     today = date.today()
     if period == "monthly":
-        start_date = today.replace(day=1)
-        end_date = today
+        start_date, end_date = _get_last_completed_month_range(today)
     else:  # weekly
-        # Last week Monday to Sunday
-        this_monday = today - timedelta(days=today.weekday())
-        start_date = this_monday - timedelta(days=7)
-        end_date = start_date + timedelta(days=6)  # Last Sunday
+        start_date, end_date = _get_last_completed_week_range(today)
 
     service = SummaryService(db)
     return await service.generate_user_summary(
@@ -164,20 +175,11 @@ async def get_team_ai_summary(
     - Key issues/risks
     Caches summaries for past weeks to save tokens.
     """
-    # Calculate date range
     today = date.today()
     if period == "monthly":
-        # First day of current month
-        start_date = today.replace(day=1)
-        end_date = today
+        start_date, end_date = _get_last_completed_month_range(today)
     else:  # weekly
-        # Last week Monday to Sunday
-        # today.weekday() is 0 for Monday.
-        # This week's Monday is today - today.weekday()
-        # Last week's Monday is today - today.weekday() - 7
-        this_monday = today - timedelta(days=today.weekday())
-        start_date = this_monday - timedelta(days=7)
-        end_date = start_date + timedelta(days=6)  # Last Sunday
+        start_date, end_date = _get_last_completed_week_range(today)
 
     # Get team ID based on scope
     if scope == "sub_team":
@@ -189,13 +191,23 @@ async def get_team_ai_summary(
     else:
         team_id = None  # all
 
-    service = SummaryService(db)
-    return await service.generate_team_summary(
+    summary_service = SummaryService(db)
+    dashboard_service = DashboardService(db)
+    dashboard_context = dashboard_service.get_team_dashboard(
+        str(current_user.id),
+        scope,
+        period,
+        start_date,
+        end_date,
+    )
+
+    return await summary_service.generate_team_summary(
         team_id=team_id,
         team_type=scope,
         start_date=start_date,
         end_date=end_date,
         force_regenerate=force_regenerate,
+        dashboard_context=dashboard_context,
     )
 
 
