@@ -1278,6 +1278,90 @@ export const getTeamAISummaryHistory = async (
   return response.data;
 };
 
+// ============ Weekly Report API ============
+
+export type WeeklyReportScope = 'user' | 'team';
+export type WeeklyReportTeamScope = 'department' | 'sub_team';
+export type WeeklyReportStatus = 'draft' | 'published';
+
+export interface WeeklyReport {
+  id: string;
+  scope: WeeklyReportScope;
+  team_scope_type: WeeklyReportTeamScope | null;
+  scope_id: string;
+  target_key: string;
+  week_start: string;
+  week_end: string;
+  week_key: string;
+  is_in_progress: boolean;
+  status: WeeklyReportStatus;
+  title: string | null;
+  markdown_body: string;
+  source_metadata: Record<string, unknown> | null;
+  owner_user_id: string | null;
+  created_by_user_id: string;
+  updated_by_user_id: string;
+  published_by_user_id: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WeeklyReportCurrentResponse {
+  scope: WeeklyReportScope;
+  team_scope_type: WeeklyReportTeamScope | null;
+  scope_id: string;
+  target_key: string;
+  week_start: string;
+  week_end: string;
+  week_key: string;
+  is_in_progress: boolean;
+  report: WeeklyReport | null;
+}
+
+export interface WeeklyReportUpsertRequest {
+  scope: WeeklyReportScope;
+  team_scope_type?: WeeklyReportTeamScope;
+  scope_id?: string;
+  week_start?: string;
+  reference_date?: string;
+  status?: WeeklyReportStatus;
+  title?: string;
+  markdown_body: string;
+}
+
+export const getCurrentWeeklyReport = async (params: {
+  scope?: WeeklyReportScope;
+  team_scope_type?: WeeklyReportTeamScope;
+  scope_id?: string;
+  reference_date?: string;
+}): Promise<WeeklyReportCurrentResponse> => {
+  const response = await apiClient.get('/weekly-reports/current', { params });
+  return response.data;
+};
+
+export const getWeeklyReportHistory = async (params: {
+  scope?: WeeklyReportScope;
+  team_scope_type?: WeeklyReportTeamScope;
+  scope_id?: string;
+  limit?: number;
+}): Promise<WeeklyReport[]> => {
+  const response = await apiClient.get('/weekly-reports/history', { params });
+  return response.data.items;
+};
+
+export const upsertWeeklyReport = async (
+  data: WeeklyReportUpsertRequest
+): Promise<WeeklyReport> => {
+  const response = await apiClient.put('/weekly-reports', data);
+  return response.data;
+};
+
+export const deleteWeeklyReport = async (id: string): Promise<{ success: boolean; id: string }> => {
+  const response = await apiClient.delete(`/weekly-reports/${id}`);
+  return response.data;
+};
+
 // ============ Resource Matrix Drill-down ============
 
 export interface WorklogDetail {
