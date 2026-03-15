@@ -34,6 +34,7 @@ from app.api.endpoints import (
     internal_ios,
     recharge_ios,
     portal,
+    weekly_reports,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -168,6 +169,9 @@ app.include_router(
 )
 app.include_router(
     portal.router, prefix="/api/portal", tags=["Portal"]
+)
+app.include_router(
+    weekly_reports.router, prefix="/api/weekly-reports", tags=["Weekly Reports"]
 )
 
 

@@ -11,4 +11,5 @@ from app.api.endpoints import (
     resource_plans,
     reports,
     divisions,
+    weekly_reports,
 )

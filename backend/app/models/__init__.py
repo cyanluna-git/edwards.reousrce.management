@@ -26,6 +26,7 @@ from app.models.hiring_plan import HiringPlan
 from app.models.work_type import WorkTypeCategory, WorkTypeLegacyMapping
 from app.models.ai_summary import AISummary
 from app.models.portal_access_log import PortalAccessLog
+from app.models.weekly_report import WeeklyReport
 
 
 __all__ = [
@@ -68,4 +69,6 @@ __all__ = [
     "AISummary",
     # Portal
     "PortalAccessLog",
+    # Weekly Reports
+    "WeeklyReport",
 ]
