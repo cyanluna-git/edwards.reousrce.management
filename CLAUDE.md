@@ -125,21 +125,75 @@ BusinessUnit → Program → Project → ProjectMilestone
 - WorkLog: Daily hours per user per project
 - User → UserHistory: Tracks org changes (HIRE, TRANSFER_IN, TRANSFER_OUT, PROMOTION, RESIGN)
 
-**Project categories:** PRODUCT or FUNCTIONAL
-**Project statuses:** Prospective, Planned, InProgress, OnHold, Cancelled, Completed
+**Financial dimensions:**
+- dim_funding_entity: VSS, SUN, LOCAL_KR, SHARED
+- dim_io_category: NPI, FIELD_FAILURE, OPS_SUPPORT, SUSTAINING, CIP, etc.
+- dim_activity_code: 15 activity codes (DESIGN, TEST, DOC, etc.)
+- dim_cost_bucket: 4 financial tiers + UNCLASSIFIED
+- allocation_rules: 30+ priority-ordered classification rules
+- planning_scenarios: BASELINE, OPTIMISTIC, CONSERVATIVE, CUSTOM (per fiscal year)
+- resource_plans: Long-format FTE planning (replaces Excel PCAS Eng._Monthly Headcounts)
 
 ### Key Business Concepts
 
-- **FTE (Full-Time Equivalent):** 0.0-1.0 monthly allocation per user per project
+- **FTE (Full-Time Equivalent):** 0.0-1.0 monthly allocation per user per project. Sum per user/month/scenario must not exceed 1.0 (enforced by DB trigger)
 - **TBD Position:** ResourcePlan with user_id=null - placeholder for future hiring
-- **WorkType:** Hierarchical work classification (WorkTypeCategory)
+- **WorkType:** Hierarchical work classification (WorkTypeCategory). 7 work types (00 Pre Gate ~ 06 Sales/Service Support)
 - **PCP Gates:** G3, G5, G6 milestones for product commercialization process
-- **Internal IO / Recharge IO:** Internal order numbers and cost recharge tracking
+- **Internal IO / Recharge IO:** Internal order numbers and inter-company cost recharge tracking
+- **Project Categories:** PRODUCT (NPI/ETO), FUNCTIONAL (CEP), SUPPORT (standardized support projects with auto BU routing)
+- **Project Statuses:** Prospective, Planned, InProgress, OnHold, Cancelled, Completed
+
+### Financial System (Recharge & Cost Classification)
+
+**Funding Entities (inter-company billing):**
+
+| Code | Entity | Currency |
+|------|--------|----------|
+| VSS | VSS Division (USA) | USD |
+| SUN | SUN Division (USA) | USD |
+| LOCAL_KR | Edwards Korea Ltd. | KRW |
+| SHARED | Shared Services | USD |
+
+**Recharge Status:** BILLABLE (billed to another division), NON_BILLABLE (self-funded CAPEX), INTERNAL (overhead)
+
+**Auto-Classification:** `auto_classify_project_funding()` trigger classifies projects by name/code pattern (VSS→ENTITY_VSS, SUN→ENTITY_SUN) and project type (NPI→LOCAL_KR). Manual override via CSV import for low-confidence cases.
+
+**Recharge IO Mapping:** Support work routes to BU-specific IOs:
+- ABT/IS BU: 407278 (SUN Ops), 407279 (SUN Product), 407328 (VSS Product), 407331 (VSS Sales)
+- ACM BU: 407327, 407296, 407332
+
+**BU Auto-Routing:** Users have `primary_business_unit_id`. When selecting SUPPORT project, system auto-assigns correct RechargeIO based on user's BU. Manual override allowed.
+
+### Context-Aware Timesheet Engine
+
+Star schema with rule-based classification trigger on INSERT/UPDATE.
+
+**4-Tier Cost Buckets:**
+
+| Bucket | GL | Capitalizable | Target |
+|--------|-----|---------------|--------|
+| DIRECT_PRODUCT | GL-1000 | Yes | 60-70% |
+| DIRECT_PROJECT | GL-1100 | Yes | 10-15% |
+| INDIRECT | GL-2000 | No | 15-20% |
+| OVERHEAD | GL-3000 | No | <10% |
+
+**15 Activity Codes:** DESIGN, TEST, DOC, RELEASE, MEET, REVIEW, PLAN, FIELD, SALES, SUSTAIN, TRIAGE, ADMIN, TRAINING, HIRING, PTO
+
+**Classification Engine:** 30+ priority-ordered allocation_rules evaluated first-match-wins. Matches on user context (department, sub_team, role) + project context (type, category) + activity. Confidence score 0-95 (manual override = 100). Entries with confidence < 70 flagged for review.
+
+**Key Functions:**
+- `classify_timesheet_entry(user_id, project_id, activity_code_id, work_date)` — core classification
+- `classify_with_recharge(...)` — extends with inter-company recharge logic
+- `reclassify_timesheet_entries(start, end)` — batch reclassify after rule changes
+
+**Plan vs Actual Views:** `v_plan_vs_actual`, `v_dept_plan_vs_actual`, `v_project_plan_vs_actual`, `v_monthly_variance_heatmap`, `v_monthly_recharge_report`
 
 ### Authentication & Authorization
 
-- **JWT:** Access tokens (30 min) + Refresh tokens (7 days) + Registration tokens
-- **SSO/SAML 2.0:** Microsoft Entra ID integration (configurable via SAML_* env vars)
+- **JWT:** Access tokens (30 min) + Refresh tokens (7 days) + Registration tokens (24h)
+- **SSO/SAML 2.0:** Microsoft Entra ID integration (configurable via SAML_* env vars, HTTP-POST binding)
+- **Jarvis JWT Relay:** Separate JARVIS_SECRET_KEY for cross-service auth to Jarvis AI. EOB generates short-lived token (10 min) with type="jarvis", Jarvis validates against shared secret.
 - **Roles:** ADMIN, PM, FM, USER, GUEST, VIEWER
 - **Read-only roles:** GUEST and VIEWER cannot create/update/delete (enforced via `require_write_permission()`)
 - **Auth flow:** `backend/app/core/security.py` → `require_role()`, `require_write_permission()`
@@ -210,15 +264,39 @@ Key variables in `.env` (copy from `.env.example`):
 - `frontend/src/App.tsx` - Routing config, lazy loading, protected routes
 - `frontend/src/types/index.ts` - All TypeScript interfaces
 
+## Production Infrastructure
+
+- **Server:** VTISAZUAPP218 (10.182.252.32), Ubuntu 24.04, atlasAdmin
+- **Domain:** https://eob.10.182.252.32.sslip.io (sslip.io wildcard DNS)
+- **SSL:** Self-signed cert (expires 2036-02-04), backed up in Azure Key Vault (pcas-keyvault-218)
+- **Routing:** Traefik (Coolify, SSL termination) → Nginx (static + /api proxy) → FastAPI → PostgreSQL
+- **Containers:** edwards-web (:80→3004), edwards-api (:8004), edwards-postgres (:5432→5434 internal)
+
 ## Deployment
 
+- **One-Click:** `.\run_full_deploy.ps1` (generates .env.remote → build → backup → upload → restart)
 - **Docker Compose:** `docker-compose.yml` runs db + backend + frontend
 - **Dev Docker:** `docker-compose.dev.yml` adds hot reload with volume mounts
 - **Build & Package:** `python scripts/deploy/build.py` → builds images and creates .tar.gz
 - **Full Deploy:** `scripts/deploy/full_deploy.sh` automates build → upload → restart
 - **Server cron:** `scripts/server/setup_cron.sh` sets up daily DB backups with 7-day retention
+- **Env transform:** `deploy_env_remote.py --profile server` auto-converts .env for production (DEBUG=false, URLs updated)
+
+## Performance
+
+- **Worklogs table indexes:** 4 indexes (date, user+date, project+date, compound) via Alembic migration 010
+- **Known bottleneck:** `get_resource_pivot_matrix()` at 16.75s — 70% from Python loop IO resolution. Basic queries optimized to 15-100ms (100-1000x improvement)
+- **Benchmark script:** `python scripts/benchmark_resource_matrix.py`
+- **Frontend caching:** TanStack Query staleTime=10min, gcTime=1hr, React.memo on RowItem
 
 ## Testing
 
 - **Backend:** pytest + pytest-asyncio, test files: `test_{module_name}.py`
 - **Frontend:** Playwright for E2E tests, test files: `{component}.spec.ts`
+
+## Confluence Documentation
+
+All architecture and implementation details are documented in Confluence ISP space (11 pages under EOB parent):
+01-05: Domain recaps (Recharge, Timesheet, Architecture, SSO, Dev Setup)
+06: SSL & Key Vault Operations
+07-11: Implementation detail (Performance, Deployment, Recharge SQL, Timesheet Architecture, JWT/SSO Config)

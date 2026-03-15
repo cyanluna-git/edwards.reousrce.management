@@ -136,34 +136,58 @@ pnpm dev --port 3004
 
 ## 📋 주요 기능
 
-### ✅ 구현 완료
+### Core
 
-| 기능              | 설명                                              |
-| ----------------- | ------------------------------------------------- |
-| **개인 대시보드** | 주간 WorkLog 요약, 리소스 현황, 프로젝트 타임라인 |
-| **WorkLog 관리**  | 일별 업무 시간 기록, 달력 UI                      |
-| **리소스 계획**   | 12개월 FTE 배정, TBD 관리                         |
-| **집계 뷰**       | 프로젝트별/롤별 Total HC                          |
-| **Reports**       | Capacity/WorkLog 차트 (recharts)                  |
-| **Organization**  | Job Positions CRUD                                |
-| **프로젝트 관리** | 마일스톤 (G5/G6 Gate)                             |
+| 기능 | 설명 |
+|------|------|
+| **개인 대시보드** | 주간 WorkLog 요약, 리소스 현황, 프로젝트 타임라인, AI 요약 |
+| **WorkLog 관리** | 일별 업무 시간 기록, 달력 UI, AI 자연어 파싱 |
+| **리소스 매트릭스** | 12개월 FTE 배정, TBD 관리, Pivot 테이블, Plan vs Actual |
+| **프로젝트 관리** | 마일스톤 (PCP Gates G3/G5/G6), BU/IO 자동 분류 |
+| **Organization** | Division → Department → SubTeam → JobPosition CRUD |
+| **Reports** | Capacity/WorkLog 차트, 부서별 분포, FTE variance heatmap |
 
-### 📋 개발 예정
+### Financial System (Recharge)
 
-- 클라우드 배포 (Vercel + Render + Supabase)
-- Excel Import/Export
-- TBD 사용자 할당
+| 기능 | 설명 |
+|------|------|
+| **Inter-company Recharge** | VSS/SUN/LOCAL_KR 법인 간 비용 청구 자동화 |
+| **Cost Classification** | 4-tier 비용 버킷 자동 분류 (DIRECT_PRODUCT/PROJECT, INDIRECT, OVERHEAD) |
+| **15 Activity Codes** | 업무 유형별 코드 (DESIGN, TEST, FIELD, ADMIN 등) |
+| **30+ Allocation Rules** | 우선순위 기반 자동 분류 엔진 (95%+ 정확도) |
+| **Plan vs Actual** | 계획 FTE vs 실제 시간 비교, 부서/프로젝트/사용자 레벨 |
+
+### Auth & Security
+
+| 기능 | 설명 |
+|------|------|
+| **JWT Auth** | Access (30m) + Refresh (7d) + Registration (24h) 토큰 |
+| **SSO/SAML 2.0** | Microsoft Entra ID 통합 |
+| **RBAC** | 6 roles (ADMIN, PM, FM, USER, GUEST, VIEWER) |
+| **Jarvis AI 연동** | 별도 JWT 키로 크로스서비스 인증 |
+
+### Infrastructure
+
+| 기능 | 설명 |
+|------|------|
+| **Production Server** | VTISAZUAPP218 (10.182.252.32), Docker, Traefik+Nginx |
+| **One-Click Deploy** | run_full_deploy.ps1 (빌드 → 백업 → 업로드 → 재시작) |
+| **SSL** | Self-signed (10년), Azure Key Vault 백업 |
+| **DB Backup** | Daily cron, 7-day retention, 원격 백업/복원 스크립트 |
 
 ---
 
 ## 🔧 Tech Stack
 
-| Layer     | Technology                                     |
-| --------- | ---------------------------------------------- |
-| Frontend  | React 19, TypeScript, Vite, Tailwind, recharts |
-| Backend   | FastAPI, SQLAlchemy 2.0, Pydantic v2           |
-| Database  | PostgreSQL 15                                  |
-| Container | Docker, Docker Compose, Dev Container          |
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite, TailwindCSS, Shadcn/UI, TanStack Query v5, Recharts, React Router 7 |
+| Backend | FastAPI, SQLAlchemy 2.0, Pydantic v2, Alembic |
+| Database | PostgreSQL 16 |
+| AI | Groq (Llama 3.3), Google Gemini (2.0 Flash), PCAS |
+| Auth | JWT (HS256), SAML 2.0 (Microsoft Entra ID) |
+| Infra | Docker, Docker Compose, Traefik (Coolify), Nginx |
+| Production | Azure VM (Ubuntu 24.04), Azure Key Vault |
 
 ---
 
@@ -230,6 +254,5 @@ python3 backup_db.py
 
 ## Documentation
 
-- [개발 메모](./docs/todo.md)
-- [요구사항](./docs/requirements.md)
-- [요구사항](./requirment.md)
+- **Confluence (ISP Space):** [EOB] 01~11 — 전체 아키텍처, 구현 상세, 운영 가이드
+- **CLAUDE.md:** AI 코딩 어시스턴트 컨텍스트 (도메인, 아키텍처, 패턴)

@@ -75,3 +75,6 @@ workthrough/.vitepress/dist/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Sensitive server access docs (keep local, never commit)
+docs/opboard-docs/SSL*
