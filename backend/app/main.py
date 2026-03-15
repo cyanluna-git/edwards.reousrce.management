@@ -33,6 +33,7 @@ from app.api.endpoints import (
     ai_worklog,
     internal_ios,
     recharge_ios,
+    portal,
 )
 
 # Import all models to ensure they are registered with SQLAlchemy Base.metadata
@@ -61,6 +62,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -80,7 +82,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 async def startup_event():
     import os
-    from sqlalchemy import text
+    from sqlalchemy import text, inspect
 
     engine = get_engine()
     print("Running database startup event...")
@@ -98,6 +100,20 @@ async def startup_event():
     # Create all new tables based on models (creates only if not exist)
     Base.metadata.create_all(bind=engine)
     print("All tables created/verified.")
+
+    # Lightweight compatibility patch for existing deployments that predate
+    # the release-notes acknowledgment column on users.
+    inspector = inspect(engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "seen_release_note_version" not in user_columns:
+        with engine.connect() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN seen_release_note_version VARCHAR(100)"
+                )
+            )
+            conn.commit()
+        print("Added users.seen_release_note_version compatibility column.")
 
     # Seed data only if admin user doesn't exist (empty DB check)
     with closing(next(get_db())) as db:
@@ -149,6 +165,9 @@ app.include_router(
 )
 app.include_router(
     recharge_ios.router, prefix="/api/recharge-ios", tags=["Recharge IOs"]
+)
+app.include_router(
+    portal.router, prefix="/api/portal", tags=["Portal"]
 )
 
 
