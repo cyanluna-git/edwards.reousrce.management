@@ -1,14 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
   AlertTriangle,
   CalendarDays,
   Eye,
-  FileText,
   PencilLine,
   Save,
   SquarePen,
@@ -35,6 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  applyMarkdownBlockAction,
+  WeeklyReportEditorToolbar,
+  WeeklyReportMarkdown,
+} from "@/components/dashboard/weekly-report-markdown";
 
 interface TeamWeeklyReportCardProps {
   teamScope: TeamDashboardScope;
@@ -68,8 +70,8 @@ export function TeamWeeklyReportCard({
   const queryClient = useQueryClient();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const teamScopeType = getScopeType(teamScope);
   const isSupportedScope = teamScopeType !== null;
@@ -108,7 +110,6 @@ export function TeamWeeklyReportCard({
         team_scope_type: teamScopeType ?? undefined,
         scope_id: selectedOrgId,
         reference_date: referenceDateKey,
-        title: draftTitle.trim() || undefined,
         markdown_body: draftBody,
         status: "draft",
       }),
@@ -124,6 +125,7 @@ export function TeamWeeklyReportCard({
   const currentData = currentQuery.data;
   const currentReport = currentData?.report ?? null;
   const historyItems = historyQuery.data ?? [];
+  const previousReport = historyItems.find((item) => !currentData || item.week_start < currentData.week_start);
   const saveErrorMessage = saveMutation.error ? getApiError(saveMutation.error).message : null;
   const scopeLabel = teamScopeType
     ? t(
@@ -134,10 +136,27 @@ export function TeamWeeklyReportCard({
     : null;
 
   const handleOpenEditor = () => {
-    setDraftTitle(currentReport?.title ?? "");
     setDraftBody(currentReport?.markdown_body ?? "");
     setActiveTab("edit");
     setIsEditorOpen(true);
+  };
+
+  const handleToolbarAction = (action: Parameters<typeof applyMarkdownBlockAction>[0]["action"]) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const result = applyMarkdownBlockAction({
+      value: draftBody,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+      action,
+    });
+
+    setDraftBody(result.nextValue);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(result.nextSelectionStart, result.nextSelectionEnd);
+    });
   };
 
   return (
@@ -204,30 +223,22 @@ export function TeamWeeklyReportCard({
                     ? t("weeklyReport.statusPublished")
                     : t("weeklyReport.statusDraft")}
                 </Badge>
-                <span>{currentReport.title || t("weeklyReport.teamDefaultTitle", { team: teamName })}</span>
                 <span>{t("weeklyReport.lastUpdated", { date: currentReport.updated_at.slice(0, 10) })}</span>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                  {currentReport.markdown_body}
-                </div>
+                <WeeklyReportMarkdown
+                  value={currentReport.markdown_body}
+                  emptyMessage={t("weeklyReport.previewEmpty")}
+                  compact
+                />
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
               <p className="font-medium text-slate-800">{t("weeklyReport.teamEmptyTitle")}</p>
-              <p className="mt-1">{t("weeklyReport.teamEmptyBody")}</p>
             </div>
           )}
-
-          {isSupportedScope ? (
-            <Alert>
-              <FileText className="h-4 w-4" />
-              <AlertTitle>{t("weeklyReport.delegationTitle")}</AlertTitle>
-              <AlertDescription>{t("weeklyReport.delegationBody")}</AlertDescription>
-            </Alert>
-          ) : null}
 
           {isSupportedScope && historyItems.length > 0 ? (
             <div className="space-y-2">
@@ -241,12 +252,7 @@ export function TeamWeeklyReportCard({
                     className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
                     <div>
-                      <div className="font-medium text-slate-700">
-                        {item.title || t("weeklyReport.teamDefaultTitle", { team: teamName })}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {formatWeekLabel(item.week_start, item.week_end)}
-                      </div>
+                      <div className="font-medium text-slate-700">{formatWeekLabel(item.week_start, item.week_end)}</div>
                     </div>
                     {currentReport?.id === item.id ? (
                       <Badge variant="secondary">{t("weeklyReport.currentBadge")}</Badge>
@@ -263,11 +269,9 @@ export function TeamWeeklyReportCard({
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{t("weeklyReport.teamEditorTitle")}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="sr-only">
               {currentData
-                ? t("weeklyReport.teamEditorDescription", {
-                    scope: scopeLabel ?? "",
-                    team: teamName,
+                ? t("weeklyReport.currentWeekLabel", {
                     range: formatWeekLabel(currentData.week_start, currentData.week_end),
                   })
                 : t("weeklyReport.loading")}
@@ -278,19 +282,6 @@ export function TeamWeeklyReportCard({
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
               {scopeLabel ? <Badge variant="secondary">{scopeLabel}</Badge> : null}
               <span>{teamName}</span>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="team-weekly-report-title" className="text-sm font-medium text-slate-700">
-                {t("weeklyReport.reportTitleLabel")}
-              </label>
-              <input
-                id="team-weekly-report-title"
-                value={draftTitle}
-                onChange={(event) => setDraftTitle(event.target.value)}
-                placeholder={t("weeklyReport.teamTitlePlaceholder", { team: teamName })}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
             </div>
 
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "edit" | "preview")}>
@@ -306,29 +297,34 @@ export function TeamWeeklyReportCard({
               </TabsList>
 
               <TabsContent value="edit" className="mt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <WeeklyReportEditorToolbar onAction={handleToolbarAction} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDraftBody(previousReport?.markdown_body ?? "")}
+                    disabled={!previousReport}
+                  >
+                    {t("weeklyReport.copyPrevious")}
+                  </Button>
+                </div>
                 <label htmlFor="team-weekly-report-body" className="sr-only">
                   {t("weeklyReport.tabEdit")}
                 </label>
                 <Textarea
                   id="team-weekly-report-body"
+                  ref={textareaRef}
                   value={draftBody}
                   onChange={(event) => setDraftBody(event.target.value)}
                   placeholder={t("weeklyReport.teamEditorPlaceholder")}
-                  className="min-h-[360px] resize-y font-mono text-sm"
+                  className="mt-3 min-h-[360px] resize-y font-mono text-sm"
                 />
               </TabsContent>
 
               <TabsContent value="preview" className="mt-4">
                 <div className="min-h-[360px] rounded-lg border border-slate-200 bg-slate-50 p-5">
-                  {draftBody.trim() ? (
-                    <div className="space-y-4 text-sm leading-7 text-slate-700 [&_a]:text-blue-600 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-200 [&_code]:px-1 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:text-slate-700 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:text-slate-100">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{draftBody}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500">
-                      {t("weeklyReport.previewEmpty")}
-                    </div>
-                  )}
+                  <WeeklyReportMarkdown value={draftBody} emptyMessage={t("weeklyReport.previewEmpty")} />
                 </div>
               </TabsContent>
             </Tabs>
@@ -339,28 +335,18 @@ export function TeamWeeklyReportCard({
                 <AlertDescription>{saveErrorMessage}</AlertDescription>
               </Alert>
             ) : null}
-
-            <Alert>
-              <FileText className="h-4 w-4" />
-              <AlertTitle>{t("weeklyReport.delegationTitle")}</AlertTitle>
-              <AlertDescription>{t("weeklyReport.delegationBody")}</AlertDescription>
-            </Alert>
-
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">{t("weeklyReport.saveHint")}</p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsEditorOpen(false)}>
-                  {t("weeklyReport.cancel")}
-                </Button>
-                <Button
-                  onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending}
-                  className="gap-2"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {saveMutation.isPending ? t("weeklyReport.saving") : t("weeklyReport.save")}
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => setIsEditorOpen(false)}>
+                {t("weeklyReport.cancel")}
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="gap-2"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {saveMutation.isPending ? t("weeklyReport.saving") : t("weeklyReport.save")}
+              </Button>
             </div>
           </div>
         </DialogContent>

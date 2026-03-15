@@ -98,45 +98,45 @@
   },
   "releaseNotes": {
     "title": "What's New",
-    "description": "Here are the latest worklog improvements, including the new AI-assisted entry flow.",
+    "description": "Review the latest weekly reporting, AI summary, and portal updates in one place.",
     "confirm": "Got it",
     "viewFullHistory": "Open updates page",
     "pageTitle": "Update History",
-    "pageDescription": "Review the latest product changes in one place. The main highlight of this release is LLM-based natural language worklog entry.",
+    "pageDescription": "Review the latest product changes in one place. This release centers on unified weekly reports and a cleaner portal/dashboard experience.",
     "latestBadge": "Latest Update",
     "versionLabel": "Current Release",
-    "tryItHint": "Open WorkLogs and use the AI button in Entry mode to try it.",
-    "goToWorklogs": "Go to WorkLogs",
+    "tryItHint": "Open the dashboard or portal to try the latest workflow improvements.",
+    "goToWorklogs": "Go to Dashboard",
     "quickStartTitle": "Try it now",
     "quickStart": {
-      "step1Title": "Open the Entry view",
-      "step1Body": "Go to WorkLogs and pick the date cell you want to fill.",
-      "step2Title": "Click the AI button",
-      "step2Body": "Use the AI button at the bottom of the date card to open the natural language input modal.",
-      "step3Title": "Describe your day and save",
-      "step3Body": "Write what you did in plain language. AI will split it into structured worklog items for review and save."
+      "step1Title": "Open the dashboard",
+      "step1Body": "Open the personal or team dashboard and locate the weekly report card for the current week.",
+      "step2Title": "Write the report faster",
+      "step2Body": "Use the lightweight Markdown editor with quick-format buttons and the copy-last-week action to draft updates quickly.",
+      "step3Title": "Review portal and AI insights",
+      "step3Body": "Use Edwards Portal for service entry points and review the updated AI summary cards for the same reporting context."
     },
     "items": {
-      "aiWorklog": {
-        "title": "LLM-based natural language worklog entry",
-        "body": "In WorkLogs Entry, you can now press the AI button and describe your day in natural language. AI will suggest structured worklog items with project, work type, and hour candidates before saving.",
+      "weeklyReports": {
+        "title": "Unified personal and team weekly reports",
+        "body": "Weekly reports can now be created directly from the personal and team dashboards. Department and sub-team scopes are supported, and the writing flow is now centralized in a Markdown editor.",
         "highlight": "Key feature of this release"
       },
-      "monthlyRate": {
-        "title": "Monthly rate moved into its own view",
-        "body": "Monthly completion now has a dedicated Monthly Rate tab for team comparison, while Entry shows your own rate for the current month at a glance."
+      "aiSummary": {
+        "title": "More reliable AI summary periods",
+        "body": "AI summaries now use fixed last-completed week and last-completed month periods, with explicit date ranges shown in the dashboard. Team summaries also focus more on grounded observations and risk signals."
       },
-      "dragDrop": {
-        "title": "Drag worklogs to another date",
-        "body": "You can now drag a worklog card to another day in the weekly calendar to move its date directly."
+      "portal": {
+        "title": "Edwards Portal refresh",
+        "body": "The portal landing page has been redesigned around the Edwards Portal identity, with updated service names and clearer descriptions that better match how each service is actually used."
       },
-      "copyWeek": {
-        "title": "Smarter copy last week",
-        "body": "Copy last week now brings over only recurring meeting entries such as weekly and PTM items, instead of all worklogs."
+      "navigation": {
+        "title": "Sidebar and weekly report UX cleanup",
+        "body": "Sidebar branding and quick actions were simplified, and the weekly report editor was reduced to body-first writing. Quick buttons for H3, H4, numbered lists, bullets, and copy-last-week were added."
       },
-      "csv": {
-        "title": "Improved CSV export",
-        "body": "Worklog CSV downloads now use an encoding that preserves Korean text correctly in Excel."
+      "aiWorklog": {
+        "title": "LLM-based natural language worklog entry",
+        "body": "The WorkLogs Entry AI action remains available with a cleaner fixed icon button in the weekly grid, so natural-language worklog entry is still part of the daily flow."
       }
     }
   },

@@ -17,7 +17,6 @@ vi.mock("react-i18next", () => ({
       (
         {
           "weeklyReport.title": "Weekly Report",
-          "weeklyReport.defaultTitle": `Weekly Report (${options?.range ?? ""})`,
           "weeklyReport.currentWeekLabel": `Current report week: ${options?.range ?? ""}`,
           "weeklyReport.loading": "Loading weekly report...",
           "weeklyReport.loadFailedTitle": "Failed to load weekly report",
@@ -28,18 +27,14 @@ vi.mock("react-i18next", () => ({
           "weeklyReport.start": "Start report",
           "weeklyReport.edit": "Edit report",
           "weeklyReport.emptyTitle": "No weekly report for this week yet.",
-          "weeklyReport.emptyBody": "Capture highlights, blockers, and plans for the current week in Markdown.",
           "weeklyReport.recent": "Recent Reports",
           "weeklyReport.currentBadge": "Current",
           "weeklyReport.editorTitle": "Edit Weekly Report",
-          "weeklyReport.editorDescription": `Write and save your weekly report for ${options?.range ?? ""}.`,
-          "weeklyReport.reportTitleLabel": "Report Title",
-          "weeklyReport.reportTitlePlaceholder": "Optional custom title",
           "weeklyReport.tabEdit": "Edit",
           "weeklyReport.tabPreview": "Preview",
+          "weeklyReport.copyPrevious": "Copy last week",
           "weeklyReport.editorPlaceholder": "placeholder",
           "weeklyReport.previewEmpty": "Your Markdown preview will appear here.",
-          "weeklyReport.saveHint": "Images and file attachments are not included in v1.",
           "weeklyReport.cancel": "Cancel",
           "weeklyReport.save": "Save draft",
           "weeklyReport.saving": "Saving...",
@@ -87,7 +82,30 @@ describe("UserWeeklyReportCard", () => {
       is_in_progress: true,
       report: null,
     });
-    mockedGetWeeklyReportHistory.mockResolvedValue([]);
+    mockedGetWeeklyReportHistory.mockResolvedValue([
+      {
+        id: "report-prev",
+        scope: "user",
+        team_scope_type: null,
+        scope_id: "user-1",
+        target_key: "user:user-1",
+        week_start: "2026-03-02",
+        week_end: "2026-03-08",
+        week_key: "2026-W10",
+        is_in_progress: false,
+        status: "draft",
+        title: null,
+        markdown_body: "## Previous Highlights",
+        source_metadata: null,
+        owner_user_id: "user-1",
+        created_by_user_id: "user-1",
+        updated_by_user_id: "user-1",
+        published_by_user_id: null,
+        published_at: null,
+        created_at: "2026-03-08T09:00:00Z",
+        updated_at: "2026-03-08T09:00:00Z",
+      },
+    ]);
     mockedUpsertWeeklyReport.mockResolvedValue({
       id: "report-1",
       scope: "user",
@@ -99,7 +117,7 @@ describe("UserWeeklyReportCard", () => {
       week_key: "2026-W11",
       is_in_progress: true,
       status: "draft",
-      title: "My Weekly Report",
+      title: null,
       markdown_body: "## Highlights",
       source_metadata: null,
       owner_user_id: "user-1",
@@ -131,7 +149,7 @@ describe("UserWeeklyReportCard", () => {
     await screen.findByText("Weekly Report");
     await userEvent.click(screen.getByRole("button", { name: "Start report" }));
 
-    await userEvent.type(screen.getByLabelText("Report Title"), "My Weekly Report");
+    await userEvent.click(screen.getByRole("button", { name: "H3" }));
     await userEvent.type(screen.getByLabelText("Edit", { selector: "textarea" }), "## Highlights");
     await userEvent.click(screen.getByRole("button", { name: "Save draft" }));
 
@@ -140,11 +158,20 @@ describe("UserWeeklyReportCard", () => {
         expect.objectContaining({
           scope: "user",
           reference_date: "2026-03-11",
-          title: "My Weekly Report",
-          markdown_body: "## Highlights",
+          markdown_body: "### ## Highlights",
           status: "draft",
         })
       );
     });
+  });
+
+  it("copies the previous weekly report body into the editor", async () => {
+    renderWithQueryClient(<UserWeeklyReportCard referenceDate={new Date("2026-03-11")} />);
+
+    await screen.findByText("Weekly Report");
+    await userEvent.click(screen.getByRole("button", { name: "Start report" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy last week" }));
+
+    expect(screen.getByLabelText("Edit", { selector: "textarea" })).toHaveValue("## Previous Highlights");
   });
 });

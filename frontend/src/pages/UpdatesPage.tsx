@@ -31,10 +31,10 @@ export function UpdatesPage() {
                                 </p>
                                 <div className="rounded-xl border border-blue-400/30 bg-white/5 p-4">
                                     <div className="text-sm font-semibold text-blue-200">
-                                        {t('releaseNotes.items.aiWorklog.title')}
+                                        {t('releaseNotes.items.weeklyReports.title')}
                                     </div>
                                     <p className="mt-1 text-sm text-slate-200">
-                                        {t('releaseNotes.items.aiWorklog.body')}
+                                        {t('releaseNotes.items.weeklyReports.body')}
                                     </p>
                                 </div>
                             </div>
@@ -50,7 +50,7 @@ export function UpdatesPage() {
                                     {t('releaseNotes.tryItHint')}
                                 </p>
                                 <Button asChild className="w-full justify-between bg-white text-slate-900 hover:bg-slate-100">
-                                    <Link to="/worklogs">
+                                    <Link to="/dashboard">
                                         {t('releaseNotes.goToWorklogs')}
                                         <ArrowRight className="h-4 w-4" />
                                     </Link>

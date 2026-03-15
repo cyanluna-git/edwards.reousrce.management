@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { format, startOfWeek, endOfWeek } from "date-fns";
+import { useRef, useState } from "react";
+import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
   CalendarDays,
   Eye,
@@ -32,6 +30,11 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  applyMarkdownBlockAction,
+  WeeklyReportEditorToolbar,
+  WeeklyReportMarkdown,
+} from "@/components/dashboard/weekly-report-markdown";
 
 interface UserWeeklyReportCardProps {
   referenceDate: Date;
@@ -45,19 +48,13 @@ function formatWeekLabel(weekStart: string, weekEnd: string) {
   return `${weekStart} ~ ${weekEnd}`;
 }
 
-function getFallbackTitle(referenceDate: Date) {
-  const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 });
-  return `${format(weekStart, "yyyy-MM-dd")} ~ ${format(weekEnd, "yyyy-MM-dd")}`;
-}
-
 export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProps) {
   const { t } = useTranslation("dashboard");
   const queryClient = useQueryClient();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [draftTitle, setDraftTitle] = useState("");
   const [draftBody, setDraftBody] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   const referenceDateKey = getReferenceDateKey(referenceDate);
 
@@ -84,7 +81,6 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
       upsertWeeklyReport({
         scope: "user",
         reference_date: referenceDateKey,
-        title: draftTitle.trim() || undefined,
         markdown_body: draftBody,
         status: "draft",
       }),
@@ -100,14 +96,30 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
   const currentData = currentQuery.data;
   const currentReport = currentData?.report ?? null;
   const historyItems = historyQuery.data ?? [];
-  const displayTitle =
-    currentReport?.title || t("weeklyReport.defaultTitle", { range: getFallbackTitle(referenceDate) });
+  const previousReport = historyItems.find((item) => !currentData || item.week_start < currentData.week_start);
 
   const handleOpenEditor = () => {
-    setDraftTitle(currentReport?.title ?? "");
     setDraftBody(currentReport?.markdown_body ?? "");
     setActiveTab("edit");
     setIsEditorOpen(true);
+  };
+
+  const handleToolbarAction = (action: Parameters<typeof applyMarkdownBlockAction>[0]["action"]) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const result = applyMarkdownBlockAction({
+      value: draftBody,
+      selectionStart: textarea.selectionStart,
+      selectionEnd: textarea.selectionEnd,
+      action,
+    });
+
+    setDraftBody(result.nextValue);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(result.nextSelectionStart, result.nextSelectionEnd);
+    });
   };
 
   const saveErrorMessage = saveMutation.error ? getApiError(saveMutation.error).message : null;
@@ -160,20 +172,20 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
                     ? t("weeklyReport.statusPublished")
                     : t("weeklyReport.statusDraft")}
                 </Badge>
-                <span>{displayTitle}</span>
                 <span>{t("weeklyReport.lastUpdated", { date: currentReport.updated_at.slice(0, 10) })}</span>
               </div>
 
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                <div className="line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                  {currentReport.markdown_body}
-                </div>
+                <WeeklyReportMarkdown
+                  value={currentReport.markdown_body}
+                  emptyMessage={t("weeklyReport.previewEmpty")}
+                  compact
+                />
               </div>
             </>
           ) : (
-            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600">
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm text-slate-600">
               <p className="font-medium text-slate-800">{t("weeklyReport.emptyTitle")}</p>
-              <p className="mt-1">{t("weeklyReport.emptyBody")}</p>
             </div>
           )}
 
@@ -189,12 +201,7 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
                     className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
                   >
                     <div>
-                      <div className="font-medium text-slate-700">
-                        {item.title || t("weeklyReport.defaultTitle", { range: formatWeekLabel(item.week_start, item.week_end) })}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {formatWeekLabel(item.week_start, item.week_end)}
-                      </div>
+                      <div className="font-medium text-slate-700">{formatWeekLabel(item.week_start, item.week_end)}</div>
                     </div>
                     {currentReport?.id === item.id ? (
                       <Badge variant="secondary">{t("weeklyReport.currentBadge")}</Badge>
@@ -211,9 +218,9 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{t("weeklyReport.editorTitle")}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="sr-only">
               {currentData
-                ? t("weeklyReport.editorDescription", {
+                ? t("weeklyReport.currentWeekLabel", {
                     range: formatWeekLabel(currentData.week_start, currentData.week_end),
                   })
                 : t("weeklyReport.loading")}
@@ -221,19 +228,6 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="weekly-report-title" className="text-sm font-medium text-slate-700">
-                {t("weeklyReport.reportTitleLabel")}
-              </label>
-              <input
-                id="weekly-report-title"
-                value={draftTitle}
-                onChange={(event) => setDraftTitle(event.target.value)}
-                placeholder={t("weeklyReport.reportTitlePlaceholder")}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "edit" | "preview")}>
               <TabsList>
                 <TabsTrigger value="edit" className="gap-2">
@@ -247,29 +241,34 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
               </TabsList>
 
               <TabsContent value="edit" className="mt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <WeeklyReportEditorToolbar onAction={handleToolbarAction} />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDraftBody(previousReport?.markdown_body ?? "")}
+                    disabled={!previousReport}
+                  >
+                    {t("weeklyReport.copyPrevious")}
+                  </Button>
+                </div>
                 <label htmlFor="weekly-report-body" className="sr-only">
                   {t("weeklyReport.tabEdit")}
                 </label>
                 <Textarea
                   id="weekly-report-body"
+                  ref={textareaRef}
                   value={draftBody}
                   onChange={(event) => setDraftBody(event.target.value)}
                   placeholder={t("weeklyReport.editorPlaceholder")}
-                  className="min-h-[360px] resize-y font-mono text-sm"
+                  className="mt-3 min-h-[360px] resize-y font-mono text-sm"
                 />
               </TabsContent>
 
               <TabsContent value="preview" className="mt-4">
                 <div className="min-h-[360px] rounded-lg border border-slate-200 bg-slate-50 p-5">
-                  {draftBody.trim() ? (
-                    <div className="space-y-4 text-sm leading-7 text-slate-700 [&_a]:text-blue-600 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-300 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-200 [&_code]:px-1 [&_h1]:text-2xl [&_h1]:font-semibold [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ol]:ml-5 [&_ol]:list-decimal [&_p]:text-slate-700 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-slate-900 [&_pre]:p-3 [&_pre]:text-slate-100">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{draftBody}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <div className="flex min-h-[320px] items-center justify-center text-sm text-slate-500">
-                      {t("weeklyReport.previewEmpty")}
-                    </div>
-                  )}
+                  <WeeklyReportMarkdown value={draftBody} emptyMessage={t("weeklyReport.previewEmpty")} />
                 </div>
               </TabsContent>
             </Tabs>
@@ -282,20 +281,17 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
             ) : null}
 
             <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">{t("weeklyReport.saveHint")}</p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={() => setIsEditorOpen(false)}>
-                  {t("weeklyReport.cancel")}
-                </Button>
-                <Button
-                  onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending}
-                  className="gap-2"
-                >
-                  <Save className="h-3.5 w-3.5" />
-                  {saveMutation.isPending ? t("weeklyReport.saving") : t("weeklyReport.save")}
-                </Button>
-              </div>
+              <Button variant="outline" onClick={() => setIsEditorOpen(false)}>
+                {t("weeklyReport.cancel")}
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                className="gap-2"
+              >
+                <Save className="h-3.5 w-3.5" />
+                {saveMutation.isPending ? t("weeklyReport.saving") : t("weeklyReport.save")}
+              </Button>
             </div>
           </div>
         </DialogContent>

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 
-export const CURRENT_RELEASE_NOTE_VERSION = '2026-03-ai-worklog-updates';
+export const CURRENT_RELEASE_NOTE_VERSION = '2026-03-weekly-report-and-portal';
 
 export function ReleaseNotesSections() {
     const { t } = useTranslation('common');
@@ -23,49 +23,49 @@ export function ReleaseNotesSections() {
         <div className="space-y-4">
             <section className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-5">
                 <h3 className="text-base font-semibold text-slate-900">
-                    {t('releaseNotes.items.aiWorklog.title')}
+                    {t('releaseNotes.items.weeklyReports.title')}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                    {t('releaseNotes.items.aiWorklog.body')}
+                    {t('releaseNotes.items.weeklyReports.body')}
                 </p>
                 <div className="mt-3 inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800">
-                    {t('releaseNotes.items.aiWorklog.highlight')}
+                    {t('releaseNotes.items.weeklyReports.highlight')}
                 </div>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-base font-semibold text-slate-900">
-                    {t('releaseNotes.items.monthlyRate.title')}
+                    {t('releaseNotes.items.aiSummary.title')}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                    {t('releaseNotes.items.monthlyRate.body')}
+                    {t('releaseNotes.items.aiSummary.body')}
                 </p>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-base font-semibold text-slate-900">
-                    {t('releaseNotes.items.dragDrop.title')}
+                    {t('releaseNotes.items.portal.title')}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                    {t('releaseNotes.items.dragDrop.body')}
+                    {t('releaseNotes.items.portal.body')}
                 </p>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-base font-semibold text-slate-900">
-                    {t('releaseNotes.items.copyWeek.title')}
+                    {t('releaseNotes.items.navigation.title')}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                    {t('releaseNotes.items.copyWeek.body')}
+                    {t('releaseNotes.items.navigation.body')}
                 </p>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
                 <h3 className="text-base font-semibold text-slate-900">
-                    {t('releaseNotes.items.csv.title')}
+                    {t('releaseNotes.items.aiWorklog.title')}
                 </h3>
                 <p className="mt-1 text-sm text-slate-600">
-                    {t('releaseNotes.items.csv.body')}
+                    {t('releaseNotes.items.aiWorklog.body')}
                 </p>
             </section>
         </div>
