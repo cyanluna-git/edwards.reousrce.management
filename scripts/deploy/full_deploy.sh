@@ -9,8 +9,11 @@ set -euo pipefail
 SERVER_IP="10.182.252.32"
 USERNAME="atlasAdmin"
 DOMAIN="eob.10.182.252.32.sslip.io"
+REMOTE_PATH="/data/eob/edwards_project"
 SKIP_BACKUP=false
 SKIP_BUILD=false
+SKIP_ENV_SYNC=false
+ARCHIVE_PATH=""
 
 # ─────────────────────────────────────────────────────────────
 # Paths
@@ -18,7 +21,6 @@ SKIP_BUILD=false
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BUILD_OUTPUT_DIR="$PROJECT_ROOT/build_output"
-REMOTE_PATH="/data/eob/edwards_project"
 
 # ─────────────────────────────────────────────────────────────
 # Colors
@@ -41,6 +43,18 @@ print_header() {
   echo -e "${CYAN}====================================================${RESET}"
 }
 
+require_value() {
+  local flag="$1"
+  local value="${2:-}"
+
+  if [[ -z "$value" || "$value" == --* ]]; then
+    error "[ERROR] Missing value for $flag"
+    echo
+    usage
+    exit 1
+  fi
+}
+
 # ─────────────────────────────────────────────────────────────
 # Argument parsing
 # ─────────────────────────────────────────────────────────────
@@ -51,24 +65,64 @@ usage() {
   echo "  --server-ip <IP>     Target server IP (default: $SERVER_IP)"
   echo "  --username  <USER>   SSH username     (default: $USERNAME)"
   echo "  --domain    <DOMAIN> App domain       (default: $DOMAIN)"
+  echo "  --remote-path <DIR>  Remote deploy dir (default: $REMOTE_PATH)"
+  echo "  --archive <PATH>     Deploy a specific archive file"
   echo "  --skip-backup        Skip DB backup before deploy"
   echo "  --skip-build         Skip build (use existing archive)"
+  echo "  --skip-env-sync      Skip generating .env.remote from .env"
   echo "  -h, --help           Show this help"
   echo ""
   echo "Example:"
   echo "  $0"
   echo "  $0 --skip-build"
   echo "  $0 --server-ip 10.182.0.1 --domain myapp.example.com"
+  echo "  $0 --skip-build --archive build_output/edwards_project_20260313_075912.tar.gz"
+  echo "  $0 --remote-path /opt/edwards_project --skip-env-sync"
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --server-ip)   SERVER_IP="$2";  shift 2 ;;
-    --username)    USERNAME="$2";   shift 2 ;;
-    --domain)      DOMAIN="$2";     shift 2 ;;
-    --skip-backup) SKIP_BACKUP=true; shift ;;
-    --skip-build)  SKIP_BUILD=true;  shift ;;
-    -h|--help)     usage; exit 0 ;;
+    --server-ip)
+      require_value "$1" "${2:-}"
+      SERVER_IP="$2"
+      shift 2
+      ;;
+    --username)
+      require_value "$1" "${2:-}"
+      USERNAME="$2"
+      shift 2
+      ;;
+    --domain)
+      require_value "$1" "${2:-}"
+      DOMAIN="$2"
+      shift 2
+      ;;
+    --remote-path)
+      require_value "$1" "${2:-}"
+      REMOTE_PATH="$2"
+      shift 2
+      ;;
+    --archive)
+      require_value "$1" "${2:-}"
+      ARCHIVE_PATH="$2"
+      shift 2
+      ;;
+    --skip-backup)
+      SKIP_BACKUP=true
+      shift
+      ;;
+    --skip-build)
+      SKIP_BUILD=true
+      shift
+      ;;
+    --skip-env-sync)
+      SKIP_ENV_SYNC=true
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
     *) error "[ERROR] Unknown option: $1"; echo; usage; exit 1 ;;
   esac
 done
@@ -79,6 +133,7 @@ done
 echo ""
 print_header "   EOB Project - Full Deployment to VM"
 plain "   Target: $USERNAME@$SERVER_IP"
+plain "   Remote Path: $REMOTE_PATH"
 echo ""
 
 # Pre-flight: Check SSH connection
@@ -90,11 +145,16 @@ if ! ssh -o BatchMode=yes -o ConnectTimeout=5 "$USERNAME@$SERVER_IP" "exit" 2>/d
 fi
 info "  ✓ SSH Connection confirmed."
 
-# Step 0: Generate .env.remote
-info "[0/8] Generating .env.remote from .env..."
 cd "$PROJECT_ROOT"
-python3 scripts/deploy/env.py --profile server --domain "$DOMAIN"
-info "  ✓ .env.remote generated."
+
+# Step 0: Generate .env.remote
+if [[ "$SKIP_ENV_SYNC" == false ]]; then
+  info "[0/8] Generating .env.remote from .env..."
+  python3 scripts/deploy/env.py --profile server --domain "$DOMAIN"
+  info "  ✓ .env.remote generated."
+else
+  warn "[0/8] Skipping .env.remote generation..."
+fi
 
 # Step 1: Build
 if [[ "$SKIP_BUILD" == false ]]; then
@@ -106,10 +166,19 @@ else
   warn "[1/8] Skipping build (using existing archive)..."
 fi
 
-# Step 2: Find latest build archive
+# Step 2: Find build archive
 echo ""
-info "[2/8] Searching for latest build archive..."
-LATEST_ARCHIVE=$(ls -t "$BUILD_OUTPUT_DIR"/edwards_project_*.tar.gz 2>/dev/null | head -1 || true)
+info "[2/8] Selecting build archive..."
+
+if [[ -n "$ARCHIVE_PATH" ]]; then
+  if [[ ! -f "$ARCHIVE_PATH" ]]; then
+    error "[ERROR] Archive not found: $ARCHIVE_PATH"
+    exit 1
+  fi
+  LATEST_ARCHIVE="$(cd "$(dirname "$ARCHIVE_PATH")" && pwd)/$(basename "$ARCHIVE_PATH")"
+else
+  LATEST_ARCHIVE=$(ls -t "$BUILD_OUTPUT_DIR"/edwards_project_*.tar.gz 2>/dev/null | head -1 || true)
+fi
 
 if [[ -z "$LATEST_ARCHIVE" ]]; then
   error "[ERROR] No build archive found in $BUILD_OUTPUT_DIR"
@@ -124,7 +193,16 @@ info "  ✓ Found: $ARCHIVE_NAME ($ARCHIVE_SIZE)"
 echo ""
 info "[3/8] Preparing remote directory..."
 ssh "$USERNAME@$SERVER_IP" \
-  "sudo mkdir -p $REMOTE_PATH && sudo chown ${USERNAME}:${USERNAME} $REMOTE_PATH && mkdir -p $REMOTE_PATH/backups"
+  "if [[ -d $REMOTE_PATH && -w $REMOTE_PATH ]]; then \
+      mkdir -p $REMOTE_PATH/backups; \
+    elif mkdir -p $REMOTE_PATH/backups 2>/dev/null; then \
+      :; \
+    elif sudo -n mkdir -p $REMOTE_PATH && sudo -n chown ${USERNAME}:${USERNAME} $REMOTE_PATH && mkdir -p $REMOTE_PATH/backups; then \
+      :; \
+    else \
+      echo '[ERROR] Unable to prepare remote deployment directory. Check permissions for $REMOTE_PATH.' >&2; \
+      exit 1; \
+    fi"
 
 if [[ "$SKIP_BACKUP" == false ]]; then
   info "  Creating database backup..."
@@ -164,9 +242,13 @@ echo ""
 info "[8/8] Verifying services..."
 sleep 5
 ssh "$USERNAME@$SERVER_IP" "cd $REMOTE_PATH && docker-compose ps"
+ssh "$USERNAME@$SERVER_IP" "curl --fail --silent --show-error --max-time 10 http://localhost:8004/health >/dev/null"
+ssh "$USERNAME@$SERVER_IP" "curl --fail --silent --show-error --max-time 10 http://localhost:3004 >/dev/null"
+info "  ✓ Backend /health responded."
+info "  ✓ Frontend responded on localhost:3004."
 
 echo ""
 print_header "          🚀 Deployment Complete! 🚀"
-plain "  Frontend: http://$DOMAIN"
+plain "  Frontend: https://$DOMAIN"
 plain "  Coolify:  http://coolify.$SERVER_IP.sslip.io"
 echo ""

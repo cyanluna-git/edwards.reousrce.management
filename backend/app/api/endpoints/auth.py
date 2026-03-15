@@ -25,7 +25,16 @@ from app.core.security import (
 from app.core.config import settings
 from app.services.auth_service import authenticate_user
 from app.services.sso_service import SSOService
-from app.schemas.auth import Token, TokenRefreshRequest, UserResponse, PasswordChangeRequest, PasswordChangeResponse, SSORegistrationRequest
+from app.schemas.auth import (
+    Token,
+    TokenRefreshRequest,
+    UserResponse,
+    PasswordChangeRequest,
+    PasswordChangeResponse,
+    SSORegistrationRequest,
+    ReleaseNotesAckRequest,
+    ReleaseNotesAckResponse,
+)
 from app.models.user import User
 from sqlalchemy.orm import joinedload
 
@@ -148,6 +157,7 @@ async def get_current_user_info(
         position_id=user.position_id,
         department_id=user.department_id,
         primary_business_unit_id=user.primary_business_unit_id,
+        seen_release_note_version=user.seen_release_note_version,
         is_active=user.is_active,
         department={
             "id": user.department.id,
@@ -177,6 +187,26 @@ async def get_current_user_info(
         }
         if user.primary_business_unit
         else None,
+    )
+
+
+@router.post("/release-notes/ack", response_model=ReleaseNotesAckResponse)
+async def acknowledge_release_notes(
+    body: ReleaseNotesAckRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Persist the latest release note version seen by the current user.
+    """
+    current_user.seen_release_note_version = body.version
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+
+    return ReleaseNotesAckResponse(
+        success=True,
+        seen_release_note_version=current_user.seen_release_note_version,
     )
 
 

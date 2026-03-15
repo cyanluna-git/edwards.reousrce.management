@@ -1,231 +1,209 @@
 # Deployment Guide
 
-Edwards Engineering Management System - 서버 배포 가이드
+Edwards Engineering Management System 서버 배포 가이드입니다.
 
-## 배포 개요
+## 현재 기본 배포 대상
 
-로컬 PC에서 원격 서버(`10.182.252.32`)로 애플리케이션을 배포하는 프로세스입니다.
+- 서버 IP: `10.182.252.32`
+- 사용자: `atlasAdmin`
+- 원격 경로: `/data/eob/edwards_project`
+- 도메인: `https://eob.10.182.252.32.sslip.io`
 
-**현재 서버 정보:**
-- **서버 IP:** 10.182.252.32
-- **사용자:** atlasAdmin
-- **프로젝트 경로:** `/data/eob/edwards_project`
-- **도메인:** https://eob.10.182.252.32.sslip.io
+## 권장 배포 방식
 
----
-
-## 원클릭 배포 (권장)
-
-### 전체 배포 (env 생성 + 빌드 + 백업 + 배포)
-
-```powershell
-.\run_full_deploy.ps1
-```
-
-**수행 단계 (0~8):**
-0. `.env`에서 `.env.remote` 자동 생성 (`deploy_env_remote.py --profile server`)
-1. 프로젝트 빌드 (Docker 이미지 + 압축)
-2. 최신 빌드 아카이브 탐색
-3. 서버 준비 + DB 백업
-4. 빌드 파일 업로드 (SCP)
-5. 컨테이너 중지 + 압축 해제
-6. Docker 이미지 로드
-7. 컨테이너 시작
-8. 서비스 검증
-
-### 배포 옵션
-
-```powershell
-# 빌드 스킵 (기존 빌드 사용)
-.\run_full_deploy.ps1 -SkipBuild
-
-# 백업 스킵 (빠른 배포)
-.\run_full_deploy.ps1 -SkipBackup
-
-# 다른 서버/도메인에 배포
-.\run_full_deploy.ps1 -ServerIP "192.168.1.100" -Domain "app.example.com"
-```
-
----
-
-## 환경 변수 관리
-
-`.env` 하나만 관리하고, 서버용 `.env.remote`는 자동 생성됩니다.
+기본 배포 스크립트는 [full_deploy.sh](/home/edwards/Dev/edwards.operation.board/scripts/deploy/full_deploy.sh) 입니다.
 
 ```bash
-# .env.remote 자동 생성 (권장)
-python deploy_env_remote.py --profile server
-
-# 커스텀 도메인
-python deploy_env_remote.py --profile server --domain custom.domain.com
-
-# 생성 + SCP 업로드
-python deploy_env_remote.py --profile server --scp atlasAdmin@10.182.252.32:/data/eob/edwards_project/.env.remote
-
-# 개별 값 오버라이드
-python deploy_env_remote.py --profile server --set SAML_DEBUG=true
+bash ./scripts/deploy/full_deploy.sh
 ```
 
-**서버 프로파일 자동 변환 내역:**
-| 항목 | 변환 |
-|------|------|
-| `DEBUG` | `true` → `false` |
-| `LOG_LEVEL` | `debug` → `info` |
-| `SAML_*_URL` | `http://localhost` → `https://{domain}` |
-| `CORS_ORIGINS` | localhost only → `+{domain}` |
-| `DATABASE_URL` | 제거 (docker-compose 관리) |
-| `VITE_DEV_PROXY_TARGET` | 제거 (dev-only) |
+수행 순서:
 
----
+1. `.env`에서 `.env.remote` 생성
+2. 배포용 아카이브 빌드
+3. 최신 아카이브 선택
+4. 원격 디렉터리 준비 및 DB 백업
+5. 아카이브 업로드
+6. 원격 압축 해제 및 이미지 로드
+7. `docker-compose up -d`
+8. 컨테이너 상태와 로컬 헬스체크 확인
 
-## 수동 배포 (단계별)
-
-### 1. .env.remote 생성
+## 주요 옵션
 
 ```bash
-python deploy_env_remote.py --profile server
+# 기존 아카이브로 빠르게 재배포
+bash ./scripts/deploy/full_deploy.sh --skip-build
+
+# 특정 아카이브 지정
+bash ./scripts/deploy/full_deploy.sh \
+  --skip-build \
+  --archive build_output/edwards_project_20260313_075912.tar.gz
+
+# DB 백업 없이 배포
+bash ./scripts/deploy/full_deploy.sh --skip-backup
+
+# .env.remote 생성 생략
+bash ./scripts/deploy/full_deploy.sh --skip-env-sync
+
+# 다른 서버/경로로 배포
+bash ./scripts/deploy/full_deploy.sh \
+  --server-ip 192.168.1.100 \
+  --username deploy \
+  --domain app.example.com \
+  --remote-path /opt/edwards_project
 ```
 
-### 2. 빌드
+지원 옵션:
+
+- `--server-ip <IP>`
+- `--username <USER>`
+- `--domain <DOMAIN>`
+- `--remote-path <DIR>`
+- `--archive <PATH>`
+- `--skip-backup`
+- `--skip-build`
+- `--skip-env-sync`
+
+## 환경 변수
+
+서버용 환경 파일은 [env.py](/home/edwards/Dev/edwards.operation.board/scripts/deploy/env.py) 로 생성합니다.
 
 ```bash
-python build_and_compress.py
+# 서버 프로파일로 .env.remote 생성
+python3 scripts/deploy/env.py --profile server
+
+# 도메인 반영
+python3 scripts/deploy/env.py --profile server --domain app.example.com
+
+# 생성 후 서버로 직접 업로드
+python3 scripts/deploy/env.py \
+  --profile server \
+  --domain app.example.com \
+  --scp atlasAdmin@10.182.252.32:/data/eob/edwards_project/.env.remote
 ```
 
-결과: `build_output/edwards_project_YYYYMMDD_HHMMSS.tar.gz`
+서버 프로파일 주요 변환:
 
-### 3. 업로드
+- `DEBUG=false`
+- `LOG_LEVEL=info`
+- `SAML_*_URL`을 배포 도메인 기준으로 교체
+- `CORS_ORIGINS`에 배포 도메인 반영
+- `DATABASE_URL`, `VITE_DEV_PROXY_TARGET` 제거
+
+## 빌드 아카이브 생성
+
+배포 패키지는 [build.py](/home/edwards/Dev/edwards.operation.board/scripts/deploy/build.py) 가 생성합니다.
 
 ```bash
+python3 scripts/deploy/build.py
+```
+
+출력:
+
+- `build_output/edwards_project_YYYYMMDD_HHMMSS.tar.gz`
+
+포함 항목:
+
+- `backend`, `frontend`
+- `docker-compose.yml`
+- `.env.example`, `.env.remote`, `.env.remote.example`
+- Docker 이미지 tarball
+- `DEPLOY_ON_VM.md`, `load_images.sh`
+
+제외 항목:
+
+- `.git`, `.codex`, `.claude`, `kanban-board`
+- `screenshots`, `playwright-report`, `test-results`
+- `tests`, `e2e`, `logs`, `reports`, `coverage`
+- `node_modules`, `.venv`, `.next`, `dist`, `build_output`
+
+## 수동 배포
+
+```bash
+# 1. 서버용 env 생성
+python3 scripts/deploy/env.py --profile server --domain eob.10.182.252.32.sslip.io
+
+# 2. 아카이브 생성
+python3 scripts/deploy/build.py
+
+# 3. 업로드
 scp build_output/edwards_project_*.tar.gz atlasAdmin@10.182.252.32:/tmp/
-```
 
-### 4. 서버에서 배포
-
-```bash
+# 4. 서버에서 배포
 ssh atlasAdmin@10.182.252.32
-
 cd /data/eob/edwards_project
-
-# 컨테이너 중지
-docker-compose down
-
-# 압축 해제
+docker stop edwards-api edwards-web || true
+docker rm edwards-api edwards-web || true
 tar -xzf /tmp/edwards_project_*.tar.gz --strip-components=1
 rm /tmp/edwards_project_*.tar.gz
-
-# Docker 이미지 로드
-cd docker_images && ./load_images.sh && cd ..
-
-# 컨테이너 시작
+cd docker_images && chmod +x load_images.sh && ./load_images.sh && cd ..
 docker-compose up -d
 ```
-
----
-
-## 데이터베이스 백업/복원
-
-### 서버 자동 백업 (cron)
-
-서버에서 매일 02:00에 DB를 자동 백업하고 7일 이상 된 백업을 삭제합니다.
-
-```bash
-# 최초 1회: 서버에 크론잡 설치
-ssh atlasAdmin@10.182.252.32
-cd /data/eob/edwards_project
-./server/setup_cron.sh
-
-# 확인
-crontab -l
-
-# 수동 테스트
-./server/backup_db.sh
-
-# 크론잡 제거 시
-./server/setup_cron.sh --remove
-```
-
-백업 파일: `/data/eob/edwards_project/backups/edwards_backup_YYYYMMDD_HHMMSS.sql.gz`
-로그 파일: `/data/eob/edwards_project/backups/backup.log`
-
-### 로컬에서 원격 DB 백업
-
-```bash
-python backup_remote_db.py
-```
-
-결과: `backups/remote_backup_YYYYMMDD_HHMMSS.sql`
-
-### 로컬 DB 복원
-
-```bash
-python restore_db.py backups/remote_backup_YYYYMMDD_HHMMSS.sql
-```
-
-### 서버 DB 복원 (주의: 프로덕션 데이터 덮어쓰기)
-
-```bash
-python restore_remote_db.py backups/remote_backup_YYYYMMDD_HHMMSS.sql
-```
-
----
-
-## 포트 구성
-
-| 서비스 | 내부 포트 | 외부 포트 | 접근 |
-|--------|----------|----------|------|
-| Frontend | 80 | 3004 | Nginx 프록시 |
-| Backend | 8004 | 8004 | Nginx 프록시 |
-| PostgreSQL | 5432 | 5434 | 내부만 |
-
-### Docker 컨테이너
-
-- `edwards-web` - Frontend (Nginx)
-- `edwards-api` - Backend (FastAPI)
-- `edwards-postgres` - Database (PostgreSQL 16)
-
----
 
 ## 배포 확인
 
 ```bash
 # 컨테이너 상태
-ssh atlasAdmin@10.182.252.32 "docker ps | grep edwards"
+ssh atlasAdmin@10.182.252.32 "cd /data/eob/edwards_project && docker-compose ps"
 
-# 로그 확인
-ssh atlasAdmin@10.182.252.32 "docker logs edwards-api --tail 50"
-ssh atlasAdmin@10.182.252.32 "docker logs edwards-web --tail 50"
+# 백엔드 헬스체크
+ssh atlasAdmin@10.182.252.32 "curl -s http://localhost:8004/health"
 
-# API 헬스체크
-curl https://eob.10.182.252.32.sslip.io/health
+# 프론트 응답 확인
+ssh atlasAdmin@10.182.252.32 "curl -I http://localhost:3004"
+
+# 외부 도메인 확인
+curl -k -I https://eob.10.182.252.32.sslip.io
 ```
 
----
+정상 기준:
+
+- `edwards-api`, `edwards-web`, `edwards-postgres`가 `Up`
+- `http://localhost:8004/health`가 `{"status":"healthy"}`
+- 외부 도메인이 `200 OK` 또는 HTTP에서 HTTPS로 `301`
+
+## 데이터베이스
+
+현재 DB 컨테이너:
+
+- `edwards-postgres`
+- 이미지: `postgres:15`
+- 외부 포트: `5434`
+
+배포 스크립트는 배포 전 원격 서버에서 다음 위치로 SQL 백업을 남깁니다.
+
+- `/data/eob/edwards_project/backups/edwards_backup_YYYYMMDD_HHMMSS.sql`
+
+수동 백업:
+
+```bash
+ssh atlasAdmin@10.182.252.32 \
+  "cd /data/eob/edwards_project && docker exec edwards-postgres pg_dump -U postgres -d edwards > backups/manual_backup.sql"
+```
 
 ## 트러블슈팅
 
-### 배포 스크립트 실패
+원격 경로 권한 문제:
 
-```powershell
-# SSH 연결 테스트
-ssh atlasAdmin@10.182.252.32 "echo 'Connected'"
+```bash
+ssh atlasAdmin@10.182.252.32 "ls -ld /data/eob /data/eob/edwards_project"
+```
 
-# 서버 디스크 공간 확인
+컨테이너 로그 확인:
+
+```bash
+ssh atlasAdmin@10.182.252.32 "docker logs --tail 100 edwards-api"
+ssh atlasAdmin@10.182.252.32 "docker logs --tail 100 edwards-web"
+```
+
+디스크 공간 확인:
+
+```bash
 ssh atlasAdmin@10.182.252.32 "df -h"
 ```
 
-### 컨테이너가 계속 재시작
+기존 아카이브로 재배포:
 
 ```bash
-# 로그 확인
-ssh atlasAdmin@10.182.252.32 "docker logs edwards-api"
-
-# DB 비밀번호 문제일 경우
-ssh atlasAdmin@10.182.252.32 "cd /data/eob/edwards_project && docker-compose down -v && docker-compose up -d"
-```
-
-### Nginx 404 에러
-
-```bash
-ssh atlasAdmin@10.182.252.32 "sudo nginx -t && sudo systemctl reload nginx"
+bash ./scripts/deploy/full_deploy.sh --skip-build --archive build_output/edwards_project_YYYYMMDD_HHMMSS.tar.gz
 ```

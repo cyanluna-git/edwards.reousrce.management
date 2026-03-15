@@ -2,7 +2,7 @@
 WorkLog Pydantic Schemas
 """
 
-from datetime import date, datetime
+from datetime import date as DateType, datetime as DateTimeType
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
@@ -13,7 +13,7 @@ from app.schemas.project import Project
 class WorkLogBase(BaseModel):
     """Base schema for WorkLog"""
 
-    date: date
+    date: DateType
     project_id: Optional[str] = None  # Made optional for non-project work
     product_line_id: Optional[str] = None  # Direct product line support work
     work_type_category_id: Optional[int] = None  # Optional - can be NULL for imported data
@@ -32,7 +32,7 @@ class WorkLogCreate(WorkLogBase):
 class WorkLogUpdate(BaseModel):
     """Schema for updating a worklog - all fields optional"""
 
-    date: Optional[date] = None
+    date: Optional[DateType] = None
     project_id: Optional[str] = None
     product_line_id: Optional[str] = None
     work_type_category_id: Optional[int] = None
@@ -56,8 +56,8 @@ class WorkLog(WorkLogBase):
 
     id: int
     user_id: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: DateTimeType
+    updated_at: DateTimeType
 
     # Nested project info (optional)
     project_code: Optional[str] = None
@@ -78,7 +78,7 @@ class WorkLog(WorkLogBase):
 class DailySummary(BaseModel):
     """Response schema for daily summary"""
 
-    date: date
+    date: DateType
     user_id: str
     total_hours: float
     remaining_hours: float  # 24 - total_hours
@@ -89,7 +89,7 @@ class CopyWeekRequest(BaseModel):
     """Request schema for copy-week endpoint"""
 
     user_id: str
-    target_week_start: date  # Monday of target week
+    target_week_start: DateType  # Monday of target week
 
 
 class FrequentItem(BaseModel):
@@ -113,3 +113,24 @@ class WorkLogWithUser(WorkLog):
     user_name: Optional[str] = None
     user_korean_name: Optional[str] = None
     department_name: Optional[str] = None
+
+
+class MonthlyCompletionEntry(BaseModel):
+    """Monthly worklog completion rate for a single user."""
+
+    user_id: str
+    user_name: str
+    user_korean_name: Optional[str] = None
+    department_name: Optional[str] = None
+    sub_team_name: Optional[str] = None
+    completed_days: int
+    business_days: int
+    completion_rate: float
+
+
+class MonthlyCompletionResponse(BaseModel):
+    """Monthly worklog completion summary."""
+
+    month: str
+    business_days: int
+    entries: List[MonthlyCompletionEntry]

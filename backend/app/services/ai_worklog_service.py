@@ -451,19 +451,16 @@ class AIWorklogService:
             request.target_date,
         )
 
-        # Step 2.5: Resolve user UPN for PCAS (API requires "user" or "userToken")
-        user_email: Optional[str] = None
-        if request.user_id:
-            user = self.db.query(User).filter(User.id == request.user_id).first()
-            if user and user.email:
-                user_email = user.email
-
         # Step 3: Call AI (Groq / Gemini / PCAS)
+        # PCAS bot access is tied to the service account (PCAS_LLM_DEFAULT_UPN).
+        # Passing the logged-in user's email causes "User does not have access to this bot"
+        # for anyone other than the registered bot owner. Always use None so pcas_client
+        # falls back to settings.PCAS_LLM_DEFAULT_UPN.
         try:
             result = await self.client.generate_json(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
-                user_email=user_email,
+                user_email=None,
             )
         except Exception as e:
             logger.error(f"AI parsing failed: {str(e)}")

@@ -47,6 +47,29 @@ class ResourcePlan(Base):
     )
 
 
+class ResourcePlanHistory(Base):
+    """리소스 계획 변경 이력"""
+
+    __tablename__ = "resource_plan_histories"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    resource_plan_id = Column(Integer, nullable=True)
+    project_id = Column(String(36), ForeignKey("projects.id"), nullable=False)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    position_id = Column(String(50), ForeignKey("job_positions.id"), nullable=False)
+    project_role_id = Column(
+        String(50), ForeignKey("project_roles.id"), nullable=True
+    )
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    actor_user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    actor_user_name = Column(String(100), nullable=False)
+    change_type = Column(String(20), nullable=False)
+    before_snapshot = Column(Text, nullable=True)
+    after_snapshot = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class WorkLog(Base):
     """실적 기록"""
 

@@ -2,6 +2,7 @@
   "title": "WorkLogs",
   "tabs": {
     "entry": "입력",
+    "monthlyRate": "월간 입력률",
     "table": "테이블"
   },
   "buttons": {
@@ -18,7 +19,7 @@
   },
   "confirm": {
     "deleteWorklog": "이 워크로그를 삭제하시겠습니까?",
-    "copyWeek": "지난주 워크로그를 이번 주로 복사하시겠습니까?"
+    "copyWeek": "지난주 정기 미팅 워크로그(weekly, PTM)만 이번 주로 복사하시겠습니까?"
   },
   "errors": {
     "generic": "오류가 발생했습니다",
@@ -87,7 +88,10 @@
     "dayFri": "금",
     "daySat": "토",
     "daySun": "일",
+    "aiEntry": "AI 업무 입력",
     "addEntry": "+ 추가",
+    "dragHint": "워크로그 카드를 다른 날짜로 끌어 놓으면 날짜를 이동할 수 있습니다.",
+    "dropHere": "여기로 놓아 날짜 이동",
     "total": "합계"
   },
   "entryModal": {
@@ -141,6 +145,21 @@
     "businessTrip": "출장",
     "downloadCsv": "CSV 다운로드",
     "downloading": "다운로드 중..."
+  },
+  "completion": {
+    "title": "월간 작성률",
+    "myMonthlyTitle": "나의 이달 입력률",
+    "month": "월",
+    "businessDays": "평일 {{count}}일 기준",
+    "thisMonthBusinessDays": "{{month}} 기준 평일 {{count}}일",
+    "completedDays": "작성일수",
+    "rate": "작성률",
+    "loading": "월간 작성률을 불러오는 중...",
+    "loadError": "월간 작성률을 불러오지 못했습니다.",
+    "noData": "조건에 맞는 사용자가 없습니다.",
+    "noPersonalData": "이번 달 입력률 데이터가 아직 없습니다.",
+    "userSearchPlaceholder": "사용자 검색",
+    "entryTabHint": "상세 비교는 월간 입력률 탭에서 볼 수 있습니다."
   },
   "leave": {
     "title": "🏖️ 휴가 등록",

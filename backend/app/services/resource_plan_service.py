@@ -2,11 +2,12 @@
 Service layer for Resource Plan business logic
 """
 
+import json
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_
 
-from app.models.resource import ResourcePlan
+from app.models.resource import ResourcePlan, ResourcePlanHistory
 from app.models.project import Project, ProductLine
 from app.models.organization import JobPosition, ProjectRole
 from app.models.user import User
@@ -17,6 +18,55 @@ from app.utils import get_io_number
 class ResourcePlanService:
     def __init__(self, db: Session):
         self.db = db
+
+    def _serialize_plan_snapshot(self, plan: ResourcePlan) -> dict:
+        """Serialize the meaningful plan state for audit history."""
+        return {
+            "project_id": plan.project_id,
+            "year": plan.year,
+            "month": plan.month,
+            "position_id": plan.position_id,
+            "position_name": plan.position.name if plan.position else None,
+            "project_role_id": plan.project_role_id,
+            "project_role_name": plan.project_role.name if plan.project_role else None,
+            "user_id": plan.user_id,
+            "user_name": plan.user.name if plan.user else None,
+            "planned_hours": plan.planned_hours,
+        }
+
+    def _log_history(
+        self,
+        *,
+        change_type: str,
+        actor_user_id: str,
+        actor_user_name: str,
+        before_snapshot: Optional[dict] = None,
+        after_snapshot: Optional[dict] = None,
+        resource_plan_id: Optional[int] = None,
+    ) -> None:
+        """Persist a history entry when a meaningful change occurs."""
+        if before_snapshot == after_snapshot:
+            return
+
+        source = after_snapshot or before_snapshot
+        if not source:
+            return
+
+        history = ResourcePlanHistory(
+            resource_plan_id=resource_plan_id,
+            project_id=source["project_id"],
+            year=source["year"],
+            month=source["month"],
+            position_id=source["position_id"],
+            project_role_id=source.get("project_role_id"),
+            user_id=source.get("user_id"),
+            actor_user_id=actor_user_id,
+            actor_user_name=actor_user_name,
+            change_type=change_type,
+            before_snapshot=json.dumps(before_snapshot) if before_snapshot else None,
+            after_snapshot=json.dumps(after_snapshot) if after_snapshot else None,
+        )
+        self.db.add(history)
 
     def _build_response(self, plan: ResourcePlan) -> dict:
         """Convert ResourcePlan model to response dict with nested info"""
@@ -114,7 +164,65 @@ class ResourcePlanService:
             return None
         return self._build_response(plan)
 
-    def create(self, plan_in: ResourcePlanCreate, created_by: str) -> dict:
+    def get_history(
+        self,
+        *,
+        project_id: str,
+        position_id: str,
+        project_role_id: Optional[str],
+        user_id: Optional[str],
+        is_tbd: bool,
+        limit: int = 100,
+    ) -> List[dict]:
+        """Get audit history for a resource-plan row identity."""
+        query = self.db.query(ResourcePlanHistory).filter(
+            ResourcePlanHistory.project_id == project_id,
+            ResourcePlanHistory.position_id == position_id,
+        )
+
+        if project_role_id:
+            query = query.filter(ResourcePlanHistory.project_role_id == project_role_id)
+        else:
+            query = query.filter(ResourcePlanHistory.project_role_id.is_(None))
+
+        if is_tbd:
+            query = query.filter(ResourcePlanHistory.user_id.is_(None))
+        else:
+            query = query.filter(ResourcePlanHistory.user_id == user_id)
+
+        rows = (
+            query.order_by(ResourcePlanHistory.created_at.desc(), ResourcePlanHistory.id.desc())
+            .limit(limit)
+            .all()
+        )
+
+        return [
+            {
+                "id": row.id,
+                "resource_plan_id": row.resource_plan_id,
+                "project_id": row.project_id,
+                "year": row.year,
+                "month": row.month,
+                "position_id": row.position_id,
+                "project_role_id": row.project_role_id,
+                "user_id": row.user_id,
+                "actor_user_id": row.actor_user_id,
+                "actor_user_name": row.actor_user_name,
+                "change_type": row.change_type,
+                "before_values": json.loads(row.before_snapshot)
+                if row.before_snapshot
+                else None,
+                "after_values": json.loads(row.after_snapshot)
+                if row.after_snapshot
+                else None,
+                "created_at": row.created_at,
+            }
+            for row in rows
+        ]
+
+    def create(
+        self, plan_in: ResourcePlanCreate, created_by: str, actor_user_name: str
+    ) -> dict:
         """Create a new resource plan"""
         # Check if project exists
         project = (
@@ -177,31 +285,68 @@ class ResourcePlanService:
         self.db.add(db_plan)
         self.db.commit()
         self.db.refresh(db_plan)
+        self._log_history(
+            change_type="create",
+            actor_user_id=created_by,
+            actor_user_name=actor_user_name,
+            after_snapshot=self._serialize_plan_snapshot(db_plan),
+            resource_plan_id=db_plan.id,
+        )
+        self.db.commit()
 
         # Reload with relationships
         return self.get_by_id(db_plan.id)
 
-    def update(self, plan_id: int, plan_in: ResourcePlanUpdate) -> Optional[dict]:
+    def update(
+        self,
+        plan_id: int,
+        plan_in: ResourcePlanUpdate,
+        actor_user_id: str,
+        actor_user_name: str,
+    ) -> Optional[dict]:
         """Update a resource plan"""
         db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
         if not db_plan:
             return None
 
+        before_snapshot = self._serialize_plan_snapshot(db_plan)
         update_data = plan_in.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_plan, key, value)
 
+        after_snapshot = self._serialize_plan_snapshot(db_plan)
+        if before_snapshot == after_snapshot:
+            self.db.refresh(db_plan)
+            return self.get_by_id(plan_id)
+
         self.db.commit()
         self.db.refresh(db_plan)
+        self._log_history(
+            change_type="update",
+            actor_user_id=actor_user_id,
+            actor_user_name=actor_user_name,
+            before_snapshot=before_snapshot,
+            after_snapshot=self._serialize_plan_snapshot(db_plan),
+            resource_plan_id=db_plan.id,
+        )
+        self.db.commit()
 
         return self.get_by_id(plan_id)
 
-    def delete(self, plan_id: int) -> bool:
+    def delete(self, plan_id: int, actor_user_id: str, actor_user_name: str) -> bool:
         """Delete a resource plan"""
         db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
         if not db_plan:
             return False
 
+        before_snapshot = self._serialize_plan_snapshot(db_plan)
+        self._log_history(
+            change_type="delete",
+            actor_user_id=actor_user_id,
+            actor_user_name=actor_user_name,
+            before_snapshot=before_snapshot,
+            resource_plan_id=db_plan.id,
+        )
         self.db.delete(db_plan)
         self.db.commit()
         return True
@@ -221,7 +366,9 @@ class ResourcePlanService:
             tbd_only=True,
         )
 
-    def assign_user(self, plan_id: int, user_id: str) -> Optional[dict]:
+    def assign_user(
+        self, plan_id: int, user_id: str, actor_user_id: str, actor_user_name: str
+    ) -> Optional[dict]:
         """Assign a user to a TBD position"""
         db_plan = self.db.query(ResourcePlan).filter(ResourcePlan.id == plan_id).first()
         if not db_plan:
@@ -236,9 +383,19 @@ class ResourcePlanService:
         if db_plan.user_id is not None:
             raise ValueError("This position is already assigned to a user")
 
+        before_snapshot = self._serialize_plan_snapshot(db_plan)
         db_plan.user_id = user_id
         self.db.commit()
         self.db.refresh(db_plan)
+        self._log_history(
+            change_type="assign",
+            actor_user_id=actor_user_id,
+            actor_user_name=actor_user_name,
+            before_snapshot=before_snapshot,
+            after_snapshot=self._serialize_plan_snapshot(db_plan),
+            resource_plan_id=db_plan.id,
+        )
+        self.db.commit()
 
         return self.get_by_id(plan_id)
 

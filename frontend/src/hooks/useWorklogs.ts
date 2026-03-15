@@ -11,7 +11,9 @@ import {
     deleteWorklog,
     copyWeek,
     getDailySummary,
+    getMonthlyCompletionRates,
     WorkLogListParams,
+    MonthlyCompletionParams,
 } from '@/api/worklogs';
 
 // Query keys
@@ -120,6 +122,7 @@ export function useDailySummary(userId: string | undefined, date: string | undef
 import { getWorklogsTable, WorkLogTableParams } from '@/api/worklogs';
 
 const WORKLOGS_TABLE_KEY = 'worklogs-table';
+const MONTHLY_COMPLETION_KEY = 'monthly-worklog-completion';
 
 export function useWorklogsTable(params: WorkLogTableParams & { enabled?: boolean } = {}) {
     const { enabled = true, ...queryParams } = params;
@@ -128,5 +131,17 @@ export function useWorklogsTable(params: WorkLogTableParams & { enabled?: boolea
         queryFn: () => getWorklogsTable(queryParams),
         enabled,
         staleTime: 1000 * 60 * 5, // Cache for 5 minutes to prevent frequent refetching
+    });
+}
+
+export function useMonthlyWorklogCompletion(
+    params: MonthlyCompletionParams & { enabled?: boolean }
+) {
+    const { enabled = true, ...queryParams } = params;
+    return useQuery({
+        queryKey: [MONTHLY_COMPLETION_KEY, queryParams],
+        queryFn: () => getMonthlyCompletionRates(queryParams),
+        enabled,
+        staleTime: 1000 * 60 * 5,
     });
 }

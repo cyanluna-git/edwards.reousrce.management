@@ -12,6 +12,9 @@
     "includeCompleted": "Completed/Cancelled 포함",
     "tbdAssignment": "TBD 할당",
     "tbdAssignmentTooltip": "TBD(미할당) 포지션에 실제 담당자를 배정합니다",
+    "applyToAllMonths": "전체 월에 적용",
+    "clearAllMonths": "전체 비우기",
+    "viewHistory": "이력",
     "save": "저장",
     "cancel": "취소",
     "saving": "저장 중..."
@@ -24,6 +27,8 @@
     "userPlaceholder": "TBD (미할당)",
     "userHelp": "담당자를 선택하지 않으면 TBD(미할당) 포지션으로 생성됩니다.",
     "monthlyFte": "월별 FTE 배분 (0.1 ~ 1.0)",
+    "monthlyFteHelp": "Enter/방향키로 이동할 수 있고, 여러 셀 값을 복사해 붙여넣을 수 있습니다.",
+    "bulkValuePlaceholder": "일괄값",
     "editTitle": "{{name}} 수정",
     "addTitle": "팀원/포지션 추가"
   },
@@ -39,12 +44,10 @@
     "noProjects": "등록된 프로젝트가 없습니다."
   },
   "calendar": {
-    "today": "오늘",
-    "prev3Months": "3개월 이전",
-    "next3Months": "3개월 이후",
-    "prev1Month": "1개월 이전",
-    "next1Month": "1개월 이후",
-    "defaultView": "기본 뷰 (오늘 기준)"
+    "currentYear": "올해",
+    "baseYear": "기준 연도",
+    "prevYear": "이전 연도 범위",
+    "nextYear": "다음 연도 범위"
   },
   "confirm": {
     "deleteRow": "\"{{name}}\" 행을 삭제하시겠습니까?"
@@ -100,6 +103,21 @@
     "loading": "데이터를 불러오는 중...",
     "loadError": "데이터 로딩 실패: {{message}}",
     "noMembers": "등록된 인원이 없습니다."
+  },
+  "history": {
+    "title": "{{name}} 변경 이력",
+    "loading": "변경 이력을 불러오는 중...",
+    "loadError": "변경 이력 로딩 실패: {{message}}",
+    "empty": "표시할 변경 이력이 없습니다.",
+    "actor": "변경자: {{name}}",
+    "before": "변경 전",
+    "after": "변경 후",
+    "changeTypes": {
+      "create": "생성",
+      "update": "수정",
+      "delete": "삭제",
+      "assign": "할당"
+    }
   },
   "matrix": {
     "loading": "리소스 매트릭스 로딩 중...",

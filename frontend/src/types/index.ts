@@ -53,6 +53,7 @@ export interface User {
     sub_team_id?: string
     position_id: string
     primary_business_unit_id?: string  // 주 활동 사업영역
+    seen_release_note_version?: string
     role: UserRole
     is_active: boolean
     hire_date?: string
@@ -259,6 +260,23 @@ export interface ResourcePlan {
     user_name?: string
     business_unit_name?: string  // NEW: BU from project's program
     is_tbd: boolean
+}
+
+export interface ResourcePlanHistory {
+    id: number
+    resource_plan_id?: number | null
+    project_id: string
+    year: number
+    month: number
+    position_id: string
+    project_role_id?: string | null
+    user_id?: string | null
+    actor_user_id: string
+    actor_user_name: string
+    change_type: string
+    before_values?: Record<string, unknown> | null
+    after_values?: Record<string, unknown> | null
+    created_at?: string | null
 }
 
 export interface ResourcePlanCreate {

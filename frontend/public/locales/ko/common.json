@@ -96,6 +96,50 @@
     "clickForDetails": "클릭하여 상세 보기",
     "nMore": "+ {{count}}개 더"
   },
+  "releaseNotes": {
+    "title": "새로 업데이트된 기능",
+    "description": "최근 워크로그 개선 사항과 새 AI 입력 기능을 빠르게 확인해보세요.",
+    "confirm": "확인했어요",
+    "viewFullHistory": "업데이트 페이지 보기",
+    "pageTitle": "업데이트 히스토리",
+    "pageDescription": "최근 릴리즈에서 바뀐 기능을 한 곳에서 확인할 수 있습니다. 이번 업데이트의 핵심은 LLM 기반 자연어 워크로그 입력입니다.",
+    "latestBadge": "최신 업데이트",
+    "versionLabel": "현재 릴리즈",
+    "tryItHint": "워크로그 입력 화면에서 AI 버튼으로 바로 사용할 수 있습니다.",
+    "goToWorklogs": "워크로그로 이동",
+    "quickStartTitle": "바로 써보기",
+    "quickStart": {
+      "step1Title": "Entry 화면 열기",
+      "step1Body": "WorkLogs의 Entry 탭에서 입력할 날짜 칸을 선택합니다.",
+      "step2Title": "AI 버튼 누르기",
+      "step2Body": "날짜 카드 하단의 AI 버튼으로 자연어 입력 모달을 엽니다.",
+      "step3Title": "자연어로 입력 후 저장",
+      "step3Body": "오늘 한 일을 문장으로 적으면 AI가 항목으로 나눠주고, 검토 후 그대로 저장할 수 있습니다."
+    },
+    "items": {
+      "aiWorklog": {
+        "title": "LLM 기반 자연어 워크로그 입력",
+        "body": "이제 WorkLogs Entry 화면에서 AI 버튼을 눌러 오늘 한 일을 자연어로 입력하면, AI가 프로젝트·업무 유형·시간 후보를 분석해 저장 가능한 워크로그 항목으로 정리해줍니다.",
+        "highlight": "이번 릴리즈의 핵심 기능"
+      },
+      "monthlyRate": {
+        "title": "월간 입력률 화면 분리",
+        "body": "월간 입력률은 별도 Monthly Rate 탭에서 사용자별 비교가 가능하고, Entry 화면 상단에서는 내 이달 입력률을 바로 확인할 수 있습니다."
+      },
+      "dragDrop": {
+        "title": "워크로그 날짜 이동",
+        "body": "주간 캘린더에서 워크로그 카드를 다른 날짜로 끌어 놓으면 날짜를 바로 옮길 수 있습니다."
+      },
+      "copyWeek": {
+        "title": "지난주 복사 개선",
+        "body": "이제 copy last week는 지난주 전체가 아니라 정기 미팅 성격의 weekly, PTM 항목만 복사합니다."
+      },
+      "csv": {
+        "title": "CSV 한글 출력 개선",
+        "body": "워크로그 CSV 다운로드가 Excel에서 한글이 깨지지 않도록 인코딩 출력이 개선되었습니다."
+      }
+    }
+  },
   "form": {
     "name": "이름",
     "description": "설명",

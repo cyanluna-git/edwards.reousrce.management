@@ -14,6 +14,7 @@ import { WeeklyCalendarGrid } from '@/components/worklogs/WeeklyCalendarGrid';
 import { WorkLogEntryModal } from '@/components/worklogs/WorkLogEntryModal';
 import { LeaveEntryModal } from '@/components/worklogs/LeaveEntryModal';
 import { WorkLogTableView } from '@/components/worklogs/WorkLogTableView';
+import { MyMonthlyRateCard, WorkLogMonthlyRateView } from '@/components/worklogs/WorkLogMonthlyRateView';
 import { AIWorklogModal } from '@/components/worklogs/AIWorklogModal';
 import {
     useWorklogs,
@@ -41,6 +42,7 @@ export function WorkLogsPage() {
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
     const [isAIModalOpen, setIsAIModalOpen] = useState(false);
     const [selectedDateForAI, setSelectedDateForAI] = useState<Date | null>(null);
+    const [movingWorklogId, setMovingWorklogId] = useState<number | null>(null);
 
     // Calculate week range for API query
     const weekRange = {
@@ -89,6 +91,25 @@ export function WorkLogsPage() {
     const handleWorklogDelete = async (worklogId: number) => {
         if (confirm(t('confirm.deleteWorklog'))) {
             await deleteMutation.mutateAsync(worklogId);
+        }
+    };
+
+    const handleWorklogMove = async (worklog: WorkLog, targetDate: string) => {
+        const sourceDate = worklog.date.split('T')[0];
+        if (sourceDate === targetDate) {
+            return;
+        }
+
+        setMovingWorklogId(worklog.id);
+        try {
+            await updateMutation.mutateAsync({
+                id: worklog.id,
+                data: { date: targetDate },
+            });
+        } catch (error: unknown) {
+            alert(getErrorMessage(error));
+        } finally {
+            setMovingWorklogId(null);
         }
     };
 
@@ -168,11 +189,14 @@ export function WorkLogsPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
                     <TabsTrigger value="entry">📅 {t('tabs.entry')}</TabsTrigger>
+                    <TabsTrigger value="monthly-rate">📈 {t('tabs.monthlyRate')}</TabsTrigger>
                     <TabsTrigger value="table">📊 {t('tabs.table')}</TabsTrigger>
                 </TabsList>
 
                 {/* Entry Tab - Calendar View */}
                 <TabsContent value="entry" className="space-y-4 mt-4">
+                    <MyMonthlyRateCard />
+
                     {/* Week Navigation */}
                     <Card>
                         <CardHeader className="py-3">
@@ -220,9 +244,15 @@ export function WorkLogsPage() {
                             onCellClick={handleCellClick}
                             onWorklogEdit={handleWorklogEdit}
                             onWorklogDelete={handleWorklogDelete}
+                            onWorklogMove={handleWorklogMove}
                             onAIInputClick={isAIHealthy ? handleAIInputClick : undefined}
+                            movingWorklogId={movingWorklogId}
                         />
                     )}
+                </TabsContent>
+
+                <TabsContent value="monthly-rate" className="mt-4">
+                    <WorkLogMonthlyRateView />
                 </TabsContent>
 
                 {/* Table Tab */}
@@ -281,4 +311,3 @@ export function WorkLogsPage() {
 }
 
 export default WorkLogsPage;
-

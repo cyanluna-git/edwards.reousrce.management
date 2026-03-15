@@ -43,6 +43,7 @@ export function WorkLogTableView() {
     const [userFilter, setUserFilter] = useState<string>('');
     // 기타 필터
     const [workTypeFilter, setWorkTypeFilter] = useState<string>('');
+    const [userSearch, setUserSearch] = useState('');
     const [isDownloading, setIsDownloading] = useState(false);
 
     // Load data on mount
@@ -103,8 +104,27 @@ export function WorkLogTableView() {
     // Work types
     const workTypes = ['SW Develop', 'Documentation', 'Meeting', 'Review', 'Training', 'Test', 'Leave', 'Support'];
 
+    const filteredWorklogs = useMemo(() => {
+        const normalizedSearch = userSearch.trim().toLowerCase();
+        if (!normalizedSearch) {
+            return worklogs;
+        }
+
+        return worklogs.filter((wl) => {
+            const haystack = [
+                wl.user_korean_name,
+                wl.user_name,
+                wl.department_name,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return haystack.includes(normalizedSearch);
+        });
+    }, [worklogs, userSearch]);
+
     // Calculate totals
-    const totalHours = worklogs.reduce((sum, wl) => sum + wl.hours, 0);
+    const totalHours = filteredWorklogs.reduce((sum, wl) => sum + wl.hours, 0);
 
     // Quick date filters
     const setDateRange = (days: number) => {
@@ -119,6 +139,7 @@ export function WorkLogTableView() {
         setSubTeamFilter('');
         setUserFilter('');
         setWorkTypeFilter('');
+        setUserSearch('');
     };
 
     const handleDownloadCsv = async () => {
@@ -145,11 +166,10 @@ export function WorkLogTableView() {
                     {!isAdmin && <span>({t('table.myLogsOnly')}) · </span>}
                     {t('table.total')}: <span className="font-bold text-primary">{totalHours.toFixed(1)}h</span>
                     {' · '}
-                    {t('table.records', { count: worklogs.length })}
+                    {t('table.records', { count: filteredWorklogs.length })}
                 </div>
             </div>
 
-            {/* Filters */}
             <Card>
                 <CardHeader className="py-2">
                     <CardTitle className="text-base">{t('table.filters')}</CardTitle>
@@ -247,6 +267,12 @@ export function WorkLogTableView() {
                                     <option key={u.id} value={u.id}>{u.korean_name || u.name}</option>
                                 ))}
                             </select>
+                            <Input
+                                value={userSearch}
+                                onChange={(e) => setUserSearch(e.target.value)}
+                                placeholder={t('completion.userSearchPlaceholder')}
+                                className="h-8 w-48"
+                            />
                     </div>
 
                     {/* Row 4: Work Type & Actions */}
@@ -277,7 +303,7 @@ export function WorkLogTableView() {
                 <CardContent className="p-0">
                     {isLoading ? (
                         <div className="text-center py-8">{t('status.loading')}</div>
-                    ) : worklogs.length === 0 ? (
+                    ) : filteredWorklogs.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">{t('table.noData')}</div>
                     ) : (
                         <div className="overflow-x-auto">
@@ -294,7 +320,7 @@ export function WorkLogTableView() {
                                     </tr>
                                 </thead>
                                 <tbody className="virtualized">
-                                    {worklogs.map((wl) => (
+                                    {filteredWorklogs.map((wl) => (
                                         <tr key={wl.id} className="border-t hover:bg-muted/30">
                                             <td className="p-2 whitespace-nowrap">{String(wl.date)}</td>
                                             <td className="p-2 whitespace-nowrap">

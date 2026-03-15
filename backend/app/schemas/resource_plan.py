@@ -2,7 +2,7 @@
 Pydantic Schemas for Resource Plan CRUD operations
 """
 
-from typing import Optional, List
+from typing import Optional, List, Any, Dict
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -90,3 +90,22 @@ class ResourcePlanSummary(BaseModel):
     total_planned_hours: float
     tbd_count: int  # Number of TBD positions
     assigned_count: int  # Number of assigned positions
+
+
+class ResourcePlanHistory(BaseModel):
+    """Schema for resource plan history entries"""
+
+    id: int
+    resource_plan_id: Optional[int] = None
+    project_id: str
+    year: int
+    month: int
+    position_id: str
+    project_role_id: Optional[str] = None
+    user_id: Optional[str] = None
+    actor_user_id: str
+    actor_user_name: str
+    change_type: str
+    before_values: Optional[Dict[str, Any]] = None
+    after_values: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None

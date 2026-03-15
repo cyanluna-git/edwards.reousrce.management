@@ -8,6 +8,8 @@ from app.schemas.auth import (
     UserLogin,
     UserResponse,
     TokenRefreshRequest,
+    ReleaseNotesAckRequest,
+    ReleaseNotesAckResponse,
 )
 from app.schemas.user import User, UserCreate, UserUpdate
 from app.schemas.user_history import UserHistory, UserHistoryCreate
@@ -18,6 +20,8 @@ from app.schemas.worklog import (
     WorkLogUpdate,
     DailySummary,
     CopyWeekRequest,
+    MonthlyCompletionEntry,
+    MonthlyCompletionResponse,
 )
 from app.schemas.scenario import (
     ProjectScenario,
@@ -37,6 +41,8 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "TokenRefreshRequest",
+    "ReleaseNotesAckRequest",
+    "ReleaseNotesAckResponse",
     "User",
     "UserCreate",
     "UserUpdate",
@@ -50,6 +56,8 @@ __all__ = [
     "WorkLogUpdate",
     "DailySummary",
     "CopyWeekRequest",
+    "MonthlyCompletionEntry",
+    "MonthlyCompletionResponse",
     "ProjectScenario",
     "ProjectScenarioCreate",
     "ProjectScenarioUpdate",

@@ -10,9 +10,59 @@ import shutil
 import subprocess
 import tarfile
 import gzip
+import tempfile
 from pathlib import Path
 from datetime import datetime
 import json
+
+
+DEPLOY_ROOT_INCLUDE = {
+    'backend',
+    'frontend',
+    'docker-compose.yml',
+    '.env.example',
+    '.env.remote',
+    '.env.remote.example',
+}
+
+DEPLOY_EXCLUDE_PARTS = {
+    '.git',
+    '.github',
+    '.venv',
+    'venv',
+    '.mypy_cache',
+    '.pytest_cache',
+    '__pycache__',
+    'node_modules',
+    '.next',
+    'dist',
+    'build',
+    'build_output',
+    'backup',
+    'backups',
+    '.claude',
+    '.codex',
+    'kanban-board',
+    'screenshots',
+    'playwright-report',
+    'test-results',
+    'tests',
+    'e2e',
+    'dev_tools',
+    'workthrough',
+    'logs',
+    'reports',
+    'coverage',
+    '.coverage',
+    'htmlcov',
+}
+
+DEPLOY_EXCLUDE_FILES = {
+    '.env',
+    '.DS_Store',
+    'playwright.config.ts',
+    'tsc_errors.log',
+}
 
 
 class Colors:
@@ -82,44 +132,45 @@ def create_build_directory():
     return build_dir
 
 
+def should_exclude_deploy_path(path: Path, root_dir: Path) -> bool:
+    """Return True when a source path should not be packaged for deployment."""
+    rel_path = path.relative_to(root_dir)
+    if not rel_path.parts:
+        return False
+
+    if rel_path.parts[0] not in DEPLOY_ROOT_INCLUDE:
+        return True
+
+    if rel_path.name in DEPLOY_EXCLUDE_FILES:
+        return True
+
+    return any(part in DEPLOY_EXCLUDE_PARTS for part in rel_path.parts)
+
+
+def should_exclude_archive_member(path: Path, project_dir: Path) -> bool:
+    """Return True when a generated archive member should be skipped."""
+    rel_path = path.relative_to(project_dir)
+    if not rel_path.parts:
+        return False
+
+    if rel_path.name in DEPLOY_EXCLUDE_FILES:
+        return True
+
+    return any(part in DEPLOY_EXCLUDE_PARTS for part in rel_path.parts)
+
+
 def copy_project_files(build_dir):
     """Copy project files excluding unnecessary ones"""
     print_step("Copying project files")
     
     project_dir = build_dir / 'edwards_project'
     project_dir.mkdir(exist_ok=True)
-    
-    exclude_patterns = {
-        '.git',
-        '.github',
-        '.venv',
-        '.mypy_cache',
-        'node_modules',
-        '.next',
-        '__pycache__',
-        '.pytest_cache',
-        'dist',
-        'build',
-        '.DS_Store',
-        'backup',
-        'backups',
-        'build_output',
-        '.env'
-    }
-    
-    def should_exclude(path):
-        for pattern in exclude_patterns:
-            if pattern in path.parts:
-                return True
-            if path.name == pattern:
-                return True
-        return False
-    
+
     current_dir = Path('.')
     copied_count = 0
     
     for item in current_dir.rglob('*'):
-        if should_exclude(item):
+        if should_exclude_deploy_path(item, current_dir):
             continue
         
         rel_path = item.relative_to(current_dir)
@@ -251,6 +302,7 @@ def build_docker_images(project_dir):
         return False
     
     original_cwd = os.getcwd()
+    temp_docker_config_dir = None
     # docker-compose parses the entire yml (including db service env vars)
     # even when building only backend/frontend. Provide a stub .env so
     # required variables like POSTGRES_PASSWORD don't cause interpolation errors.
@@ -272,12 +324,31 @@ def build_docker_images(project_dir):
 
         os.chdir(str(project_dir))
 
+        docker_env = os.environ.copy()
+        docker_config_path = Path.home() / '.docker' / 'config.json'
+        if docker_config_path.exists():
+            with open(docker_config_path, 'r', encoding='utf-8') as f:
+                docker_config = json.load(f)
+
+            if docker_config.get('credsStore'):
+                temp_docker_config_dir = Path(tempfile.mkdtemp(prefix='edwards-docker-config-'))
+                sanitized_config = {
+                    key: value
+                    for key, value in docker_config.items()
+                    if key != 'credsStore'
+                }
+                with open(temp_docker_config_dir / 'config.json', 'w', encoding='utf-8') as f:
+                    json.dump(sanitized_config, f)
+                docker_env['DOCKER_CONFIG'] = str(temp_docker_config_dir)
+                print_info("Using sanitized Docker config without credential helper for build")
+
         # Build backend image
         print_info("Building backend Docker image...")
         subprocess.run(
             ['docker-compose', 'build', 'backend'],
             check=True,
-            capture_output=False  # Show output directly to see errors
+            capture_output=False,  # Show output directly to see errors
+            env=docker_env,
         )
         print_colored("  ✓ Backend image built", Colors.GREEN)
 
@@ -286,7 +357,8 @@ def build_docker_images(project_dir):
         subprocess.run(
             ['docker-compose', 'build', 'frontend', '--no-cache'],
             check=True,
-            capture_output=False  # Show output directly to see errors
+            capture_output=False,  # Show output directly to see errors
+            env=docker_env,
         )
         print_colored("  ✓ Frontend image built", Colors.GREEN)
 
@@ -301,6 +373,9 @@ def build_docker_images(project_dir):
         if created_stub and stub_env.exists():
             stub_env.unlink()
             print_info("Removed temporary .env from build directory")
+        if temp_docker_config_dir and temp_docker_config_dir.exists():
+            shutil.rmtree(temp_docker_config_dir, ignore_errors=True)
+            print_info("Removed temporary Docker config")
 
 
 def export_docker_images(project_dir):
@@ -367,10 +442,10 @@ echo "Loading Docker images..."
 cd "$(dirname "$0")"
 
 echo "[1/3] Loading PostgreSQL image..."
-if [ -f postgres-16.tar.gz ]; then
-    docker load < postgres-16.tar.gz
+if [ -f postgres-15.tar.gz ]; then
+    docker load < postgres-15.tar.gz
 else
-    echo "  ⚠ postgres-16.tar.gz not found, skipping..."
+    echo "  ⚠ postgres-15.tar.gz not found, skipping..."
 fi
 
 echo "[2/3] Loading backend image..."
@@ -405,10 +480,10 @@ Set-Location $ScriptDir
 Write-Host "Loading Docker images..."
 
 Write-Host "[1/3] Loading PostgreSQL image..."
-if (Test-Path "postgres-16.tar.gz") {
-    docker load -i postgres-16.tar.gz
+if (Test-Path "postgres-15.tar.gz") {
+    docker load -i postgres-15.tar.gz
 } else {
-    Write-Host "  ⚠ postgres-16.tar.gz not found, skipping..."
+    Write-Host "  ⚠ postgres-15.tar.gz not found, skipping..."
 }
 
 Write-Host "[2/3] Loading backend image..."
@@ -588,8 +663,8 @@ def create_archive(build_dir, project_dir):
     print_info(f"Compressing project to {archive_name}...")
     
     def archive_filter(tarinfo):
-        # Exclude heavy directories that are not needed for Docker deployment
-        if "node_modules" in tarinfo.name or ".venv" in tarinfo.name or ".next" in tarinfo.name:
+        member_path = project_dir / Path(tarinfo.name).relative_to('edwards_project')
+        if should_exclude_archive_member(member_path, project_dir):
             return None
         return tarinfo
     
@@ -622,14 +697,19 @@ def generate_summary(build_dir, archive_path):
   Size: {size_mb:.1f}MB
 
 📋 Included in Archive:
-  ✓ Source code (backend + frontend)
+  ✓ Deployment runtime files only
+  ✓ Backend source and runtime assets
+  ✓ Frontend source and runtime assets
+  ✓ Docker Compose configuration
+  ✓ Environment templates / remote env file
   ✓ Docker images (postgres, backend, frontend)
-  ✓ Python dependencies (backend .venv)
-  ✓ Node dependencies (frontend node_modules)
-  ✓ Frontend build dist/
-  ✓ Configuration files (.env.example, docker-compose.yml)
-  ✓ Database backup files (if available)
   ✓ Deployment scripts (load_images.sh, DEPLOY_ON_VM.md)
+
+🚫 Excluded from Archive:
+  - Git metadata and local agent folders
+  - Test reports, screenshots, kanban board files
+  - node_modules, virtualenvs, caches, local backups
+  - Frontend dist/ and other rebuildable artifacts
 
 🚀 Next Steps (VM Server):
   1. Transfer to VM:
@@ -677,7 +757,7 @@ def generate_env_remote():
 
     try:
         result = subprocess.run(
-            [sys.executable, 'deploy_env_remote.py', '--profile', 'server'],
+            [sys.executable, 'scripts/deploy/env.py', '--profile', 'server'],
             capture_output=True,
             text=True,
         )

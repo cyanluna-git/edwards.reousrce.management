@@ -23,6 +23,11 @@
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
     "appName": "Edwards POB",
-    "requestFeedback": "Leave feedback/suggestions."
+    "brandAcronym": "E.O.B",
+    "brandEngineering": "Engineering",
+    "brandOperation": "Operation",
+    "brandBoard": "Board",
+    "requestFeedback": "Leave feedback/suggestions.",
+    "updateHistory": "Update History"
   }
 }

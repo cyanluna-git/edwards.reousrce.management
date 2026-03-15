@@ -23,6 +23,11 @@
     "collapse": "사이드바 접기",
     "expand": "사이드바 열기",
     "appName": "Edwards POB",
-    "requestFeedback": "피드백/개선/의견을 남겨주세요."
+    "brandAcronym": "E.O.B",
+    "brandEngineering": "Engineering",
+    "brandOperation": "Operation",
+    "brandBoard": "Board",
+    "requestFeedback": "피드백/개선/의견을 남겨주세요.",
+    "updateHistory": "업데이트 히스토리"
   }
 }

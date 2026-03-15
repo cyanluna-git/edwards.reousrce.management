@@ -12,6 +12,9 @@
     "includeCompleted": "Include Completed/Cancelled",
     "tbdAssignment": "TBD Assignment",
     "tbdAssignmentTooltip": "Assign actual members to TBD (unassigned) positions",
+    "applyToAllMonths": "Apply to all months",
+    "clearAllMonths": "Clear all",
+    "viewHistory": "History",
     "save": "Save",
     "cancel": "Cancel",
     "saving": "Saving..."
@@ -24,6 +27,8 @@
     "userPlaceholder": "TBD (unassigned)",
     "userHelp": "If no assignee is selected, it will be created as a TBD (unassigned) position.",
     "monthlyFte": "Monthly FTE Distribution (0.1 ~ 1.0)",
+    "monthlyFteHelp": "Use Enter or arrow keys to move across cells, and paste copied values into consecutive months.",
+    "bulkValuePlaceholder": "Bulk value",
     "editTitle": "Edit {{name}}",
     "addTitle": "Add Member/Position"
   },
@@ -39,12 +44,10 @@
     "noProjects": "No registered projects."
   },
   "calendar": {
-    "today": "Today",
-    "prev3Months": "3 months back",
-    "next3Months": "3 months forward",
-    "prev1Month": "1 month back",
-    "next1Month": "1 month forward",
-    "defaultView": "Default view (from today)"
+    "currentYear": "Current Year",
+    "baseYear": "Base Year",
+    "prevYear": "Previous year range",
+    "nextYear": "Next year range"
   },
   "confirm": {
     "deleteRow": "Are you sure you want to delete the \"{{name}}\" row?"
@@ -100,6 +103,21 @@
     "loading": "Loading data...",
     "loadError": "Failed to load data: {{message}}",
     "noMembers": "No members registered."
+  },
+  "history": {
+    "title": "{{name}} Change History",
+    "loading": "Loading change history...",
+    "loadError": "Failed to load change history: {{message}}",
+    "empty": "No change history available.",
+    "actor": "Changed by: {{name}}",
+    "before": "Before",
+    "after": "After",
+    "changeTypes": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "assign": "Assign"
+    }
   },
   "matrix": {
     "loading": "Loading resource matrix...",

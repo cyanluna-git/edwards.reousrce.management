@@ -14,6 +14,7 @@ from app.schemas.resource_plan import (
     ResourcePlanCreate,
     ResourcePlanUpdate,
     ResourcePlanAssign,
+    ResourcePlanHistory,
 )
 from app.services.resource_plan_service import ResourcePlanService
 
@@ -69,6 +70,36 @@ async def get_summary_by_position(
     return service.get_summary_by_position()
 
 
+@router.get("/history", response_model=List[ResourcePlanHistory])
+async def get_resource_plan_history(
+    project_id: str = Query(...),
+    position_id: str = Query(...),
+    project_role_id: Optional[str] = Query(None),
+    user_id: Optional[str] = Query(None),
+    is_tbd: bool = Query(False),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """
+    Get audit history for a resource plan row identity.
+    """
+    if not is_tbd and not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_id is required for assigned resource plan history",
+        )
+
+    service = ResourcePlanService(db)
+    return service.get_history(
+        project_id=project_id,
+        position_id=position_id,
+        project_role_id=project_role_id,
+        user_id=user_id,
+        is_tbd=is_tbd,
+        limit=limit,
+    )
+
+
 # ============ Resource Plan CRUD Endpoints ============
 
 
@@ -110,7 +141,10 @@ async def create_resource_plan(
     """
     service = ResourcePlanService(db)
     try:
-        return service.create(plan_in, created_by=current_user.id)
+        actor_name = current_user.korean_name or current_user.name
+        return service.create(
+            plan_in, created_by=current_user.id, actor_user_name=actor_name
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -143,7 +177,8 @@ async def update_resource_plan(
     Update a resource plan.
     """
     service = ResourcePlanService(db)
-    plan = service.update(plan_id, plan_in)
+    actor_name = current_user.korean_name or current_user.name
+    plan = service.update(plan_id, plan_in, current_user.id, actor_name)
     if not plan:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
@@ -161,7 +196,8 @@ async def delete_resource_plan(
     Delete a resource plan.
     """
     service = ResourcePlanService(db)
-    success = service.delete(plan_id)
+    actor_name = current_user.korean_name or current_user.name
+    success = service.delete(plan_id, current_user.id, actor_name)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"
@@ -182,7 +218,10 @@ async def assign_user_to_plan(
     """
     service = ResourcePlanService(db)
     try:
-        plan = service.assign_user(plan_id, assign_in.user_id)
+        actor_name = current_user.korean_name or current_user.name
+        plan = service.assign_user(
+            plan_id, assign_in.user_id, current_user.id, actor_name
+        )
         if not plan:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Resource plan not found"

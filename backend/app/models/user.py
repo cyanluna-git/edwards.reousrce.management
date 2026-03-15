@@ -32,6 +32,7 @@ class User(Base):
     primary_business_unit_id = Column(
         String(50), ForeignKey("business_units.id"), nullable=True, index=True
     )
+    seen_release_note_version = Column(String(100), nullable=True)
 
     role = Column(String(20), default="USER")  # ADMIN, PM, FM, USER
     is_active = Column(Boolean, default=True)

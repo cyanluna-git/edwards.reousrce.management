@@ -115,6 +115,31 @@ export interface WorkLogTableParams extends WorkLogListParams {
     sub_team_id?: string;
 }
 
+export interface MonthlyCompletionEntry {
+    user_id: string;
+    user_name: string;
+    user_korean_name?: string;
+    department_name?: string;
+    sub_team_name?: string;
+    completed_days: number;
+    business_days: number;
+    completion_rate: number;
+}
+
+export interface MonthlyCompletionResponse {
+    month: string;
+    business_days: number;
+    entries: MonthlyCompletionEntry[];
+}
+
+export interface MonthlyCompletionParams {
+    month: string;
+    department_id?: string;
+    sub_team_id?: string;
+    user_id?: string;
+    user_query?: string;
+}
+
 /**
  * Get worklogs for table view with user info
  * Admin: sees all worklogs
@@ -122,6 +147,13 @@ export interface WorkLogTableParams extends WorkLogListParams {
  */
 export const getWorklogsTable = async (params: WorkLogTableParams = {}): Promise<WorkLogWithUser[]> => {
     const response = await apiClient.get('/worklogs/table', { params });
+    return response.data;
+};
+
+export const getMonthlyCompletionRates = async (
+    params: MonthlyCompletionParams
+): Promise<MonthlyCompletionResponse> => {
+    const response = await apiClient.get('/worklogs/completion/monthly', { params });
     return response.data;
 };
 
@@ -133,11 +165,16 @@ export const downloadWorklogsCsv = async (params: WorkLogTableParams = {}): Prom
         params,
         responseType: 'blob',
     });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const contentDisposition = response.headers['content-disposition'] as string | undefined;
+    const filenameMatch = contentDisposition?.match(/filename="?([^"]+)"?/i);
+    const filename = filenameMatch?.[1] ?? `worklogs_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+    const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], { type: 'text/csv;charset=utf-16le' });
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    link.setAttribute('download', `worklogs_${today}.csv`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     link.remove();

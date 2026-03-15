@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { format, addMonths, startOfMonth } from 'date-fns';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { type JobPosition } from '@/types';
@@ -33,32 +33,41 @@ import { UserHierarchySelect } from '@/components/UserHierarchySelect';
 
 // StatusBadge is now imported from @/components/ui
 
-// Generate 12 months starting from offset months before current
-const generate12Months = (offsetMonths: number = -2) => {
-    const months: { year: number; month: number; label: string }[] = [];
-    const startDate = addMonths(startOfMonth(new Date()), offsetMonths);
+const YEAR_RANGE_SPAN = 3;
 
-    for (let i = 0; i < 12; i++) {
-        const date = addMonths(startDate, i);
-        months.push({
-            year: date.getFullYear(),
-            month: date.getMonth() + 1,
-            label: format(date, 'yy-MMM'),
-        });
+// Generate months for the selected year through the next two years.
+const generateMonthsForYearRange = (startYear: number) => {
+    const months: { year: number; month: number; label: string }[] = [];
+
+    for (let yearOffset = 0; yearOffset < YEAR_RANGE_SPAN; yearOffset++) {
+        const year = startYear + yearOffset;
+        for (let month = 1; month <= 12; month++) {
+            months.push({
+                year,
+                month,
+                label: format(new Date(year, month - 1, 1), 'yy-MMM'),
+            });
+        }
     }
+
     return months;
 };
 
 export const ResourcePlansPage: React.FC = () => {
     const { t } = useTranslation('resource-plans');
     const { canManageResources } = usePermissions();
-    // Calendar offset state (default: -2 = start from 2 months ago)
-    const [calendarOffset, setCalendarOffset] = useState(-2);
-    const months = useMemo(() => generate12Months(calendarOffset), [calendarOffset]);
+    const currentCalendarYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentCalendarYear);
+    const months = useMemo(() => generateMonthsForYearRange(selectedYear), [selectedYear]);
+
+    const yearOptions = useMemo(
+        () => Array.from({ length: 7 }, (_, index) => currentCalendarYear - 2 + index),
+        [currentCalendarYear]
+    );
 
     // Navigation handlers
-    const moveCalendar = (delta: number) => setCalendarOffset(prev => prev + delta);
-    const resetCalendar = () => setCalendarOffset(-2);
+    const moveYearWindow = (delta: number) => setSelectedYear(prev => prev + delta);
+    const resetYearWindow = () => setSelectedYear(currentCalendarYear);
 
     // Tab state: 'detail' | 'project-summary' | 'role-summary'
     const [activeTab, setActiveTab] = useState<'detail' | 'project-summary' | 'role-summary'>('detail');
@@ -100,6 +109,9 @@ export const ResourcePlansPage: React.FC = () => {
     const [editingPlanIds, setEditingPlanIds] = useState<Record<string, number>>({}); // Store plan IDs for editing
     const [showCompleted, setShowCompleted] = useState(false); // Filter completed projects
     const [isTbdModalOpen, setIsTbdModalOpen] = useState(false); // TBD assignment modal
+    const [bulkApplyValue, setBulkApplyValue] = useState<string>('');
+    const monthInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+    const monthGridColumnCount = 6;
 
     // Data fetching
     const { data: projects = [] } = useProjects();
@@ -191,6 +203,8 @@ export const ResourcePlansPage: React.FC = () => {
         setSelectedProjectId(projectId);
         setEditingRow(null);
         setMonthlyValues({});
+        setEditingPlanIds({});
+        setBulkApplyValue('');
         setOriginalValues(null);
         setIsAddModalOpen(true);
     };
@@ -215,6 +229,7 @@ export const ResourcePlansPage: React.FC = () => {
         });
         setMonthlyValues(values);
         setEditingPlanIds(planIds);
+        setBulkApplyValue('');
         setNewProjectRoleId(row.projectRoleId);
         setNewJobPositionId(row.positionId);
         setNewUserId(row.userId);
@@ -341,6 +356,8 @@ export const ResourcePlansPage: React.FC = () => {
         setNewUserId(undefined);
         setEditingRow(null);
         setMonthlyValues({});
+        setEditingPlanIds({});
+        setBulkApplyValue('');
     };
 
     // Handle delete row
@@ -349,6 +366,121 @@ export const ResourcePlansPage: React.FC = () => {
 
         for (const data of Object.values(row.monthlyData)) {
             await deletePlan.mutateAsync(data.planId);
+        }
+    };
+
+    const focusMonthInput = (monthKey: string) => {
+        monthInputRefs.current[monthKey]?.focus();
+        monthInputRefs.current[monthKey]?.select();
+    };
+
+    const updateMonthlyValue = (monthKey: string, value: string) => {
+        setMonthlyValues(prev => ({
+            ...prev,
+            [monthKey]: parseFloat(value) || 0,
+        }));
+    };
+
+    const applyBulkValueToAllMonths = () => {
+        const parsedValue = parseFloat(bulkApplyValue);
+        if (Number.isNaN(parsedValue)) return;
+
+        setMonthlyValues(prev => {
+            const next = { ...prev };
+            months.forEach((month) => {
+                next[`${month.year}-${month.month}`] = parsedValue;
+            });
+            return next;
+        });
+    };
+
+    const clearAllMonthlyValues = () => {
+        setMonthlyValues({});
+        setBulkApplyValue('');
+    };
+
+    const handleMonthlyInputKeyDown = (
+        event: React.KeyboardEvent<HTMLInputElement>,
+        currentIndex: number
+    ) => {
+        const nextIndexMap: Record<string, number> = {
+            Enter: currentIndex + 1,
+            ArrowRight: currentIndex + 1,
+            ArrowLeft: currentIndex - 1,
+            ArrowDown: currentIndex + 6,
+            ArrowUp: currentIndex - 6,
+        };
+        const targetIndex = nextIndexMap[event.key];
+
+        if (targetIndex === undefined) {
+            return;
+        }
+
+        event.preventDefault();
+        const nextMonth = months[targetIndex];
+        if (!nextMonth) {
+            return;
+        }
+        focusMonthInput(`${nextMonth.year}-${nextMonth.month}`);
+    };
+
+    const handleMonthlyInputPaste = (
+        event: React.ClipboardEvent<HTMLInputElement>,
+        startIndex: number
+    ) => {
+        const pastedText = event.clipboardData.getData('text');
+        if (!pastedText.includes('\t') && !pastedText.includes('\n')) {
+            return;
+        }
+
+        event.preventDefault();
+        const rows = pastedText
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .split('\n');
+
+        if (rows.length > 0 && rows[rows.length - 1] === '') {
+            rows.pop();
+        }
+
+        const startRow = Math.floor(startIndex / monthGridColumnCount);
+        const startColumn = startIndex % monthGridColumnCount;
+        let hasApplicableCell = false;
+
+        if (rows.length === 0) {
+            return;
+        }
+
+        setMonthlyValues(prev => {
+            const next = { ...prev };
+            rows.forEach((rowText, rowOffset) => {
+                const columns = rowText.split('\t');
+
+                columns.forEach((cellText, columnOffset) => {
+                    const targetColumn = startColumn + columnOffset;
+                    if (targetColumn >= monthGridColumnCount) {
+                        return;
+                    }
+
+                    const targetIndex =
+                        (startRow + rowOffset) * monthGridColumnCount + targetColumn;
+                    const month = months[targetIndex];
+                    if (!month) {
+                        return;
+                    }
+
+                    hasApplicableCell = true;
+                    const parsedValue = parseFloat(cellText.trim());
+                    next[`${month.year}-${month.month}`] = Number.isNaN(parsedValue)
+                        ? 0
+                        : parsedValue;
+                });
+            });
+            return next;
+        });
+
+        if (!hasApplicableCell) {
+            return;
         }
     };
 
@@ -405,39 +537,37 @@ export const ResourcePlansPage: React.FC = () => {
                 {/* Calendar Navigation */}
                 <div className="flex items-center gap-1 text-sm pb-1">
                     <button
-                        onClick={() => moveCalendar(-3)}
+                        onClick={() => moveYearWindow(-1)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title={t('calendar.prev3Months')}
-                    >
-                        ◀◀
-                    </button>
-                    <button
-                        onClick={() => moveCalendar(-1)}
-                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title={t('calendar.prev1Month')}
+                        title={t('calendar.prevYear')}
                     >
                         ◀
                     </button>
                     <button
-                        onClick={resetCalendar}
-                        className={`px-3 py-1 rounded ${calendarOffset === -2 ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}
-                        title={t('calendar.defaultView')}
+                        onClick={resetYearWindow}
+                        className={`px-3 py-1 rounded ${selectedYear === currentCalendarYear ? 'bg-blue-100 text-blue-700' : 'hover:bg-slate-100 text-slate-600'}`}
+                        title={t('calendar.currentYear')}
                     >
-                        📍 {t('calendar.today')}
+                        📍 {t('calendar.currentYear')}
                     </button>
+                    <select
+                        className="rounded border border-slate-300 bg-white px-2 py-1 text-slate-700"
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        aria-label={t('calendar.baseYear')}
+                    >
+                        {yearOptions.map((year) => (
+                            <option key={year} value={year}>
+                                {year}
+                            </option>
+                        ))}
+                    </select>
                     <button
-                        onClick={() => moveCalendar(1)}
+                        onClick={() => moveYearWindow(1)}
                         className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title={t('calendar.next1Month')}
+                        title={t('calendar.nextYear')}
                     >
                         ▶
-                    </button>
-                    <button
-                        onClick={() => moveCalendar(3)}
-                        className="px-2 py-1 rounded hover:bg-slate-100 text-slate-600"
-                        title={t('calendar.next3Months')}
-                    >
-                        ▶▶
                     </button>
                     <span className="ml-2 text-xs text-slate-400">
                         {months[0]?.label} ~ {months[months.length - 1]?.label}
@@ -547,7 +677,15 @@ export const ResourcePlansPage: React.FC = () => {
                     )}
 
                     {/* Add/Edit Modal */}
-                    <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+                    <Dialog
+                        open={isAddModalOpen}
+                        onOpenChange={(open) => {
+                            setIsAddModalOpen(open);
+                            if (!open) {
+                                setBulkApplyValue('');
+                            }
+                        }}
+                    >
                         <DialogContent className="max-w-4xl">
                             <DialogHeader>
                                 <DialogTitle>
@@ -590,21 +728,44 @@ export const ResourcePlansPage: React.FC = () => {
 
                                 {/* Monthly FTE inputs */}
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium">{t('form.monthlyFte')}</label>
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <label className="text-sm font-medium">{t('form.monthlyFte')}</label>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <input
+                                                type="number"
+                                                className="w-24 rounded border px-2 py-1 text-sm"
+                                                value={bulkApplyValue}
+                                                onChange={(e) => setBulkApplyValue(e.target.value)}
+                                                min={0}
+                                                max={1}
+                                                step={0.1}
+                                                placeholder={t('form.bulkValuePlaceholder')}
+                                            />
+                                            <Button type="button" variant="outline" size="sm" onClick={applyBulkValueToAllMonths}>
+                                                {t('actions.applyToAllMonths')}
+                                            </Button>
+                                            <Button type="button" variant="outline" size="sm" onClick={clearAllMonthlyValues}>
+                                                {t('actions.clearAllMonths')}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{t('form.monthlyFteHelp')}</p>
                                     <div className="grid grid-cols-6 gap-2">
-                                        {months.map(m => {
+                                        {months.map((m, index) => {
                                             const key = `${m.year}-${m.month}`;
                                             return (
                                                 <div key={key} className="flex flex-col items-center">
                                                     <span className="text-xs text-muted-foreground mb-1">{m.label}</span>
                                                     <input
+                                                        ref={(element) => {
+                                                            monthInputRefs.current[key] = element;
+                                                        }}
                                                         type="number"
                                                         className="w-16 px-2 py-1 border rounded text-center text-sm"
                                                         value={monthlyValues[key] || ''}
-                                                        onChange={(e) => setMonthlyValues(prev => ({
-                                                            ...prev,
-                                                            [key]: parseFloat(e.target.value) || 0,
-                                                        }))}
+                                                        onChange={(e) => updateMonthlyValue(key, e.target.value)}
+                                                        onKeyDown={(e) => handleMonthlyInputKeyDown(e, index)}
+                                                        onPaste={(e) => handleMonthlyInputPaste(e, index)}
                                                         min={0}
                                                         max={1}
                                                         step={0.1}

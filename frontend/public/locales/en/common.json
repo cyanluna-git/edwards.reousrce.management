@@ -96,6 +96,50 @@
     "clickForDetails": "Click for details",
     "nMore": "+ {{count}} more"
   },
+  "releaseNotes": {
+    "title": "What's New",
+    "description": "Here are the latest worklog improvements, including the new AI-assisted entry flow.",
+    "confirm": "Got it",
+    "viewFullHistory": "Open updates page",
+    "pageTitle": "Update History",
+    "pageDescription": "Review the latest product changes in one place. The main highlight of this release is LLM-based natural language worklog entry.",
+    "latestBadge": "Latest Update",
+    "versionLabel": "Current Release",
+    "tryItHint": "Open WorkLogs and use the AI button in Entry mode to try it.",
+    "goToWorklogs": "Go to WorkLogs",
+    "quickStartTitle": "Try it now",
+    "quickStart": {
+      "step1Title": "Open the Entry view",
+      "step1Body": "Go to WorkLogs and pick the date cell you want to fill.",
+      "step2Title": "Click the AI button",
+      "step2Body": "Use the AI button at the bottom of the date card to open the natural language input modal.",
+      "step3Title": "Describe your day and save",
+      "step3Body": "Write what you did in plain language. AI will split it into structured worklog items for review and save."
+    },
+    "items": {
+      "aiWorklog": {
+        "title": "LLM-based natural language worklog entry",
+        "body": "In WorkLogs Entry, you can now press the AI button and describe your day in natural language. AI will suggest structured worklog items with project, work type, and hour candidates before saving.",
+        "highlight": "Key feature of this release"
+      },
+      "monthlyRate": {
+        "title": "Monthly rate moved into its own view",
+        "body": "Monthly completion now has a dedicated Monthly Rate tab for team comparison, while Entry shows your own rate for the current month at a glance."
+      },
+      "dragDrop": {
+        "title": "Drag worklogs to another date",
+        "body": "You can now drag a worklog card to another day in the weekly calendar to move its date directly."
+      },
+      "copyWeek": {
+        "title": "Smarter copy last week",
+        "body": "Copy last week now brings over only recurring meeting entries such as weekly and PTM items, instead of all worklogs."
+      },
+      "csv": {
+        "title": "Improved CSV export",
+        "body": "Worklog CSV downloads now use an encoding that preserves Korean text correctly in Excel."
+      }
+    }
+  },
   "form": {
     "name": "Name",
     "description": "Description",

@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
     position_id: str
     department_id: Optional[str] = None
     primary_business_unit_id: Optional[str] = None
+    seen_release_note_version: Optional[str] = None
     is_active: bool
     # Nested relationships
     department: Optional[dict] = None
@@ -69,6 +70,19 @@ class TokenRefreshRequest(BaseModel):
     """Token refresh request - uses refresh token"""
 
     refresh_token: str
+
+
+class ReleaseNotesAckRequest(BaseModel):
+    """Request to acknowledge a release note version."""
+
+    version: str
+
+
+class ReleaseNotesAckResponse(BaseModel):
+    """Response after acknowledging a release note version."""
+
+    success: bool
+    seen_release_note_version: str
 
 
 class SSORegistrationRequest(BaseModel):

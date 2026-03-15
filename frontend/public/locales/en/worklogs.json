@@ -2,6 +2,7 @@
   "title": "WorkLogs",
   "tabs": {
     "entry": "Entry",
+    "monthlyRate": "Monthly Rate",
     "table": "Table"
   },
   "buttons": {
@@ -18,7 +19,7 @@
   },
   "confirm": {
     "deleteWorklog": "Are you sure you want to delete this worklog?",
-    "copyWeek": "Copy all worklogs from last week to this week?"
+    "copyWeek": "Copy only recurring meeting worklogs (weekly, PTM) from last week to this week?"
   },
   "errors": {
     "generic": "An error occurred",
@@ -87,7 +88,10 @@
     "dayFri": "Fri",
     "daySat": "Sat",
     "daySun": "Sun",
+    "aiEntry": "AI work entry",
     "addEntry": "+ Add",
+    "dragHint": "Drag a worklog card onto another date to move it.",
+    "dropHere": "Drop here to move",
     "total": "Total"
   },
   "entryModal": {
@@ -141,6 +145,21 @@
     "businessTrip": "Business Trip",
     "downloadCsv": "CSV Download",
     "downloading": "Downloading..."
+  },
+  "completion": {
+    "title": "Monthly Completion",
+    "myMonthlyTitle": "My Monthly Completion",
+    "month": "Month",
+    "businessDays": "Based on {{count}} business days",
+    "thisMonthBusinessDays": "{{month}} based on {{count}} business days",
+    "completedDays": "Completed Days",
+    "rate": "Completion Rate",
+    "loading": "Loading monthly completion...",
+    "loadError": "Failed to load monthly completion.",
+    "noData": "No users match the current filters.",
+    "noPersonalData": "No completion data for this month yet.",
+    "userSearchPlaceholder": "Search users",
+    "entryTabHint": "Use the Monthly Rate tab for the full comparison view."
   },
   "leave": {
     "title": "Register Leave",

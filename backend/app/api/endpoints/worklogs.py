@@ -3,6 +3,7 @@ WorkLogs endpoints
 """
 
 import csv
+import codecs
 import io
 from typing import Optional, List
 from datetime import date
@@ -21,10 +22,22 @@ from app.schemas.worklog import (
     CopyWeekRequest,
     WorkLogWithUser,
     FrequentSelections,
+    MonthlyCompletionResponse,
 )
 from app.services.worklog_service import WorkLogService
 
 router = APIRouter()
+
+
+def _parse_month_start(month_value: str) -> date:
+    """Parse YYYY-MM into the first day of that month."""
+    try:
+        return date.fromisoformat(f"{month_value}-01")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="month must be in YYYY-MM format",
+        ) from exc
 
 
 @router.get("", response_model=List[WorkLog])
@@ -153,6 +166,31 @@ async def list_worklogs_table(
     return result
 
 
+@router.get("/completion/monthly", response_model=MonthlyCompletionResponse)
+async def get_monthly_completion_rates(
+    month: str = Query(..., description="Target month in YYYY-MM format"),
+    department_id: Optional[str] = Query(None),
+    sub_team_id: Optional[str] = Query(None),
+    user_id: Optional[str] = Query(None),
+    user_query: Optional[str] = Query(None, description="Search by user name or email"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Get monthly worklog completion rates by user.
+    Completion is measured as distinct weekday entries / weekday count for the month.
+    """
+    service = WorkLogService(db)
+    month_start = _parse_month_start(month)
+    return service.get_monthly_completion_rates(
+        month=month_start,
+        department_id=department_id,
+        sub_team_id=sub_team_id,
+        user_id=user_id,
+        user_query=user_query,
+    )
+
+
 @router.get("/export/csv")
 async def export_worklogs_csv(
     user_id: Optional[str] = Query(None),
@@ -183,7 +221,7 @@ async def export_worklogs_csv(
         limit=10000,
     )
 
-    output = io.StringIO()
+    output = io.StringIO(newline="")
     writer = csv.writer(output)
     writer.writerow(["date", "user", "team", "project", "work_type", "hours", "description"])
 
@@ -210,13 +248,14 @@ async def export_worklogs_csv(
         ])
 
     output.seek(0)
+    csv_bytes = codecs.BOM_UTF16_LE + output.getvalue().encode("utf-16le")
     today_str = date.today().strftime("%Y%m%d")
     filename = f"worklogs_{today_str}.csv"
 
     return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename={filename}"},
+        iter([csv_bytes]),
+        media_type="text/csv; charset=utf-16le",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -401,7 +440,7 @@ async def copy_last_week_worklogs(
     current_user=Depends(get_current_user),
 ):
     """
-    Copy all worklogs from last week to current week
+    Copy recurring weekly meeting worklogs from last week to current week
     """
     if current_user.role != "ADMIN" and request.user_id != current_user.id:
         raise HTTPException(

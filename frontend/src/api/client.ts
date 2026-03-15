@@ -170,6 +170,16 @@ export const ssoRegister = async (data: SSORegistrationData): Promise<Token> => 
   return response.data;
 };
 
+export interface ReleaseNotesAckResponse {
+  success: boolean;
+  seen_release_note_version: string;
+}
+
+export const acknowledgeReleaseNotes = async (version: string): Promise<ReleaseNotesAckResponse> => {
+  const response = await apiClient.post<ReleaseNotesAckResponse>('/auth/release-notes/ack', { version });
+  return response.data;
+};
+
 // ============ Milestones API ============
 
 import type { ProjectMilestone, ProjectMilestoneCreate, ProjectMilestoneUpdate } from '@/types';
@@ -254,7 +264,14 @@ export const getProject = async (id: string): Promise<Project> => {
 
 // ============ Resource Plans API ============
 
-import type { ResourcePlan, ResourcePlanCreate, ResourcePlanUpdate, ResourcePlanAssign, JobPosition } from '@/types';
+import type {
+  ResourcePlan,
+  ResourcePlanCreate,
+  ResourcePlanUpdate,
+  ResourcePlanAssign,
+  ResourcePlanHistory,
+  JobPosition,
+} from '@/types';
 
 export interface ResourcePlanFilters {
   project_id?: string;
@@ -262,6 +279,15 @@ export interface ResourcePlanFilters {
   month?: number;
   position_id?: string;
   user_id?: string;
+}
+
+export interface ResourcePlanHistoryFilters {
+  project_id: string;
+  position_id: string;
+  project_role_id?: string;
+  user_id?: string;
+  is_tbd?: boolean;
+  limit?: number;
 }
 
 export const getResourcePlans = async (filters?: ResourcePlanFilters): Promise<ResourcePlan[]> => {
@@ -290,6 +316,21 @@ export const getTbdPositions = async (filters?: Pick<ResourcePlanFilters, 'proje
 
 export const getResourcePlan = async (planId: number): Promise<ResourcePlan> => {
   const response = await apiClient.get(`/resource-plans/${planId}`);
+  return response.data;
+};
+
+export const getResourcePlanHistory = async (
+  filters: ResourcePlanHistoryFilters
+): Promise<ResourcePlanHistory[]> => {
+  const params = new URLSearchParams();
+  params.append('project_id', filters.project_id);
+  params.append('position_id', filters.position_id);
+  if (filters.project_role_id) params.append('project_role_id', filters.project_role_id);
+  if (filters.user_id) params.append('user_id', filters.user_id);
+  if (filters.is_tbd) params.append('is_tbd', 'true');
+  if (filters.limit) params.append('limit', String(filters.limit));
+
+  const response = await apiClient.get(`/resource-plans/history?${params.toString()}`);
   return response.data;
 };
 

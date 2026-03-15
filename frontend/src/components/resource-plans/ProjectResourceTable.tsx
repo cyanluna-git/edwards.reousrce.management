@@ -1,7 +1,10 @@
-import React, { useMemo, memo } from 'react';
+import React, { useMemo, memo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useResourcePlans } from '@/hooks/useResourcePlans';
-import { Button } from '@/components/ui';
+import { getResourcePlanHistory } from '@/api/client';
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui';
+import type { ResourcePlanHistory } from '@/types';
 
 export interface ResourceRow {
     positionId: string;
@@ -30,9 +33,30 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
     onDeleteRow,
 }) => {
     const { t } = useTranslation('resource-plans');
+    const [historyRow, setHistoryRow] = useState<ResourceRow | null>(null);
 
     // Lazy Load: Fetch only when this component is mounted
     const { data: plans = [], isLoading, error } = useResourcePlans({ project_id: projectId });
+    const { data: historyEntries = [], isLoading: isHistoryLoading, error: historyError } = useQuery<ResourcePlanHistory[], Error>({
+        queryKey: [
+            'resource-plan-history',
+            projectId,
+            historyRow?.positionId,
+            historyRow?.projectRoleId || null,
+            historyRow?.userId || null,
+            historyRow?.isTbd || false,
+        ],
+        queryFn: () =>
+            getResourcePlanHistory({
+                project_id: projectId,
+                position_id: historyRow!.positionId,
+                project_role_id: historyRow?.projectRoleId || undefined,
+                user_id: historyRow?.userId || undefined,
+                is_tbd: historyRow?.isTbd,
+                limit: 100,
+            }),
+        enabled: Boolean(historyRow),
+    });
 
     // Process plans into rows
     const rows = useMemo(() => {
@@ -150,6 +174,12 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
                                                 {t('actions.editRow')}
                                             </button>
                                         )}
+                                        <button
+                                            className="text-xs text-slate-600 hover:underline px-1"
+                                            onClick={() => setHistoryRow(row)}
+                                        >
+                                            {t('actions.viewHistory')}
+                                        </button>
                                         {onDeleteRow && (
                                             <button
                                                 className="text-xs text-red-600 hover:underline px-1"
@@ -181,6 +211,66 @@ export const ProjectResourceTable: React.FC<ProjectResourceTableProps> = memo(({
                     </tr>
                 </tbody>
             </table>
+
+            <Dialog open={Boolean(historyRow)} onOpenChange={(open) => !open && setHistoryRow(null)}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {t('history.title', { name: historyRow?.userName || 'TBD' })}
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {isHistoryLoading && (
+                            <div className="text-sm text-slate-500">{t('history.loading')}</div>
+                        )}
+
+                        {historyError && (
+                            <div className="text-sm text-red-600">
+                                {t('history.loadError', { message: historyError.message })}
+                            </div>
+                        )}
+
+                        {!isHistoryLoading && !historyError && historyEntries.length === 0 && (
+                            <div className="text-sm text-slate-500">{t('history.empty')}</div>
+                        )}
+
+                        {!isHistoryLoading && !historyError && historyEntries.map((entry) => (
+                            <article key={entry.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="text-sm font-semibold text-slate-900">
+                                        {t(`history.changeTypes.${entry.change_type.toLowerCase()}`)}
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                        {entry.year}-{String(entry.month).padStart(2, '0')} · {entry.created_at ? new Date(entry.created_at).toLocaleString() : '-'}
+                                    </div>
+                                </div>
+                                <p className="mt-1 text-sm text-slate-600">
+                                    {t('history.actor', { name: entry.actor_user_name })}
+                                </p>
+                                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                                    <div className="rounded border border-slate-200 bg-white p-3">
+                                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            {t('history.before')}
+                                        </div>
+                                        <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-slate-700">
+                                            {JSON.stringify(entry.before_values, null, 2) || '-'}
+                                        </pre>
+                                    </div>
+                                    <div className="rounded border border-slate-200 bg-white p-3">
+                                        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                            {t('history.after')}
+                                        </div>
+                                        <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-slate-700">
+                                            {JSON.stringify(entry.after_values, null, 2) || '-'}
+                                        </pre>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 });

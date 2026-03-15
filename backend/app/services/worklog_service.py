@@ -2,14 +2,17 @@
 Service layer for worklog-related business logic
 """
 
+import re
+from calendar import monthrange
 from typing import List, Optional, Dict
 from datetime import date, timedelta
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func, cast, Date, or_
 
 from app.models.resource import WorkLog
 from app.models.project import Project
 from app.models.work_type import WorkTypeCategory
+from app.models.user import User
 from app.utils import get_io_number
 from app.schemas.worklog import (
     WorkLogCreate,
@@ -22,8 +25,22 @@ from app.schemas.worklog import (
 
 
 class WorkLogService:
+    COPYABLE_RECURRING_MEETING_PATTERN = re.compile(
+        r"(^|[^a-z])(weekly|ptm)([^a-z]|$)",
+        re.IGNORECASE,
+    )
+
     def __init__(self, db: Session):
         self.db = db
+
+    @classmethod
+    def is_copyable_recurring_meeting(cls, description: Optional[str]) -> bool:
+        """Return True when a worklog description looks like a recurring weekly meeting."""
+        if not description:
+            return False
+
+        normalized = " ".join(description.split())
+        return bool(cls.COPYABLE_RECURRING_MEETING_PATTERN.search(normalized))
 
     def get_by_id(self, worklog_id: int) -> Optional[WorkLog]:
         """Get a worklog by its ID."""
@@ -110,13 +127,113 @@ class WorkLogService:
 
         return query.order_by(WorkLog.date.desc()).offset(skip).limit(limit).all()
 
+    def get_monthly_completion_rates(
+        self,
+        *,
+        month: date,
+        department_id: Optional[str] = None,
+        sub_team_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        user_query: Optional[str] = None,
+    ) -> dict:
+        """Return monthly worklog completion rates for users matching the filters."""
+        month_start = month.replace(day=1)
+        month_end = month.replace(day=monthrange(month.year, month.month)[1])
+        business_days = sum(
+            1
+            for day in range(month_start.day, month_end.day + 1)
+            if date(month.year, month.month, day).weekday() < 5
+        )
+
+        users_query = self.db.query(User).options(
+            joinedload(User.department),
+            joinedload(User.sub_team),
+        ).filter(User.is_active == True)
+
+        if department_id:
+            users_query = users_query.filter(User.department_id == department_id)
+        if sub_team_id:
+            users_query = users_query.filter(User.sub_team_id == sub_team_id)
+        if user_id:
+            users_query = users_query.filter(User.id == user_id)
+        if user_query:
+            normalized_query = f"%{user_query.strip().lower()}%"
+            users_query = users_query.filter(
+                or_(
+                    func.lower(User.name).like(normalized_query),
+                    func.lower(func.coalesce(User.korean_name, "")).like(
+                        normalized_query
+                    ),
+                    func.lower(User.email).like(normalized_query),
+                )
+            )
+
+        users = users_query.order_by(
+            func.coalesce(User.korean_name, User.name),
+            User.name,
+        ).all()
+
+        if not users:
+            return {
+                "month": month_start.strftime("%Y-%m"),
+                "business_days": business_days,
+                "entries": [],
+            }
+
+        distinct_rows = (
+            self.db.query(
+                WorkLog.user_id,
+                WorkLog.date.label("worklog_date"),
+            )
+            .filter(
+                WorkLog.user_id.in_([user.id for user in users]),
+                WorkLog.date >= month_start,
+                WorkLog.date <= month_end,
+            )
+            .distinct()
+            .all()
+        )
+
+        completion_counts: Dict[str, int] = {}
+        for row_user_id, row_date in distinct_rows:
+            if row_date.weekday() >= 5:
+                continue
+            completion_counts[row_user_id] = completion_counts.get(row_user_id, 0) + 1
+
+        entries = []
+        for user in users:
+            completed_days = completion_counts.get(user.id, 0)
+            completion_rate = (
+                round((completed_days / business_days) * 100, 1)
+                if business_days > 0
+                else 0.0
+            )
+            entries.append(
+                {
+                    "user_id": user.id,
+                    "user_name": user.name,
+                    "user_korean_name": user.korean_name,
+                    "department_name": user.department.name if user.department else None,
+                    "sub_team_name": user.sub_team.name if user.sub_team else None,
+                    "completed_days": completed_days,
+                    "business_days": business_days,
+                    "completion_rate": completion_rate,
+                }
+            )
+
+        return {
+            "month": month_start.strftime("%Y-%m"),
+            "business_days": business_days,
+            "entries": entries,
+        }
+
     def get_daily_total_hours(
         self, user_id: str, target_date: date, exclude_id: Optional[int] = None
     ) -> float:
         """Get total hours for a user on a specific date."""
         query = self.db.query(func.sum(WorkLog.hours)).filter(
             WorkLog.user_id == user_id,
-            cast(WorkLog.date, Date) == target_date,
+            WorkLog.date == target_date,
         )
         if exclude_id:
             query = query.filter(WorkLog.id != exclude_id)
@@ -157,15 +274,16 @@ class WorkLogService:
 
         update_data = worklog_in.model_dump(exclude_unset=True)
 
-        # Validate hours if being updated
-        if "hours" in update_data:
+        # Re-validate if either the hours or the target date changes.
+        if "hours" in update_data or "date" in update_data:
             target_date = update_data.get("date", db_worklog.date)
             if isinstance(target_date, str):
                 target_date = date.fromisoformat(target_date)
+            target_hours = update_data.get("hours", db_worklog.hours)
             self.validate_daily_hours(
                 db_worklog.user_id,
                 target_date,
-                update_data["hours"],
+                target_hours,
                 exclude_id=worklog_id,
             )
 
@@ -188,7 +306,7 @@ class WorkLogService:
         return db_worklog
 
     def copy_week(self, user_id: str, target_week_start: date) -> List[WorkLog]:
-        """Copy all worklogs from the previous week to the target week."""
+        """Copy recurring weekly meeting worklogs from the previous week."""
         # Calculate previous week's start date (7 days before)
         source_week_start = target_week_start - timedelta(days=7)
         source_week_end = target_week_start - timedelta(days=1)
@@ -198,14 +316,17 @@ class WorkLogService:
             self.db.query(WorkLog)
             .filter(
                 WorkLog.user_id == user_id,
-                cast(WorkLog.date, Date) >= source_week_start,
-                cast(WorkLog.date, Date) <= source_week_end,
+                WorkLog.date >= source_week_start,
+                WorkLog.date <= source_week_end,
             )
             .all()
         )
 
         new_worklogs = []
         for source in source_worklogs:
+            if not self.is_copyable_recurring_meeting(source.description):
+                continue
+
             # Calculate the new date (add 7 days)
             source_date = (
                 source.date.date() if hasattr(source.date, "date") else source.date
