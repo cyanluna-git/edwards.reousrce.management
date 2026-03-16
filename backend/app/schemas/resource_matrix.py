@@ -76,7 +76,8 @@ class PivotRow(BaseModel):
     position_name: Optional[str] = None
     department_name: Optional[str] = None
     sub_team_name: Optional[str] = None
-    total_fte: float = 0.0  # Row Total (sum of allocations)
+    total_fte: float = 0.0  # Row Total (sum of FTE ratios, ~1.0)
+    total_hours: float = 0.0  # Row Total actual WorkLog hours
     allocations: Dict[str, float]  # { col_id: fte_value }
 
 

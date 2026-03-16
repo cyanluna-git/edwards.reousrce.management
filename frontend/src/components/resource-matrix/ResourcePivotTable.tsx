@@ -347,7 +347,14 @@ const RowItem: React.FC<{
 
             {/* Row Total (Sticky Right) */}
             <td className="sticky right-0 bg-blue-50 border-l border-slate-300 p-2 text-right font-bold text-blue-900 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] z-10 text-xs">
-                {row.total_fte.toFixed(1)}
+                <div className="flex flex-col items-end gap-0.5">
+                    <span>{row.total_fte.toFixed(1)}</span>
+                    {row.total_hours > 0 && (
+                        <span className="text-[10px] font-normal text-blue-600">
+                            {row.total_hours.toFixed(0)}h
+                        </span>
+                    )}
+                </div>
             </td>
         </tr>
     );

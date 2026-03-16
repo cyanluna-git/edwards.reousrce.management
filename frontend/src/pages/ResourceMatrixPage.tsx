@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResourcePivotTable } from '@/components/resource-matrix/ResourcePivotTable';
 import { WorklogDrilldownModal } from '@/components/resource-matrix/WorklogDrilldownModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Info, Maximize2, Minimize2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const ResourceMatrixPage: React.FC = () => {
@@ -29,6 +29,18 @@ export const ResourceMatrixPage: React.FC = () => {
         const m = String(today.getMonth() + 1).padStart(2, '0');
         setSelectedMonth(`${y}-${m}`);
     };
+
+    // Fullscreen State
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    useEffect(() => {
+        if (!isFullscreen) return;
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setIsFullscreen(false);
+        };
+        document.addEventListener('keydown', handleEsc);
+        return () => document.removeEventListener('keydown', handleEsc);
+    }, [isFullscreen]);
 
     // Drilldown State
     const [drilldownState, setDrilldownState] = useState<{
@@ -56,7 +68,10 @@ export const ResourceMatrixPage: React.FC = () => {
     };
 
     return (
-        <div className="h-full flex flex-col gap-2 p-2">
+        <div className={isFullscreen
+            ? "fixed inset-0 z-[9999] bg-white flex flex-col gap-2 p-2"
+            : "h-full flex flex-col gap-2 p-2"
+        }>
             {/* Header & Controls Toolbar */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
                 <div>
@@ -112,6 +127,19 @@ export const ResourceMatrixPage: React.FC = () => {
                         onClick={handleResetToday}
                     >
                         Today
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        onClick={() => setIsFullscreen(prev => !prev)}
+                        title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                    >
+                        {isFullscreen
+                            ? <Minimize2 className="h-4 w-4 text-slate-600" />
+                            : <Maximize2 className="h-4 w-4 text-slate-600" />
+                        }
                     </Button>
                 </div>
             </div>

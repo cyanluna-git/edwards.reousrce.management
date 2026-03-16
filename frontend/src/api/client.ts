@@ -1045,6 +1045,7 @@ export interface PivotRow {
   department_name: string | null;
   sub_team_name: string | null;
   total_fte: number;
+  total_hours: number;
   allocations: Record<string, number>;
 }
 

@@ -378,6 +378,7 @@ def get_resource_pivot_matrix(
                 position_name=pos_name,
                 department_name=dept_name,
                 sub_team_name=sub_team_name,
+                total_hours=user_total_project_hours[user_id],
                 allocations={},
             )
 
