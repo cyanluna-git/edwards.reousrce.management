@@ -37,7 +37,7 @@ export const ProjectPlanEditor: React.FC<ProjectPlanEditorProps> = memo(({
     onAddMember,
     onDeleteRow,
     onDataChange,
-    stickyTopOffset = 0,
+    stickyTopOffset: _stickyTopOffset = 0,
 }) => {
     const { t } = useTranslation('resource-plans');
     const { canManageResources } = usePermissions();

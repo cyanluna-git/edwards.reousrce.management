@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ResourcePlan } from '@/types';
@@ -59,7 +59,7 @@ function FteCellWithBreakdown({ total, current }: { total: number; current: numb
     );
 }
 
-export const PlanSummaryPanel: React.FC<PlanSummaryPanelProps> = ({ rows, months, allPlans, currentProjectId }) => {
+export const PlanSummaryPanel: React.FC<PlanSummaryPanelProps> = ({ rows, months, allPlans }) => {
     const { t } = useTranslation('resource-plans');
     const [collapsed, setCollapsed] = useState(getInitialCollapsed);
     const [subTab, setSubTab] = useState<SubTab>('member');
