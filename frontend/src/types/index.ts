@@ -41,7 +41,7 @@ export interface JobPosition {
 }
 
 // User Types
-export type UserRole = 'ADMIN' | 'PM' | 'FM' | 'USER'
+export type UserRole = 'ADMIN' | 'PM' | 'FM' | 'USER' | 'GUEST' | 'VIEWER'
 
 export interface User {
     id: string

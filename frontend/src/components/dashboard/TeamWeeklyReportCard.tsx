@@ -8,13 +8,16 @@ import {
   Eye,
   PencilLine,
   Save,
+  Sparkles,
   SquarePen,
   Users,
 } from "lucide-react";
 
 import {
   type TeamDashboardScope,
+  type WeeklyReportLLMSummaryResponse,
   getApiError,
+  generateWeeklyReportLLMSummary,
   getCurrentWeeklyReport,
   getWeeklyReportHistory,
   upsertWeeklyReport,
@@ -37,6 +40,7 @@ import {
   WeeklyReportEditorToolbar,
   WeeklyReportMarkdown,
 } from "@/components/dashboard/weekly-report-markdown";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TeamWeeklyReportCardProps {
   teamScope: TeamDashboardScope;
@@ -60,6 +64,25 @@ function getScopeType(teamScope: TeamDashboardScope) {
   return null;
 }
 
+const LLM_SUMMARY_START_MARKER = "<!-- LLM_SUMMARY_START -->";
+const LLM_SUMMARY_END_MARKER = "<!-- LLM_SUMMARY_END -->";
+
+function applyLLMSummary(currentBody: string, summaryMarkdown: string): string {
+  const startIdx = currentBody.indexOf(LLM_SUMMARY_START_MARKER);
+  const endIdx = currentBody.indexOf(LLM_SUMMARY_END_MARKER);
+
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    // Replace existing LLM summary block
+    const before = currentBody.slice(0, startIdx + LLM_SUMMARY_START_MARKER.length);
+    const after = currentBody.slice(endIdx);
+    return `${before}\n${summaryMarkdown}\n${after}`;
+  }
+
+  // Append new LLM summary block
+  const separator = currentBody.trim() ? "\n\n---\n\n" : "";
+  return `${currentBody}${separator}${LLM_SUMMARY_START_MARKER}\n${summaryMarkdown}\n${LLM_SUMMARY_END_MARKER}`;
+}
+
 export function TeamWeeklyReportCard({
   teamScope,
   selectedOrgId,
@@ -67,11 +90,15 @@ export function TeamWeeklyReportCard({
   teamName,
 }: TeamWeeklyReportCardProps) {
   const { t } = useTranslation("dashboard");
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [draftBody, setDraftBody] = useState("");
+  const [llmMissingWarning, setLlmMissingWarning] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const isReadOnly = user?.role === "GUEST" || user?.role === "VIEWER";
 
   const teamScopeType = getScopeType(teamScope);
   const isSupportedScope = teamScopeType !== null;
@@ -111,7 +138,7 @@ export function TeamWeeklyReportCard({
         scope_id: selectedOrgId,
         reference_date: referenceDateKey,
         markdown_body: draftBody,
-        status: "draft",
+        status: "published",
       }),
     onSuccess: async () => {
       await Promise.all([
@@ -119,6 +146,28 @@ export function TeamWeeklyReportCard({
         queryClient.invalidateQueries({ queryKey: historyQueryKey }),
       ]);
       setIsEditorOpen(false);
+    },
+  });
+
+  const llmSummaryMutation = useMutation({
+    mutationFn: () =>
+      generateWeeklyReportLLMSummary({
+        team_scope_type: teamScopeType ?? "department",
+        scope_id: selectedOrgId ?? "",
+        week_start: referenceDateKey,
+        save_intermediate: true,
+      }),
+    onSuccess: (result: WeeklyReportLLMSummaryResponse) => {
+      setDraftBody(applyLLMSummary(draftBody, result.team_summary_markdown));
+      if (result.missing_members.length > 0) {
+        setLlmMissingWarning(
+          t("weeklyReport.llmSummaryMissingMembers", {
+            members: result.missing_members.join(", "),
+          })
+        );
+      } else {
+        setLlmMissingWarning(null);
+      }
     },
   });
 
@@ -299,16 +348,48 @@ export function TeamWeeklyReportCard({
               <TabsContent value="edit" className="mt-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <WeeklyReportEditorToolbar onAction={handleToolbarAction} />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDraftBody(previousReport?.markdown_body ?? "")}
-                    disabled={!previousReport}
-                  >
-                    {t("weeklyReport.copyPrevious")}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        setLlmMissingWarning(null);
+                        llmSummaryMutation.mutate();
+                      }}
+                      disabled={isReadOnly || llmSummaryMutation.isPending || !teamScopeType || !selectedOrgId}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      {llmSummaryMutation.isPending
+                        ? t("weeklyReport.llmSummaryGenerating")
+                        : t("weeklyReport.llmSummaryButton")}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDraftBody(previousReport?.markdown_body ?? "")}
+                      disabled={!previousReport}
+                    >
+                      {t("weeklyReport.copyPrevious")}
+                    </Button>
+                  </div>
                 </div>
+                {llmMissingWarning ? (
+                  <Alert className="mt-3">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{llmMissingWarning}</AlertDescription>
+                  </Alert>
+                ) : null}
+                {llmSummaryMutation.isError ? (
+                  <Alert variant="destructive" className="mt-3">
+                    <AlertTitle>{t("weeklyReport.saveFailedTitle")}</AlertTitle>
+                    <AlertDescription>
+                      {getApiError(llmSummaryMutation.error).message}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
                 <label htmlFor="team-weekly-report-body" className="sr-only">
                   {t("weeklyReport.tabEdit")}
                 </label>

@@ -9,17 +9,20 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_write_permission
 from app.models.user import User
 from app.schemas.weekly_report import (
     WeeklyReportCurrentResponse,
     WeeklyReportDeleteResponse,
     WeeklyReportHistoryResponse,
+    WeeklyReportLLMSummaryRequest,
+    WeeklyReportLLMSummaryResponse,
     WeeklyReportResponse,
     WeeklyReportTeamScope,
     WeeklyReportUpsertRequest,
 )
 from app.services.weekly_report_service import WeeklyReportService
+from app.services.weekly_report_summary_service import WeeklyReportSummaryService
 
 router = APIRouter()
 
@@ -85,6 +88,24 @@ async def upsert_weekly_report(
         status_value=body.status,
         title=body.title,
         markdown_body=body.markdown_body,
+    )
+
+
+@router.post("/llm-summary", response_model=WeeklyReportLLMSummaryResponse)
+async def generate_llm_summary(
+    request: WeeklyReportLLMSummaryRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    _: str = Depends(require_write_permission()),
+):
+    """Generate an LLM-powered summary from personal weekly reports for a team scope."""
+    service = WeeklyReportSummaryService(db)
+    return await service.summarize_for_team(
+        team_scope_type=request.team_scope_type,
+        scope_id=request.scope_id,
+        week_start=request.week_start,
+        current_user=current_user,
+        save_intermediate=request.save_intermediate,
     )
 
 

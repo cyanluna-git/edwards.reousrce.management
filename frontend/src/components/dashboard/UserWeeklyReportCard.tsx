@@ -82,7 +82,7 @@ export function UserWeeklyReportCard({ referenceDate }: UserWeeklyReportCardProp
         scope: "user",
         reference_date: referenceDateKey,
         markdown_body: draftBody,
-        status: "draft",
+        status: "published",
       }),
     onSuccess: async () => {
       await Promise.all([

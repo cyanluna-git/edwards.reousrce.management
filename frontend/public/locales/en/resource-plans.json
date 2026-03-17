@@ -97,12 +97,22 @@
     "columnAssignTo": "Assign To",
     "columnAction": "Action"
   },
+  "planSummary": {
+    "title": "Resource Summary",
+    "byMember": "By Member",
+    "byRole": "By Role",
+    "member": "Member",
+    "role": "Role",
+    "total": "Total",
+    "fteWarning": "FTE exceeds 1.0"
+  },
   "resourceTable": {
     "memberPosition": "Member / Position",
     "action": "Action",
     "loading": "Loading data...",
     "loadError": "Failed to load data: {{message}}",
-    "noMembers": "No members registered."
+    "noMembers": "No members registered.",
+    "milestones": "Milestones"
   },
   "history": {
     "title": "{{name}} Change History",

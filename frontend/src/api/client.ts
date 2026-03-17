@@ -1363,6 +1363,33 @@ export const deleteWeeklyReport = async (id: string): Promise<{ success: boolean
   return response.data;
 };
 
+export interface WeeklyReportLLMSummaryRequest {
+  team_scope_type: string;
+  scope_id: string;
+  week_start?: string;
+  save_intermediate?: boolean;
+}
+
+export interface SubTeamSummaryResult {
+  sub_team_id: string;
+  sub_team_name: string;
+  summary_markdown: string;
+  member_count: number;
+}
+
+export interface WeeklyReportLLMSummaryResponse {
+  team_summary_markdown: string;
+  sub_team_summaries?: SubTeamSummaryResult[];
+  personal_report_count: number;
+  missing_members: string[];
+  scope_description: string;
+}
+
+export const generateWeeklyReportLLMSummary = (
+  data: WeeklyReportLLMSummaryRequest
+): Promise<WeeklyReportLLMSummaryResponse> =>
+  apiClient.post('/weekly-reports/llm-summary', data).then((r) => r.data);
+
 // ============ Resource Matrix Drill-down ============
 
 export interface WorklogDetail {

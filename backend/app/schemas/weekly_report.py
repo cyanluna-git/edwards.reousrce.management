@@ -77,3 +77,27 @@ class WeeklyReportDeleteResponse(BaseModel):
     success: bool
     id: str
 
+
+# ---- LLM Summary Schemas ----
+
+class WeeklyReportLLMSummaryRequest(BaseModel):
+    team_scope_type: str  # "department" | "sub_team"
+    scope_id: str
+    week_start: Optional[date] = None  # defaults to current week monday when None
+    save_intermediate: bool = True
+
+
+class SubTeamSummaryResult(BaseModel):
+    sub_team_id: str
+    sub_team_name: str
+    summary_markdown: str
+    member_count: int
+
+
+class WeeklyReportLLMSummaryResponse(BaseModel):
+    team_summary_markdown: str
+    sub_team_summaries: Optional[List[SubTeamSummaryResult]] = None
+    personal_report_count: int
+    missing_members: List[str]
+    scope_description: str
+

@@ -97,12 +97,22 @@
     "columnAssignTo": "할당 대상",
     "columnAction": "액션"
   },
+  "planSummary": {
+    "title": "리소스 요약",
+    "byMember": "인원별",
+    "byRole": "롤별",
+    "member": "인원",
+    "role": "역할",
+    "total": "합계",
+    "fteWarning": "FTE 1.0 초과"
+  },
   "resourceTable": {
     "memberPosition": "팀원/포지션",
     "action": "액션",
     "loading": "데이터를 불러오는 중...",
     "loadError": "데이터 로딩 실패: {{message}}",
-    "noMembers": "등록된 인원이 없습니다."
+    "noMembers": "등록된 인원이 없습니다.",
+    "milestones": "마일스톤"
   },
   "history": {
     "title": "{{name}} 변경 이력",

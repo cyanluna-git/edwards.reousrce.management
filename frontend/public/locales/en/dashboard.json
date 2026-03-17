@@ -184,8 +184,8 @@
     "loading": "Loading weekly report...",
     "loadFailedTitle": "Failed to load weekly report",
     "loadFailedBody": "Please try again in a moment.",
-    "statusDraft": "Draft",
-    "statusPublished": "Published",
+    "statusDraft": "Saved",
+    "statusPublished": "Saved",
     "lastUpdated": "Last updated {{date}}",
     "start": "Start report",
     "edit": "Edit report",
@@ -201,7 +201,7 @@
     "teamEditorPlaceholder": "## Team Highlights\n- Key progress\n\n## Risks / Blockers\n- Issues impacting the team\n\n## Next Week\n- Shared priorities",
     "previewEmpty": "Your Markdown preview will appear here.",
     "cancel": "Cancel",
-    "save": "Save draft",
+    "save": "Save",
     "saving": "Saving...",
     "saveFailedTitle": "Failed to save weekly report",
     "teamEmptyTitle": "No team weekly report for this week yet.",
@@ -209,7 +209,10 @@
     "teamScopeSubTeam": "Sub-Team",
     "teamUnsupportedTitle": "Weekly reports are not available for this scope",
     "teamUnsupportedBody": "Team weekly reports currently support department and sub-team views only.",
-    "teamUnsupportedScope": "This scope is not supported for weekly reports."
+    "teamUnsupportedScope": "This scope is not supported for weekly reports.",
+    "llmSummaryButton": "AI Summary",
+    "llmSummaryGenerating": "Generating summary...",
+    "llmSummaryMissingMembers": "Missing reports: {{members}}"
   },
   "heatmap": {
     "dayMon": "Mon",
